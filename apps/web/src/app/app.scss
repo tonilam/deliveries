@@ -1,0 +1,30 @@
+.shell {
+  max-width: 40rem;
+  margin: 3rem auto;
+  padding: 0 1.5rem;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1e3a8a;
+}
+
+p {
+  margin: 0 0 1rem;
+  color: #334155;
+}
+
+.status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.875rem;
+}
+
+.status.ok {
+  color: #15803d;
+}
+
+.status.err {
+  color: #b91c1c;
+}

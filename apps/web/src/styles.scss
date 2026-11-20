@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap');
+
+/*
+  After CodeArtifact login, install truckit-component-library and prepend in angular.json styles:
+  "node_modules/truckit-component-library/styles/tokens.css"
+*/
+
+:root {
+  --ui-font-family: 'Open Sans', system-ui, sans-serif;
+  --ui-font-size-body-md: 1rem;
+  --ui-line-height-body-md: 1.5;
+  --ui-color-text-primary: #0f172a;
+  --ui-color-background: #f8fafc;
+  --ui-color-brand: #f05a28;
+  --ui-color-navy: #1e3a8a;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size-body-md);
+  line-height: var(--ui-line-height-body-md);
+  color: var(--ui-color-text-primary);
+  background-color: var(--ui-color-background);
+}
