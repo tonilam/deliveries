@@ -1,0 +1,49 @@
+<p class="back">
+  <a routerLink="/admin/settings/countries">← Countries</a>
+</p>
+<h2>{{ title() }}</h2>
+<p class="lede">
+  @if (countryName()) {
+    State or region for {{ countryName() }}.
+  } @else {
+    State or region code and display name.
+  }
+</p>
+
+@if (error()) {
+  <p class="form-error" role="alert">{{ error() }}</p>
+}
+
+@if (loading()) {
+  <p>Loading…</p>
+} @else {
+  <form [formGroup]="form" (ngSubmit)="submit()" class="create-form">
+    <label>
+      <span class="label-text">Name <span class="required" aria-hidden="true">*</span></span>
+      <input type="text" formControlName="name" autocomplete="off" />
+    </label>
+
+    <label>
+      <span class="label-text">Code <span class="required" aria-hidden="true">*</span></span>
+      <input
+        type="text"
+        formControlName="code"
+        maxlength="10"
+        autocomplete="off"
+        aria-describedby="state-code-hint"
+      />
+    </label>
+    <p id="state-code-hint" class="field-hint">Short code unique within the country, e.g. NSW.</p>
+
+    <div class="actions">
+      <a routerLink="/admin/settings/countries" class="btn btn--ghost">Cancel</a>
+      <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+        @if (submitting()) {
+          Saving…
+        } @else {
+          Save state
+        }
+      </button>
+    </div>
+  </form>
+}

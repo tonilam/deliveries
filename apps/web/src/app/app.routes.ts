@@ -82,7 +82,40 @@ export const routes: Routes = [
       },
       {
         path: 'settings',
-        loadComponent: () => import('./pages/admin/settings/settings').then((m) => m.AdminSettings),
+        loadComponent: () =>
+          import('./pages/admin/settings/settings-shell').then((m) => m.AdminSettingsShell),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'countries' },
+          {
+            path: 'countries',
+            loadComponent: () =>
+              import('./pages/admin/settings/countries/countries').then((m) => m.AdminCountries),
+          },
+          {
+            path: 'countries/create',
+            loadComponent: () =>
+              import('./pages/admin/settings/countries/country-form').then(
+                (m) => m.AdminCountryForm,
+              ),
+          },
+          {
+            path: 'countries/:id/edit',
+            loadComponent: () =>
+              import('./pages/admin/settings/countries/country-form').then(
+                (m) => m.AdminCountryForm,
+              ),
+          },
+          {
+            path: 'countries/:countryId/states/create',
+            loadComponent: () =>
+              import('./pages/admin/settings/countries/state-form').then((m) => m.AdminStateForm),
+          },
+          {
+            path: 'countries/:countryId/states/:stateId/edit',
+            loadComponent: () =>
+              import('./pages/admin/settings/countries/state-form').then((m) => m.AdminStateForm),
+          },
+        ],
       },
       {
         path: 'features',

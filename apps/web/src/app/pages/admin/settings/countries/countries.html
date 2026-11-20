@@ -1,0 +1,116 @@
+<div class="countries-header">
+  <div>
+    <h2>Countries</h2>
+    <p class="lede countries-lede">Manage countries and their states or regions.</p>
+  </div>
+  <a routerLink="/admin/settings/countries/create" class="btn btn--primary">Add country</a>
+</div>
+
+@if (error()) {
+  <p class="countries-error" role="alert">{{ error() }}</p>
+}
+
+@if (loading()) {
+  <p class="countries-status">Loading countries…</p>
+} @else if (countries().length === 0) {
+  <p class="countries-status">No countries configured yet.</p>
+} @else {
+  <ul class="country-list">
+    @for (country of countries(); track country.id) {
+      <li class="country-card">
+        <div class="country-card__header">
+          <div>
+            <h3>{{ country.name }}</h3>
+            <p class="country-card__code">{{ country.code }}</p>
+          </div>
+          <div class="country-card__actions">
+            <a
+              class="btn btn--ghost"
+              [routerLink]="['/admin/settings/countries', country.id, 'edit']"
+            >
+              Edit
+            </a>
+            <button
+              type="button"
+              class="btn btn--ghost btn--danger"
+              [disabled]="deleting()"
+              (click)="requestDeleteCountry(country)"
+            >
+              Delete
+            </button>
+            <a
+              class="btn btn--primary"
+              [routerLink]="['/admin/settings/countries', country.id, 'states', 'create']"
+            >
+              Add state
+            </a>
+          </div>
+        </div>
+
+        @if (country.states.length === 0) {
+          <p class="countries-status">No states yet.</p>
+        } @else {
+          <table class="states-table">
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Name</th>
+                <th scope="col"><span class="visually-hidden">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (state of country.states; track state.id) {
+                <tr>
+                  <td>{{ state.code }}</td>
+                  <td>{{ state.name }}</td>
+                  <td class="states-table__actions">
+                    <a
+                      [routerLink]="[
+                        '/admin/settings/countries',
+                        country.id,
+                        'states',
+                        state.id,
+                        'edit',
+                      ]"
+                    >
+                      Edit
+                    </a>
+                    <button
+                      type="button"
+                      class="link-button"
+                      [disabled]="deleting()"
+                      (click)="requestDeleteState(country, state)"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </li>
+    }
+  </ul>
+}
+
+@if (pending(); as pendingDelete) {
+  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="country-delete-title">
+    <h2 id="country-delete-title">Confirm delete</h2>
+    <p>{{ confirmMessage(pendingDelete) }}</p>
+    <div class="modal__actions">
+      <button type="button" class="btn btn--ghost" [disabled]="deleting()" (click)="cancelDelete()">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        [disabled]="deleting()"
+        (click)="confirmDelete()"
+      >
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+    </div>
+  </div>
+}

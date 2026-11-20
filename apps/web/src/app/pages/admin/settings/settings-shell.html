@@ -1,0 +1,22 @@
+<section class="portal portal--wide settings-shell">
+  <h1>System settings</h1>
+  <p class="lede">Configure global reference data for the platform.</p>
+
+  <div class="settings-shell__layout">
+    <nav class="settings-shell__nav" aria-label="Settings sections">
+      @for (item of navItems; track item.path) {
+        <a
+          class="settings-shell__nav-link"
+          [routerLink]="item.path"
+          routerLinkActive="settings-shell__nav-link--active"
+        >
+          {{ item.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="settings-shell__content">
+      <router-outlet />
+    </div>
+  </div>
+</section>
