@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Exceptions\RegistrationDisabledException;
 use App\Http\Controllers\Controller;
 use App\Services\SocialAuthService;
 use Illuminate\Http\RedirectResponse;
@@ -42,6 +43,8 @@ class SocialAuthController extends Controller
 
             Auth::login($user);
             $request->session()->regenerate();
+        } catch (RegistrationDisabledException) {
+            return redirect()->away($frontend.'/login?error=registration_disabled');
         } catch (\Throwable) {
             return redirect()->away($frontend.'/login?error=sso_failed');
         }

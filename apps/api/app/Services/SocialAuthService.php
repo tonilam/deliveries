@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\FeatureKey;
 use App\Enums\UserRole;
+use App\Exceptions\RegistrationDisabledException;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +13,10 @@ use RuntimeException;
 
 class SocialAuthService
 {
+    public function __construct(
+        private readonly FeatureService $features,
+    ) {}
+
     public function findOrCreate(string $provider, SocialiteUser $socialUser): User
     {
         return DB::transaction(function () use ($provider, $socialUser): User {
@@ -36,6 +42,10 @@ class SocialAuthService
                 : null;
 
             if ($user === null) {
+                if (! $this->features->isEnabled(FeatureKey::UserRegistration)) {
+                    throw new RegistrationDisabledException;
+                }
+
                 if ($email !== null) {
                     $this->assertProviderEmailVerified($provider, $socialUser);
                 }

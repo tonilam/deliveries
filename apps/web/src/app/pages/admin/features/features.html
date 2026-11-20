@@ -1,0 +1,77 @@
+<section class="portal">
+  <h1>Features</h1>
+  <p class="lede">Turn system capabilities on or off for everyone.</p>
+
+  @if (error()) {
+    <p class="features-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="features-status">Loading features…</p>
+  } @else if (features().length === 0) {
+    <p class="features-status">No features configured.</p>
+  } @else {
+    <label class="features-search">
+      <span class="visually-hidden">Search features</span>
+      <input
+        type="search"
+        placeholder="Search features…"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="onSearchInput($event)"
+        autocomplete="off"
+      />
+    </label>
+
+    @if (filteredFeatures().length === 0) {
+      <p class="features-status">No features match your search.</p>
+    } @else {
+      <ul class="feature-list">
+        @for (feature of filteredFeatures(); track feature.key) {
+          <li class="feature-row">
+            <div class="feature-copy">
+              <h2>{{ feature.name }}</h2>
+              <p>{{ feature.description }}</p>
+            </div>
+            <button
+              type="button"
+              class="feature-toggle"
+              role="switch"
+              [attr.aria-checked]="feature.enabled"
+              [attr.aria-label]="feature.name"
+              [disabled]="saving()"
+              (click)="requestToggle(feature)"
+            >
+              <span
+                class="feature-toggle__track"
+                aria-hidden="true"
+                [class.feature-toggle__track--on]="feature.enabled"
+              ></span>
+              <span class="feature-toggle__state">{{ feature.enabled ? 'On' : 'Off' }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>
+
+@if (pending(); as pendingToggle) {
+  <div class="modal-backdrop" (click)="cancelToggle()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="feature-confirm-title">
+    <h2 id="feature-confirm-title">Confirm change</h2>
+    <p>{{ confirmMessage(pendingToggle) }}</p>
+    <div class="modal__actions">
+      <button type="button" class="btn btn--ghost" [disabled]="saving()" (click)="cancelToggle()">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        [disabled]="saving()"
+        (click)="confirmToggle()"
+      >
+        {{ saving() ? 'Saving…' : 'Confirm' }}
+      </button>
+    </div>
+  </div>
+}

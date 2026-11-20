@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { FeatureService } from '../../core/features/feature.service';
 import { SsoProvider } from '../../core/auth/user.model';
 
 @Component({
@@ -12,13 +13,15 @@ import { SsoProvider } from '../../core/auth/user.model';
   styleUrl: './login.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Login {
+export class Login implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly features = inject(FeatureService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
+  protected readonly registrationEnabled = signal(true);
 
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -27,9 +30,18 @@ export class Login {
 
   constructor() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('error') === 'sso_failed') {
+    const ssoError = params.get('error');
+    if (ssoError === 'sso_failed') {
       this.error.set('Sign-in with the identity provider failed. Try again or use email.');
+    } else if (ssoError === 'registration_disabled') {
+      this.error.set('User registration is currently disabled. Sign in with an existing account.');
     }
+  }
+
+  ngOnInit(): void {
+    this.features.loadPublicFlags().subscribe((flags) => {
+      this.registrationEnabled.set(flags.user_registration !== false);
+    });
   }
 
   protected submit(): void {

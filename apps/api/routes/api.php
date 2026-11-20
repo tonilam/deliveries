@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\FeatureListController;
+use App\Http\Controllers\Admin\UpdateFeatureController;
 use App\Http\Controllers\Admin\UserListController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -7,6 +9,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\UpdatePasswordController;
 use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\FeatureFlagsController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +30,8 @@ Route::get('/health', function () {
     ]);
 });
 
+Route::get('/features', FeatureFlagsController::class);
+
 Route::post('/register', RegisterController::class);
 Route::post('/login', LoginController::class)->middleware('throttle:5,1');
 
@@ -42,4 +47,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 Route::middleware(['auth:sanctum', 'active', 'admin'])->prefix('admin')->group(function () {
     Route::get('/ping', fn () => response()->json(['ok' => true]));
     Route::get('/users', UserListController::class);
+    Route::get('/features', FeatureListController::class);
+    Route::patch('/features/{key}', UpdateFeatureController::class);
 });

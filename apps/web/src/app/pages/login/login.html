@@ -27,8 +27,10 @@
     <button type="button" class="secondary" (click)="sso('apple')">Continue with Apple</button>
   </div>
 
-  <p class="footer">
-    New here?
-    <a routerLink="/register">Create an account</a>
-  </p>
+  @if (registrationEnabled()) {
+    <p class="footer">
+      New here?
+      <a routerLink="/register">Create an account</a>
+    </p>
+  }
 </section>
