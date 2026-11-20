@@ -22,13 +22,21 @@
           <div class="shell__user-menu">
             <button
               type="button"
-              class="shell__avatar"
+              [class]="impersonating() ? 'shell__view-as' : 'shell__avatar'"
               [attr.aria-expanded]="menuOpen()"
               aria-haspopup="menu"
-              [attr.aria-label]="'Account menu for ' + u.name"
+              [attr.aria-label]="
+                impersonating()
+                  ? 'Account menu while viewing as ' + u.name
+                  : 'Account menu for ' + u.name
+              "
               (click)="toggleMenu($event)"
             >
-              <span aria-hidden="true">{{ initials() }}</span>
+              @if (impersonating()) {
+                <span>View as {{ u.name }}</span>
+              } @else {
+                <span aria-hidden="true">{{ initials() }}</span>
+              }
             </button>
 
             @if (menuOpen()) {
@@ -41,6 +49,17 @@
                 >
                   My Profile
                 </a>
+                @if (impersonating()) {
+                  <button
+                    type="button"
+                    class="shell__dropdown-item"
+                    role="menuitem"
+                    [disabled]="leavingImpersonation()"
+                    (click)="leaveImpersonation()"
+                  >
+                    Return to admin
+                  </button>
+                }
                 <button
                   type="button"
                   class="shell__dropdown-item shell__dropdown-item--button"

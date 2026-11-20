@@ -46,6 +46,10 @@
     <p class="users-error" role="alert">{{ error() }}</p>
   }
 
+  @if (actionError()) {
+    <p class="users-error" role="alert">{{ actionError() }}</p>
+  }
+
   <div
     class="tab-panel"
     role="tabpanel"
@@ -55,7 +59,7 @@
       class="users-grid"
       [theme]="theme"
       [rowData]="rowData()"
-      [columnDefs]="columnDefs"
+      [columnDefs]="columnDefs()"
       [defaultColDef]="defaultColDef"
       [loading]="loading()"
     />

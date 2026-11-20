@@ -9,17 +9,13 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
-import {
-  AllCommunityModule,
-  ColDef,
-  ICellRendererParams,
-  ModuleRegistry,
-  themeQuartz,
-} from 'ag-grid-community';
+import { AllCommunityModule, ColDef, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 
 import { forkJoin, map } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
 import { UserRole } from '../../../core/auth/user.model';
+import { UserActionItem, UserActionsCell, UserActionsCellRow } from './user-actions-cell';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -44,12 +40,14 @@ export class AdminUsers implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
   protected readonly theme = themeQuartz;
   protected readonly activeTab = signal<UsersTab>('admin');
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly inviteNotice = signal<string | null>(null);
+  protected readonly actionError = signal<string | null>(null);
   protected readonly adminUsers = signal<ManagedUserRow[]>([]);
   protected readonly customerUsers = signal<ManagedUserRow[]>([]);
 
@@ -57,7 +55,7 @@ export class AdminUsers implements OnInit {
     this.activeTab() === 'admin' ? this.adminUsers() : this.customerUsers(),
   );
 
-  protected readonly columnDefs: ColDef<ManagedUserRow>[] = [
+  protected readonly columnDefs = computed<ColDef<ManagedUserRow>[]>(() => [
     { field: 'name', headerName: 'Name', flex: 1, minWidth: 160 },
     { field: 'email', headerName: 'Email', flex: 1.4, minWidth: 200 },
     {
@@ -73,22 +71,13 @@ export class AdminUsers implements OnInit {
       minWidth: 140,
       sortable: false,
       filter: false,
-      cellRenderer: (params: ICellRendererParams<ManagedUserRow>) => {
-        if (!params.data?.has_password) {
-          return '';
-        }
-        const link = document.createElement('a');
-        link.href = `/admin/users/${params.data.id}/reset-password`;
-        link.textContent = 'Reset password';
-        link.className = 'grid-action-link';
-        link.addEventListener('click', (event) => {
-          event.preventDefault();
-          void this.router.navigateByUrl(`/admin/users/${params.data!.id}/reset-password`);
-        });
-        return link;
+      cellClass: 'users-grid__actions-cell',
+      cellRenderer: UserActionsCell,
+      cellRendererParams: {
+        actionsFor: (data: UserActionsCellRow) => this.actionsFor(data),
       },
     },
-  ];
+  ]);
 
   protected readonly defaultColDef: ColDef = {
     sortable: true,
@@ -118,6 +107,44 @@ export class AdminUsers implements OnInit {
 
   protected selectTab(tab: UsersTab): void {
     this.activeTab.set(tab);
+    this.actionError.set(null);
+  }
+
+  private actionsFor(data: UserActionsCellRow): UserActionItem[] {
+    const actions: UserActionItem[] = [];
+
+    if (this.activeTab() === 'customer' && data.is_active) {
+      actions.push({
+        id: 'impersonate',
+        label: 'Impersonate',
+        run: () => this.impersonate(data),
+      });
+    }
+
+    if (data.has_password) {
+      actions.push({
+        id: 'reset-password',
+        label: 'Reset password',
+        run: () => {
+          void this.router.navigateByUrl(`/admin/users/${data.id}/reset-password`);
+        },
+      });
+    }
+
+    return actions;
+  }
+
+  private impersonate(data: UserActionsCellRow): void {
+    this.actionError.set(null);
+    this.auth.impersonate(data.id).subscribe({
+      next: (user) => {
+        void this.router.navigateByUrl(this.auth.homePathFor(user));
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        const first = err.error?.errors?.['user']?.[0] ?? err.error?.message;
+        this.actionError.set(first ?? 'Unable to impersonate this user.');
+      },
+    });
   }
 
   private loadAllUsers(): void {

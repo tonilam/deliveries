@@ -20,8 +20,16 @@ export interface PendingInvitation {
   expires_at: string;
 }
 
+export interface Impersonator {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface AuthResponse {
   user: User;
+  impersonating?: boolean;
+  impersonator?: Impersonator | null;
 }
 
 export type SsoProvider = 'google' | 'apple';

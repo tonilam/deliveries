@@ -39,7 +39,7 @@ export const adminGuard: CanActivateFn = () => {
     if (!user) {
       return router.createUrlTree(['/login']);
     }
-    if (user.must_change_password) {
+    if (user.must_change_password && !auth.impersonating()) {
       return router.createUrlTree(['/change-password']);
     }
     if (user.role !== 'admin') {
@@ -63,7 +63,7 @@ export const customerGuard: CanActivateFn = () => {
     if (!user) {
       return router.createUrlTree(['/login']);
     }
-    if (user.must_change_password) {
+    if (user.must_change_password && !auth.impersonating()) {
       return router.createUrlTree(['/change-password']);
     }
     if (user.role !== 'customer') {

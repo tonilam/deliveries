@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CreateUserController;
 use App\Http\Controllers\Admin\FeatureListController;
+use App\Http\Controllers\Admin\ImpersonateUserController;
 use App\Http\Controllers\Admin\InviteUserController;
 use App\Http\Controllers\Admin\ResetUserPasswordController;
 use App\Http\Controllers\Admin\SendPasswordResetController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Admin\ShowUserController;
 use App\Http\Controllers\Admin\UpdateFeatureController;
 use App\Http\Controllers\Admin\UserListController;
 use App\Http\Controllers\Auth\AcceptInvitationController;
+use App\Http\Controllers\Auth\LeaveImpersonationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -54,6 +56,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/user', UserController::class);
     Route::put('/user/password', UpdatePasswordController::class);
     Route::post('/logout', LogoutController::class);
+    Route::post('/impersonation/leave', LeaveImpersonationController::class);
 });
 
 Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->prefix('admin')->group(function () {
@@ -63,6 +66,7 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->pref
     Route::get('/users/{user}', ShowUserController::class);
     Route::put('/users/{user}/password', ResetUserPasswordController::class);
     Route::post('/users/{user}/password-reset', SendPasswordResetController::class);
+    Route::post('/users/{user}/impersonate', ImpersonateUserController::class);
     Route::post('/invitations', InviteUserController::class);
     Route::get('/features', FeatureListController::class);
     Route::patch('/features/{key}', UpdateFeatureController::class);

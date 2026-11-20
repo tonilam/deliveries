@@ -29,6 +29,8 @@ export class AppShell {
   private readonly router = inject(Router);
 
   protected readonly user = this.auth.user;
+  protected readonly impersonating = this.auth.impersonating;
+  protected readonly leavingImpersonation = signal(false);
   protected readonly menuOpen = signal(false);
 
   protected readonly navItems = computed<NavItem[]>(() => {
@@ -70,6 +72,23 @@ export class AppShell {
     this.auth.logout().subscribe({
       next: () => void this.router.navigateByUrl('/login'),
       error: () => void this.router.navigateByUrl('/login'),
+    });
+  }
+
+  protected leaveImpersonation(): void {
+    if (this.leavingImpersonation()) {
+      return;
+    }
+    this.closeMenu();
+    this.leavingImpersonation.set(true);
+    this.auth.leaveImpersonation().subscribe({
+      next: () => {
+        this.leavingImpersonation.set(false);
+        void this.router.navigateByUrl('/admin/users?tab=customer');
+      },
+      error: () => {
+        this.leavingImpersonation.set(false);
+      },
     });
   }
 

@@ -78,19 +78,20 @@
   height: 22rem;
 }
 
+:host ::ng-deep .users-grid__actions-cell {
+  overflow: visible;
+}
+
+:host ::ng-deep .ag-row {
+  z-index: 0;
+}
+
+:host ::ng-deep .ag-row:has(.grid-actions__menu) {
+  z-index: 2;
+}
+
 .users-error {
   margin: 0 0 0.75rem;
   color: #b91c1c;
   font-weight: 600;
-}
-
-:host ::ng-deep .grid-action-link {
-  color: var(--ui-color-navy);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-:host ::ng-deep .grid-action-link:hover {
-  text-decoration: underline;
-  color: var(--ui-color-brand);
 }

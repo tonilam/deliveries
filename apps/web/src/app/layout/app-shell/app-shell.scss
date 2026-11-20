@@ -102,6 +102,34 @@
   filter: brightness(1.08);
 }
 
+.shell__view-as {
+  display: inline-flex;
+  align-items: center;
+  max-width: 16rem;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: #7c2d12;
+  color: #fff;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.shell__view-as span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell__view-as:hover {
+  filter: brightness(1.08);
+}
+
 .shell__dropdown {
   position: absolute;
   top: calc(100% + 0.4rem);
@@ -130,8 +158,13 @@
   cursor: pointer;
 }
 
-.shell__dropdown-item:hover {
+.shell__dropdown-item:hover:not(:disabled) {
   background: #f1f5f9;
+}
+
+.shell__dropdown-item:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .shell__dropdown-item--button {
