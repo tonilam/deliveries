@@ -12,14 +12,14 @@
   text-decoration: underline;
 }
 
-.mode-tabs {
+.tabs {
   display: flex;
   gap: 0.25rem;
   margin-bottom: 1.25rem;
   border-bottom: 1px solid #cbd5e1;
 }
 
-.mode-tabs__tab {
+.tabs__tab {
   font: inherit;
   font-weight: 700;
   padding: 0.65rem 1rem;
@@ -28,10 +28,15 @@
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
+  border-radius: 0;
   cursor: pointer;
 }
 
-.mode-tabs__tab--active {
+.tabs__tab:hover {
+  color: var(--ui-color-navy);
+}
+
+.tabs__tab--active {
   color: var(--ui-color-navy);
   border-bottom-color: var(--ui-color-brand);
 }
@@ -40,6 +45,38 @@
   margin: 0 0 0.75rem;
   color: #b91c1c;
   font-weight: 600;
+}
+
+.form-success {
+  margin: 0 0 0.75rem;
+  color: #15803d;
+  font-weight: 600;
+}
+
+.required {
+  color: #b91c1c;
+  font-weight: 800;
+}
+
+.label-text {
+  display: inline;
+}
+
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.input-with-suffix input {
+  flex: 1;
+  min-width: 0;
+}
+
+.input-suffix {
+  flex: 0 0 auto;
+  font-weight: 700;
+  color: #475569;
 }
 
 .create-form {
@@ -57,7 +94,8 @@
 }
 
 .create-form input[type='text'],
-.create-form input[type='email'] {
+.create-form input[type='email'],
+.create-form input[type='number'] {
   padding: 0.65rem 0.75rem;
   font: inherit;
   border: 1px solid #cbd5e1;
@@ -101,6 +139,13 @@
   margin: 0;
   color: #334155;
   font-size: 0.9375rem;
+}
+
+.field-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
 }
 
 .actions {

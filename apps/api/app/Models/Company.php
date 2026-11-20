@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'reg_type',
     'business_name',
     'invoicee_name',
+    'gst_rate',
+    'tracking_option',
     'phone',
     'email',
     'address',
@@ -30,6 +32,7 @@ class Company extends Model
     {
         return [
             'allowed_domains' => 'array',
+            'gst_rate' => 'float',
         ];
     }
 

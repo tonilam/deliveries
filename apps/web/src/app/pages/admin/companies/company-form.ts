@@ -18,10 +18,11 @@ import {
   normalizeDomains,
   normalizeRegNumber,
 } from '../../../core/company/company-normalize';
-import { Company, CompanyPayload } from '../../../core/company/company.model';
+import { Company, CompanyDetailsPayload } from '../../../core/company/company.model';
 
 type FieldKey = 'business_name' | 'reg_number' | 'allowed_domains';
 type FieldStatus = 'pending' | 'checking' | 'ok' | 'conflict' | 'error';
+type EditTab = 'details' | 'finance';
 
 interface FieldCheck {
   status: FieldStatus;
@@ -39,6 +40,8 @@ const EMPTY_CHECKS: Record<FieldKey, FieldCheck> = {
   allowed_domains: { status: 'pending', message: null },
 };
 
+const DEFAULT_GST_PERCENT = 10;
+
 @Component({
   selector: 'app-admin-company-form',
   imports: [ReactiveFormsModule, RouterLink],
@@ -54,15 +57,18 @@ export class AdminCompanyForm implements OnInit {
   private readonly fb = inject(FormBuilder);
 
   protected readonly error = signal<string | null>(null);
+  protected readonly financeSuccess = signal<string | null>(null);
   protected readonly submitting = signal(false);
+  protected readonly financeSubmitting = signal(false);
   protected readonly loading = signal(false);
   protected readonly confirmOpen = signal(false);
   protected readonly checking = signal(false);
   protected readonly checkError = signal<string | null>(null);
   protected readonly fieldChecks = signal<Record<FieldKey, FieldCheck>>({ ...EMPTY_CHECKS });
-  protected readonly pendingPayload = signal<CompanyPayload | null>(null);
+  protected readonly pendingPayload = signal<CompanyDetailsPayload | null>(null);
   private checkGeneration = 0;
   protected readonly companyId = signal<number | null>(null);
+  protected readonly activeTab = signal<EditTab>('details');
   protected readonly isEdit = computed(() => this.companyId() !== null);
   protected readonly title = computed(() => (this.isEdit() ? 'Edit company' : 'Create company'));
   protected readonly allFieldsOk = computed(() => {
@@ -85,15 +91,23 @@ export class AdminCompanyForm implements OnInit {
     () => this.allFieldsOk() && !this.checking() && !this.submitting() && !this.checkError(),
   );
 
-  protected readonly form = this.fb.nonNullable.group({
+  protected readonly detailsForm = this.fb.nonNullable.group({
     reg_number: ['', [Validators.required, Validators.maxLength(255)]],
     reg_type: ['ABN', [Validators.required, Validators.maxLength(255)]],
     business_name: ['', [Validators.required, Validators.maxLength(255)]],
-    invoicee_name: ['', [Validators.required, Validators.maxLength(255)]],
     phone: ['', [Validators.required, Validators.maxLength(255)]],
     email: ['', [Validators.required, Validators.email]],
     address: ['', [Validators.required, Validators.maxLength(1000)]],
     allowed_domains: ['', [Validators.required]],
+  });
+
+  protected readonly financeForm = this.fb.nonNullable.group({
+    invoicee_name: ['', [Validators.maxLength(255)]],
+    gst_percent: [
+      DEFAULT_GST_PERCENT,
+      [Validators.required, Validators.min(0), Validators.max(100)],
+    ],
+    tracking_option: ['', [Validators.maxLength(255)]],
   });
 
   ngOnInit(): void {
@@ -109,19 +123,15 @@ export class AdminCompanyForm implements OnInit {
     }
 
     this.companyId.set(id);
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'finance') {
+      this.activeTab.set('finance');
+    }
+
     this.loading.set(true);
     this.http.get<{ company: Company }>(`/api/admin/companies/${id}`).subscribe({
       next: ({ company }) => {
-        this.form.patchValue({
-          reg_number: company.reg_number,
-          reg_type: company.reg_type,
-          business_name: company.business_name,
-          invoicee_name: company.invoicee_name,
-          phone: company.phone,
-          email: company.email,
-          address: company.address,
-          allowed_domains: (company.allowed_domains ?? []).join(', '),
-        });
+        this.patchCompany(company);
         this.loading.set(false);
       },
       error: () => {
@@ -131,42 +141,74 @@ export class AdminCompanyForm implements OnInit {
     });
   }
 
-  protected submit(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+  protected selectTab(tab: EditTab): void {
+    this.activeTab.set(tab);
+    this.error.set(null);
+    this.financeSuccess.set(null);
+  }
+
+  protected submitDetails(): void {
+    if (this.detailsForm.invalid) {
+      this.detailsForm.markAllAsTouched();
       return;
     }
 
-    const raw = this.form.getRawValue();
-    const domains = normalizeDomains(
-      raw.allowed_domains
-        .split(/[\s,;]+/)
-        .map((d) => d.trim())
-        .filter(Boolean),
-    );
-
-    if (domains.length === 0) {
-      this.error.set('Add at least one allowed email domain.');
+    const details = this.buildDetailsPayload();
+    if (!details) {
       return;
     }
-
-    const payload: CompanyPayload = {
-      reg_number: normalizeRegNumber(raw.reg_number),
-      reg_type: raw.reg_type.trim(),
-      business_name: normalizeBusinessName(raw.business_name),
-      invoicee_name: raw.invoicee_name.trim(),
-      phone: raw.phone.trim(),
-      email: raw.email.trim(),
-      address: raw.address.trim(),
-      allowed_domains: domains,
-    };
 
     this.error.set(null);
     this.checkError.set(null);
-    this.pendingPayload.set(payload);
-    this.form.disable({ emitEvent: false });
+    this.pendingPayload.set(details);
+    this.detailsForm.disable({ emitEvent: false });
+    this.financeForm.disable({ emitEvent: false });
     this.confirmOpen.set(true);
-    this.runUniquenessCheck(payload);
+    this.runUniquenessCheck(details);
+  }
+
+  protected submitFinance(): void {
+    if (!this.isEdit()) {
+      return;
+    }
+
+    if (this.financeForm.invalid) {
+      this.financeForm.markAllAsTouched();
+      return;
+    }
+
+    const id = this.companyId();
+    if (id === null) {
+      return;
+    }
+
+    const finance = this.buildFinancePayload();
+
+    this.financeSubmitting.set(true);
+    this.error.set(null);
+    this.financeSuccess.set(null);
+
+    this.auth
+      .ensureCsrf()
+      .pipe(
+        switchMap(() =>
+          this.http.put<{ company: Company }>(`/api/admin/companies/${id}`, {
+            section: 'finance',
+            ...finance,
+          }),
+        ),
+      )
+      .subscribe({
+        next: ({ company }) => {
+          this.patchFinance(company);
+          this.financeSubmitting.set(false);
+          this.financeSuccess.set('Finance details saved.');
+        },
+        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+          this.financeSubmitting.set(false);
+          this.error.set(this.firstError(err) ?? 'Could not save finance details');
+        },
+      });
   }
 
   protected cancelConfirm(): void {
@@ -179,7 +221,8 @@ export class AdminCompanyForm implements OnInit {
     this.checking.set(false);
     this.checkError.set(null);
     this.fieldChecks.set({ ...EMPTY_CHECKS });
-    this.form.enable({ emitEvent: false });
+    this.detailsForm.enable({ emitEvent: false });
+    this.financeForm.enable({ emitEvent: false });
   }
 
   protected confirmSave(): void {
@@ -192,36 +235,54 @@ export class AdminCompanyForm implements OnInit {
     this.error.set(null);
 
     const id = this.companyId();
+    const detailsBody = {
+      section: 'details' as const,
+      reg_number: payload.reg_number,
+      reg_type: payload.reg_type,
+      business_name: payload.business_name,
+      phone: payload.phone,
+      email: payload.email,
+      address: payload.address,
+      allowed_domains: payload.allowed_domains,
+    };
     const request$ =
       id === null
         ? this.auth
             .ensureCsrf()
             .pipe(
               switchMap(() =>
-                this.http.post<{ company: Company }>('/api/admin/companies', payload),
+                this.http.post<{ company: Company }>('/api/admin/companies', detailsBody),
               ),
             )
         : this.auth
             .ensureCsrf()
             .pipe(
               switchMap(() =>
-                this.http.put<{ company: Company }>(`/api/admin/companies/${id}`, payload),
+                this.http.put<{ company: Company }>(`/api/admin/companies/${id}`, detailsBody),
               ),
             );
 
     request$.subscribe({
-      next: () => {
+      next: ({ company }) => {
         this.submitting.set(false);
         this.confirmOpen.set(false);
         this.pendingPayload.set(null);
-        void this.router.navigateByUrl('/admin/companies');
+        if (id === null) {
+          void this.router.navigateByUrl(`/admin/companies/${company.id}/edit?tab=finance`);
+          return;
+        }
+        this.patchDetails(company);
+        this.detailsForm.enable({ emitEvent: false });
+        this.financeForm.enable({ emitEvent: false });
+        this.fieldChecks.set({ ...EMPTY_CHECKS });
       },
       error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);
         this.confirmOpen.set(false);
         this.pendingPayload.set(null);
         this.fieldChecks.set({ ...EMPTY_CHECKS });
-        this.form.enable({ emitEvent: false });
+        this.detailsForm.enable({ emitEvent: false });
+        this.financeForm.enable({ emitEvent: false });
         this.error.set(this.firstError(err) ?? 'Could not save company');
       },
     });
@@ -234,7 +295,82 @@ export class AdminCompanyForm implements OnInit {
     }
   }
 
-  private runUniquenessCheck(payload: CompanyPayload): void {
+  private patchCompany(company: Company): void {
+    this.patchDetails(company);
+    this.patchFinance(company);
+  }
+
+  private patchDetails(company: Company): void {
+    this.detailsForm.patchValue({
+      reg_number: company.reg_number,
+      reg_type: company.reg_type,
+      business_name: company.business_name,
+      phone: company.phone,
+      email: company.email,
+      address: company.address,
+      allowed_domains: (company.allowed_domains ?? []).join(', '),
+    });
+  }
+
+  private patchFinance(company: Company): void {
+    this.financeForm.patchValue({
+      invoicee_name: company.invoicee_name ?? '',
+      gst_percent: this.rateToPercent(company.gst_rate),
+      tracking_option: company.tracking_option ?? '',
+    });
+  }
+
+  private buildDetailsPayload(): CompanyDetailsPayload | null {
+    const raw = this.detailsForm.getRawValue();
+    const domains = normalizeDomains(
+      raw.allowed_domains
+        .split(/[\s,;]+/)
+        .map((d) => d.trim())
+        .filter(Boolean),
+    );
+
+    if (domains.length === 0) {
+      this.error.set('Add at least one allowed email domain.');
+      return null;
+    }
+
+    return {
+      reg_number: normalizeRegNumber(raw.reg_number),
+      reg_type: raw.reg_type.trim(),
+      business_name: normalizeBusinessName(raw.business_name),
+      phone: raw.phone.trim(),
+      email: raw.email.trim(),
+      address: raw.address.trim(),
+      allowed_domains: domains,
+    };
+  }
+
+  private buildFinancePayload(): {
+    invoicee_name: string;
+    gst_rate: number;
+    tracking_option: string | null;
+  } {
+    const raw = this.financeForm.getRawValue();
+    const tracking = raw.tracking_option.trim();
+    return {
+      invoicee_name: raw.invoicee_name.trim(),
+      gst_rate: this.percentToRate(raw.gst_percent),
+      tracking_option: tracking === '' ? null : tracking,
+    };
+  }
+
+  private rateToPercent(rate: number | null | undefined): number {
+    if (rate === null || rate === undefined || Number.isNaN(rate)) {
+      return DEFAULT_GST_PERCENT;
+    }
+    return Math.round(rate * 10000) / 100;
+  }
+
+  private percentToRate(percent: number): number {
+    return Math.round(percent * 10000) / 1_000_000;
+  }
+
+  private runUniquenessCheck(payload: CompanyDetailsPayload): void {
     const generation = ++this.checkGeneration;
     this.checking.set(true);
     this.checkError.set(null);
@@ -306,6 +442,7 @@ export class AdminCompanyForm implements OnInit {
       errors?.['allowed_domains']?.[0] ??
       errors?.['business_name']?.[0] ??
       errors?.['reg_number']?.[0] ??
+      errors?.['gst_rate']?.[0] ??
       errors?.['email']?.[0] ??
       err.error?.message
     );

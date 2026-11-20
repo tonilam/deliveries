@@ -6,9 +6,10 @@ As an admin user, I want to manage companies (list, create, edit) and attach cus
 ## Acceptance criteria
 - [x] Admin portal has a **Companies** page (`/admin/companies`) linked from admin nav
 - [x] Companies are listed in an AG Grid table with columns: **Business name**, **Reg number**, **Email**, **Allowed domains**
-- [x] A **Create company** button opens a create flow for company fields from [US-011](US-011-company-entity.md), plus **allowed domains**
-- [x] Each row has an **Edit** action to update the same fields
-- [x] Saving (create or edit) opens a **confirmation modal** that shows **business name**, **reg number**, and **allowed domains** for the admin to review before the save is submitted
+- [x] A **Create company** button opens a create flow for company identity/contact fields from [US-011](US-011-company-entity.md), plus **allowed domains** (finance fields are set on edit — [US-014](US-014-admin-company-finance-details.md))
+- [x] After successful create, the admin is redirected to that company’s **edit** page
+- [x] Each row has an **Edit** action; edit has **Details** and **Finance** tabs ([US-014](US-014-admin-company-finance-details.md))
+- [x] Saving create or **Details** edit opens a **confirmation modal** that shows **business name**, **reg number**, and **allowed domains** for the admin to review before the save is submitted
 - [x] When the confirmation modal opens, it automatically calls an admin uniqueness-check API; while checking, a **spinner** is shown; each field then shows a **green check** if unique or a **red cross** if conflicting, and conflicting results ask the admin to review the data
 - [x] Confirm save is only enabled when all checked fields pass
 - [x] **Business name**, **reg number**, and each **allowed domain** must be unique across companies (no duplicates in the system); duplicates are rejected
@@ -20,5 +21,6 @@ As an admin user, I want to manage companies (list, create, edit) and attach cus
 
 ## Notes
 - Builds on [US-011](US-011-company-entity.md) and [US-012](US-012-user-belongs-to-company.md); admin users still never belong to a company.
+- Finance details on edit: [US-014](US-014-admin-company-finance-details.md).
 - Product intent today is one domain → one company; multi-match choice remains supported if data ever allows it.
 - Out of scope: delete company, deactivate company, bulk import.

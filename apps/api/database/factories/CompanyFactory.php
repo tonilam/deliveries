@@ -25,6 +25,8 @@ class CompanyFactory extends Factory
             'reg_type' => 'ABN',
             'business_name' => $businessName,
             'invoicee_name' => fake()->name(),
+            'gst_rate' => 0.1,
+            'tracking_option' => null,
             'phone' => fake()->phoneNumber(),
             'email' => fake()->unique()->companyEmail(),
             'address' => fake()->streetAddress().', '.fake()->city().' NSW',

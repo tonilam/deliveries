@@ -3,73 +3,161 @@
     <a routerLink="/admin/companies">← Companies</a>
   </p>
   <h1>{{ title() }}</h1>
-  <p class="lede">Company details and the email domains customers may use to join this company.</p>
+  <p class="lede">
+    @if (isEdit()) {
+      Update company details or finance settings used for invoicing and Xero.
+    } @else {
+      Company details and the email domains customers may use to join this company.
+    }
+  </p>
 
   @if (error()) {
     <p class="form-error" role="alert">{{ error() }}</p>
   }
 
+  @if (financeSuccess()) {
+    <p class="form-success" role="status">{{ financeSuccess() }}</p>
+  }
+
   @if (loading()) {
     <p>Loading…</p>
   } @else {
-    <form
-      [formGroup]="form"
-      (ngSubmit)="submit()"
-      class="create-form"
-      [attr.inert]="confirmOpen() ? '' : null"
-      [attr.aria-hidden]="confirmOpen() ? true : null"
-    >
-      <label>
-        Business name
-        <input type="text" formControlName="business_name" />
-      </label>
-
-      <label>
-        Registration type
-        <input type="text" formControlName="reg_type" />
-      </label>
-
-      <label>
-        Registration number
-        <input type="text" formControlName="reg_number" />
-      </label>
-
-      <label>
-        Invoicee name
-        <input type="text" formControlName="invoicee_name" />
-      </label>
-
-      <label>
-        Phone
-        <input type="text" formControlName="phone" />
-      </label>
-
-      <label>
-        Email
-        <input type="email" formControlName="email" />
-      </label>
-
-      <label>
-        Address
-        <input type="text" formControlName="address" />
-      </label>
-
-      <label>
-        Allowed domains
-        <input type="text" formControlName="allowed_domains" placeholder="acme.com, acme.com.au" />
-      </label>
-      <p class="invite-note">
-        Comma-separated email domains. Business name, registration number, and each domain must be
-        unique across companies.
-      </p>
-
-      <div class="actions">
-        <a routerLink="/admin/companies" class="btn btn--ghost">Cancel</a>
-        <button type="submit" class="btn btn--primary" [disabled]="submitting()">
-          {{ isEdit() ? 'Review &amp; save' : 'Review &amp; create' }}
+    @if (isEdit()) {
+      <div class="tabs" role="tablist" aria-label="Company edit sections">
+        <button
+          type="button"
+          role="tab"
+          class="tabs__tab"
+          id="tab-details"
+          [attr.aria-selected]="activeTab() === 'details'"
+          [class.tabs__tab--active]="activeTab() === 'details'"
+          (click)="selectTab('details')"
+        >
+          Details
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="tabs__tab"
+          id="tab-finance"
+          [attr.aria-selected]="activeTab() === 'finance'"
+          [class.tabs__tab--active]="activeTab() === 'finance'"
+          (click)="selectTab('finance')"
+        >
+          Finance
         </button>
       </div>
-    </form>
+    }
+
+    @if (!isEdit() || activeTab() === 'details') {
+      <form
+        [formGroup]="detailsForm"
+        (ngSubmit)="submitDetails()"
+        class="create-form"
+        [attr.inert]="confirmOpen() ? '' : null"
+        [attr.aria-hidden]="confirmOpen() ? true : null"
+        role="tabpanel"
+        [attr.aria-labelledby]="isEdit() ? 'tab-details' : null"
+      >
+        <label>
+          <span class="label-text"
+            >Business name <span class="required" aria-hidden="true">*</span></span
+          >
+          <input type="text" formControlName="business_name" />
+        </label>
+
+        <label>
+          <span class="label-text"
+            >Registration type <span class="required" aria-hidden="true">*</span></span
+          >
+          <input type="text" formControlName="reg_type" />
+        </label>
+
+        <label>
+          <span class="label-text"
+            >Registration number <span class="required" aria-hidden="true">*</span></span
+          >
+          <input type="text" formControlName="reg_number" />
+        </label>
+
+        <label>
+          <span class="label-text">Phone <span class="required" aria-hidden="true">*</span></span>
+          <input type="text" formControlName="phone" />
+        </label>
+
+        <label>
+          <span class="label-text">Email <span class="required" aria-hidden="true">*</span></span>
+          <input type="email" formControlName="email" />
+        </label>
+
+        <label>
+          <span class="label-text">Address <span class="required" aria-hidden="true">*</span></span>
+          <input type="text" formControlName="address" />
+        </label>
+
+        <label>
+          <span class="label-text"
+            >Allowed domains <span class="required" aria-hidden="true">*</span></span
+          >
+          <input
+            type="text"
+            formControlName="allowed_domains"
+            placeholder="acme.com, acme.com.au"
+          />
+        </label>
+        <p class="invite-note">
+          Comma-separated email domains. Business name, registration number, and each domain must be
+          unique across companies.
+        </p>
+
+        <div class="actions">
+          <a routerLink="/admin/companies" class="btn btn--ghost">Cancel</a>
+          <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+            {{ isEdit() ? 'Review &amp; save' : 'Review &amp; create' }}
+          </button>
+        </div>
+      </form>
+    }
+
+    @if (isEdit() && activeTab() === 'finance') {
+      <form
+        [formGroup]="financeForm"
+        (ngSubmit)="submitFinance()"
+        class="create-form"
+        role="tabpanel"
+        aria-labelledby="tab-finance"
+      >
+        <label>
+          <span class="label-text">Invoicee name</span>
+          <input type="text" formControlName="invoicee_name" />
+        </label>
+
+        <label>
+          <span class="label-text">GST % <span class="required" aria-hidden="true">*</span></span>
+          <span class="input-with-suffix">
+            <input type="number" formControlName="gst_percent" min="0" max="100" step="0.01" />
+            <span class="input-suffix" aria-hidden="true">%</span>
+          </span>
+        </label>
+
+        <label>
+          <span class="label-text">Tracking option</span>
+          <input type="text" formControlName="tracking_option" />
+          <span class="field-hint">Used by Xero integrations</span>
+        </label>
+
+        <div class="actions">
+          <a routerLink="/admin/companies" class="btn btn--ghost">Cancel</a>
+          <button type="submit" class="btn btn--primary" [disabled]="financeSubmitting()">
+            @if (financeSubmitting()) {
+              Saving…
+            } @else {
+              Save finance
+            }
+          </button>
+        </div>
+      </form>
+    }
   }
 </section>
 

@@ -19,6 +19,33 @@ class UpdateCompanyController extends Controller
 
     public function __invoke(UpdateCompanyRequest $request, Company $company): JsonResponse
     {
+        if ($request->isFinanceOnly()) {
+            return $this->updateFinance($request, $company);
+        }
+
+        return $this->updateDetails($request, $company);
+    }
+
+    private function updateFinance(UpdateCompanyRequest $request, Company $company): JsonResponse
+    {
+        $trackingOption = $request->input('tracking_option');
+        $invoiceeName = $request->input('invoicee_name');
+
+        $company->fill([
+            'invoicee_name' => is_string($invoiceeName) ? trim($invoiceeName) : '',
+            'gst_rate' => (float) $request->input('gst_rate'),
+            'tracking_option' => is_string($trackingOption) && trim($trackingOption) !== ''
+                ? trim($trackingOption)
+                : null,
+        ])->save();
+
+        return response()->json([
+            'company' => $company->fresh(),
+        ]);
+    }
+
+    private function updateDetails(UpdateCompanyRequest $request, Company $company): JsonResponse
+    {
         $domains = $this->domains->normalizeDomains($request->input('allowed_domains', []));
         $regNumber = $this->domains->normalizeRegNumber($request->string('reg_number')->toString());
         $businessName = $this->domains->normalizeBusinessName($request->string('business_name')->toString());
@@ -31,7 +58,6 @@ class UpdateCompanyController extends Controller
                     'reg_number' => $regNumber,
                     'reg_type' => $request->string('reg_type')->toString(),
                     'business_name' => $businessName,
-                    'invoicee_name' => $request->string('invoicee_name')->toString(),
                     'phone' => $request->string('phone')->toString(),
                     'email' => $request->string('email')->toString(),
                     'address' => $request->string('address')->toString(),
