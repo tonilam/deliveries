@@ -56,6 +56,16 @@ export const routes: Routes = [
           import('./pages/customer/deliveries/deliveries').then((m) => m.CustomerDeliveries),
       },
       {
+        path: 'addresses',
+        loadComponent: () =>
+          import('./pages/customer/addresses/addresses').then((m) => m.CustomerAddresses),
+      },
+      {
+        path: 'addresses/create',
+        loadComponent: () =>
+          import('./pages/customer/addresses/create-address').then((m) => m.CustomerCreateAddress),
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
       },

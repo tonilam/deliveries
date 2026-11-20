@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AddressListController;
 use App\Http\Controllers\Admin\CreateUserController;
 use App\Http\Controllers\Admin\FeatureListController;
 use App\Http\Controllers\Admin\ImpersonateUserController;
@@ -19,6 +20,7 @@ use App\Http\Controllers\Auth\ShowInvitationController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\UpdatePasswordController;
 use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\CreateAddressController;
 use App\Http\Controllers\FeatureFlagsController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -57,6 +59,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::put('/user/password', UpdatePasswordController::class);
     Route::post('/logout', LogoutController::class);
     Route::post('/impersonation/leave', LeaveImpersonationController::class);
+
+    Route::get('/addresses', AddressListController::class);
+    Route::post('/addresses', CreateAddressController::class);
 });
 
 Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->prefix('admin')->group(function () {

@@ -1,0 +1,22 @@
+<section class="portal portal--wide">
+  <div class="addresses-header">
+    <div>
+      <h1>Addresses</h1>
+      <p class="lede">Manage your collection and delivery addresses.</p>
+    </div>
+    <a routerLink="/app/addresses/create" class="btn btn--primary">Add address</a>
+  </div>
+
+  @if (error()) {
+    <p class="addresses-error" role="alert">{{ error() }}</p>
+  }
+
+  <ag-grid-angular
+    class="addresses-grid"
+    [theme]="theme"
+    [rowData]="rowData()"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [loading]="loading()"
+  />
+</section>

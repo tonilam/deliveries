@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\UserRole;
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -75,6 +76,13 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_active' => false,
+        ]);
+    }
+
+    public function forCompany(?Company $company = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'company_id' => $company?->id ?? Company::factory(),
         ]);
     }
 }

@@ -1,0 +1,36 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\AddressType;
+use App\Http\Requests\StoreAddressRequest;
+use App\Models\Address;
+use Illuminate\Http\JsonResponse;
+
+class CreateAddressController extends Controller
+{
+    public function __invoke(StoreAddressRequest $request): JsonResponse
+    {
+        $address = Address::query()->create([
+            'company_id' => $request->user()->company_id,
+            'type' => AddressType::from($request->string('type')->toString()),
+            'business_name' => $request->string('business_name')->toString(),
+            'address' => $request->string('address')->toString(),
+            'zone' => $request->string('zone')->toString(),
+            'state' => $request->string('state')->toString(),
+            'postcode' => $request->string('postcode')->toString(),
+        ]);
+
+        return response()->json([
+            'address' => $address->only([
+                'id',
+                'type',
+                'business_name',
+                'address',
+                'zone',
+                'state',
+                'postcode',
+            ]),
+        ], 201);
+    }
+}
