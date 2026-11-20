@@ -25,6 +25,12 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/invite/invite').then((m) => m.Invite),
   },
   {
+    path: 'reset-password',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./pages/reset-password/reset-password').then((m) => m.ResetPassword),
+  },
+  {
     path: 'change-password',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -80,6 +86,11 @@ export const routes: Routes = [
         path: 'users/create',
         loadComponent: () =>
           import('./pages/admin/users/create-user').then((m) => m.AdminCreateUser),
+      },
+      {
+        path: 'users/:id/reset-password',
+        loadComponent: () =>
+          import('./pages/admin/users/reset-password').then((m) => m.AdminResetPassword),
       },
       {
         path: 'profile',

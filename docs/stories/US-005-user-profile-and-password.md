@@ -13,5 +13,5 @@ As a signed-in user, I want to view my profile details and (if I signed up with 
 
 ## Notes
 - Builds on the My Profile entry point from [US-004](US-004-authenticated-app-shell.md); replaces the placeholder page.
-- Password **reset** (forgot password) remains out of scope per [US-001](US-001-user-auth-sso-and-password.md).
+- Password **reset** from login remains out of scope per [US-001](US-001-user-auth-sso-and-password.md); admin-initiated reset is [US-008](US-008-admin-reset-user-password.md).
 - Editing name/email and account linking UI are out of scope for this story.

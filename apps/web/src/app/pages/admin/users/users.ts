@@ -7,9 +7,15 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
-import { AllCommunityModule, ColDef, ModuleRegistry, themeQuartz } from 'ag-grid-community';
+import {
+  AllCommunityModule,
+  ColDef,
+  ICellRendererParams,
+  ModuleRegistry,
+  themeQuartz,
+} from 'ag-grid-community';
 
 import { forkJoin, map } from 'rxjs';
 
@@ -24,6 +30,7 @@ export interface ManagedUserRow {
   name: string;
   email: string;
   is_active: boolean;
+  has_password: boolean;
 }
 
 @Component({
@@ -36,6 +43,7 @@ export interface ManagedUserRow {
 export class AdminUsers implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   protected readonly theme = themeQuartz;
   protected readonly activeTab = signal<UsersTab>('admin');
@@ -59,6 +67,27 @@ export class AdminUsers implements OnInit {
       minWidth: 100,
       valueFormatter: (params) => (params.value ? 'Yes' : 'No'),
     },
+    {
+      headerName: 'Actions',
+      flex: 0.9,
+      minWidth: 140,
+      sortable: false,
+      filter: false,
+      cellRenderer: (params: ICellRendererParams<ManagedUserRow>) => {
+        if (!params.data?.has_password) {
+          return '';
+        }
+        const link = document.createElement('a');
+        link.href = `/admin/users/${params.data.id}/reset-password`;
+        link.textContent = 'Reset password';
+        link.className = 'grid-action-link';
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          void this.router.navigateByUrl(`/admin/users/${params.data!.id}/reset-password`);
+        });
+        return link;
+      },
+    },
   ];
 
   protected readonly defaultColDef: ColDef = {
@@ -68,9 +97,21 @@ export class AdminUsers implements OnInit {
   };
 
   ngOnInit(): void {
+    const tab = this.route.snapshot.queryParamMap.get('tab');
+    if (tab === 'admin' || tab === 'customer') {
+      this.activeTab.set(tab);
+    }
+
     const invited = this.route.snapshot.queryParamMap.get('invited');
-    if (invited) {
+    const passwordReset = this.route.snapshot.queryParamMap.get('passwordReset');
+    if (invited && passwordReset) {
+      this.inviteNotice.set(
+        `Invitation sent to ${invited}. Password updated for ${passwordReset}.`,
+      );
+    } else if (invited) {
       this.inviteNotice.set(`Invitation sent to ${invited}.`);
+    } else if (passwordReset) {
+      this.inviteNotice.set(`Password updated for ${passwordReset}.`);
     }
     this.loadAllUsers();
   }

@@ -22,7 +22,14 @@ class UserListController extends Controller
         $users = User::query()
             ->where('role', $role)
             ->orderBy('name')
-            ->get(['id', 'name', 'email', 'is_active']);
+            ->get(['id', 'name', 'email', 'is_active', 'password'])
+            ->map(fn (User $user) => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_active' => $user->is_active,
+                'has_password' => $user->has_password,
+            ]);
 
         return response()->json([
             'users' => $users,
