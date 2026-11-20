@@ -1,5 +1,14 @@
+export interface CompanyCountry {
+  id: number;
+  name: string;
+  code: string;
+}
+
 export interface Company {
   id: number;
+  country_id: number;
+  country: CompanyCountry | null;
+  has_addresses: boolean;
   reg_number: string;
   reg_type: string;
   business_name: string;
@@ -15,6 +24,7 @@ export interface Company {
 }
 
 export type CompanyDetailsPayload = {
+  country_id: number;
   reg_number: string;
   reg_type: string;
   business_name: string;

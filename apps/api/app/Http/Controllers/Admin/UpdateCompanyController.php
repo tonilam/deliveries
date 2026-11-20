@@ -40,7 +40,7 @@ class UpdateCompanyController extends Controller
         ])->save();
 
         return response()->json([
-            'company' => $company->fresh(),
+            'company' => $company->fresh()?->toAdminPayload(),
         ]);
     }
 
@@ -49,12 +49,20 @@ class UpdateCompanyController extends Controller
         $domains = $this->domains->normalizeDomains($request->input('allowed_domains', []));
         $regNumber = $this->domains->normalizeRegNumber($request->string('reg_number')->toString());
         $businessName = $this->domains->normalizeBusinessName($request->string('business_name')->toString());
+        $countryId = $request->integer('country_id');
+
+        if ($countryId !== (int) $company->country_id && $company->addresses()->exists()) {
+            throw ValidationException::withMessages([
+                'country_id' => ['Country cannot be changed while this company has addresses.'],
+            ]);
+        }
 
         $this->domains->assertCompanyIdentityUnique($regNumber, $businessName, $domains, $company->id);
 
         try {
-            $company = DB::transaction(function () use ($request, $company, $domains, $regNumber, $businessName): Company {
+            $company = DB::transaction(function () use ($request, $company, $domains, $regNumber, $businessName, $countryId): Company {
                 $company->fill([
+                    'country_id' => $countryId,
                     'reg_number' => $regNumber,
                     'reg_type' => $request->string('reg_type')->toString(),
                     'business_name' => $businessName,
@@ -73,7 +81,7 @@ class UpdateCompanyController extends Controller
         }
 
         return response()->json([
-            'company' => $company,
+            'company' => $company->toAdminPayload(),
         ]);
     }
 

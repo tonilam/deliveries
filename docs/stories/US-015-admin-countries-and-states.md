@@ -12,11 +12,12 @@ As an admin user, I want to manage countries and their states/regions from Syste
 - [x] Admin-only APIs (`/api/admin/countries` and nested state routes); customers and guests receive 401/403
 - [x] `AustraliaCountrySeeder` seeds Australia (`AU`) and its 8 states/territories
 - [x] `NewZealandCountrySeeder` seeds New Zealand (`NZ`) and its 16 regions (separate seeder class)
-- [x] Address create/list behaviour remains unchanged (free-text `state` — [US-010](US-010-customer-address-management.md))
+- [x] Companies reference a country ([US-011](US-011-company-entity.md)); customer address create uses that country’s states as a dropdown ([US-010](US-010-customer-address-management.md))
 
 ## Notes
 - Extends System settings placeholder from [US-002](US-002-admin-portal-and-roles.md); Features stay on `/admin/features` ([US-006](US-006-admin-feature-toggles.md)).
 - Seeders are idempotent (`updateOrCreate` on country/state code). Run separately:
   - `php artisan db:seed --class=AustraliaCountrySeeder`
   - `php artisan db:seed --class=NewZealandCountrySeeder`
-- Out of scope: linking addresses to `country_states`, public/customer country APIs.
+- Customer-facing API is limited to state options for the signed-in customer’s company country (`GET /api/addresses/state-options`); full country CRUD remains admin-only.
+- Deleting a country that is still referenced by companies is blocked (`restrictOnDelete`).

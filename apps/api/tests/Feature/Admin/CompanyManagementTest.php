@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Address;
 use App\Models\Company;
+use App\Models\Country;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -29,6 +31,7 @@ class CompanyManagementTest extends TestCase
     public function test_admin_can_list_create_and_update_companies(): void
     {
         $this->loginAsAdmin();
+        $country = Country::factory()->create(['code' => 'AU', 'name' => 'Australia']);
 
         $this->asSpa()->getJson('/api/admin/companies')
             ->assertOk()
@@ -38,6 +41,7 @@ class CompanyManagementTest extends TestCase
             ->assertJsonPath('meta.total', 0);
 
         $create = $this->asSpa()->postJson('/api/admin/companies', [
+            'country_id' => $country->id,
             'reg_number' => '51824753556',
             'reg_type' => 'ABN',
             'business_name' => 'Acme Pty Ltd',
@@ -50,6 +54,9 @@ class CompanyManagementTest extends TestCase
         $create->assertCreated()
             ->assertJsonPath('company.business_name', 'Acme Pty Ltd')
             ->assertJsonPath('company.allowed_domains', ['acme.test'])
+            ->assertJsonPath('company.country_id', $country->id)
+            ->assertJsonPath('company.country.code', 'AU')
+            ->assertJsonPath('company.has_addresses', false)
             ->assertJsonPath('company.invoicee_name', '')
             ->assertJsonPath('company.gst_rate', 0.1)
             ->assertJsonPath('company.tracking_option', null);
@@ -58,6 +65,7 @@ class CompanyManagementTest extends TestCase
 
         $this->asSpa()->putJson('/api/admin/companies/'.$id, [
             'section' => 'details',
+            'country_id' => $country->id,
             'reg_number' => '51824753556',
             'reg_type' => 'ABN',
             'business_name' => 'Acme Updated',
@@ -73,7 +81,61 @@ class CompanyManagementTest extends TestCase
         $this->asSpa()->getJson('/api/admin/companies')
             ->assertOk()
             ->assertJsonCount(1, 'companies')
-            ->assertJsonPath('meta.total', 1);
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('companies.0.country.code', 'AU');
+    }
+
+    public function test_admin_can_change_company_country_when_no_addresses(): void
+    {
+        $australia = Country::factory()->create(['code' => 'AU', 'name' => 'Australia']);
+        $newZealand = Country::factory()->create(['code' => 'NZ', 'name' => 'New Zealand']);
+        $company = Company::factory()->withDomains(['acme.test'])->create([
+            'country_id' => $australia->id,
+        ]);
+        $this->loginAsAdmin();
+
+        $this->asSpa()->putJson('/api/admin/companies/'.$company->id, [
+            'section' => 'details',
+            'country_id' => $newZealand->id,
+            'reg_number' => $company->reg_number,
+            'reg_type' => $company->reg_type,
+            'business_name' => $company->business_name,
+            'phone' => $company->phone,
+            'email' => $company->email,
+            'address' => $company->address,
+            'allowed_domains' => ['acme.test'],
+        ])->assertOk()
+            ->assertJsonPath('company.country_id', $newZealand->id)
+            ->assertJsonPath('company.country.code', 'NZ');
+    }
+
+    public function test_admin_cannot_change_company_country_when_addresses_exist(): void
+    {
+        $australia = Country::factory()->create(['code' => 'AU', 'name' => 'Australia']);
+        $newZealand = Country::factory()->create(['code' => 'NZ', 'name' => 'New Zealand']);
+        $company = Company::factory()->withDomains(['acme.test'])->create([
+            'country_id' => $australia->id,
+        ]);
+        Address::factory()->for($company)->create();
+        $this->loginAsAdmin();
+
+        $this->asSpa()->putJson('/api/admin/companies/'.$company->id, [
+            'section' => 'details',
+            'country_id' => $newZealand->id,
+            'reg_number' => $company->reg_number,
+            'reg_type' => $company->reg_type,
+            'business_name' => $company->business_name,
+            'phone' => $company->phone,
+            'email' => $company->email,
+            'address' => $company->address,
+            'allowed_domains' => ['acme.test'],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['country_id']);
+
+        $this->asSpa()->getJson('/api/admin/companies/'.$company->id)
+            ->assertOk()
+            ->assertJsonPath('company.country_id', $australia->id)
+            ->assertJsonPath('company.has_addresses', true);
     }
 
     public function test_admin_company_list_is_paginated(): void
@@ -278,6 +340,7 @@ class CompanyManagementTest extends TestCase
 
         $this->asSpa()->putJson('/api/admin/companies/'.$company->id, [
             'section' => 'details',
+            'country_id' => $company->country_id,
             'reg_number' => $company->reg_number,
             'reg_type' => $company->reg_type,
             'business_name' => 'Renamed Co',
@@ -296,8 +359,10 @@ class CompanyManagementTest extends TestCase
     {
         Company::factory()->withDomains(['shared.test'])->create();
         $this->loginAsAdmin();
+        $country = Country::factory()->create();
 
         $this->asSpa()->postJson('/api/admin/companies', [
+            'country_id' => $country->id,
             'reg_number' => '111',
             'reg_type' => 'ABN',
             'business_name' => 'Other Co',
@@ -316,8 +381,10 @@ class CompanyManagementTest extends TestCase
             'business_name' => 'Acme Pty Ltd',
         ]);
         $this->loginAsAdmin();
+        $country = Country::factory()->create();
 
         $this->asSpa()->postJson('/api/admin/companies', [
+            'country_id' => $country->id,
             'reg_number' => '518 247 535 56',
             'reg_type' => 'ABN',
             'business_name' => 'Fresh Co',
@@ -329,6 +396,7 @@ class CompanyManagementTest extends TestCase
             ->assertJsonValidationErrors(['reg_number']);
 
         $this->asSpa()->postJson('/api/admin/companies', [
+            'country_id' => $country->id,
             'reg_number' => '99999999999',
             'reg_type' => 'ABN',
             'business_name' => 'acme pty ltd',

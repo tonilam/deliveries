@@ -34,6 +34,7 @@ class UpdateCompanyRequest extends FormRequest
 
         return [
             'section' => ['sometimes', Rule::in(['details'])],
+            'country_id' => ['required', 'integer', 'exists:countries,id'],
             'reg_number' => ['required', 'string', 'max:255'],
             'reg_type' => ['required', 'string', 'max:255'],
             'business_name' => ['required', 'string', 'max:255'],

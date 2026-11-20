@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Enums\AddressType;
 use App\Models\Address;
 use App\Models\Company;
+use App\Models\Country;
+use App\Models\CountryState;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -82,7 +84,7 @@ class AddressManagementTest extends TestCase
 
     public function test_customer_can_create_address_for_company(): void
     {
-        $company = Company::factory()->create();
+        $company = $this->companyWithStates();
         $customer = User::factory()->forCompany($company)->create([
             'email' => 'customer@example.com',
             'password' => 'Password1!',
@@ -108,6 +110,58 @@ class AddressManagementTest extends TestCase
             'business_name' => 'Acme Logistics',
             'postcode' => '3000',
         ]);
+    }
+
+    public function test_create_address_rejects_state_outside_company_country(): void
+    {
+        $company = $this->companyWithStates();
+        $otherCountry = Country::factory()->create();
+        CountryState::factory()->create([
+            'country_id' => $otherCountry->id,
+            'code' => 'AUK',
+            'name' => 'Auckland',
+        ]);
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->postJson('/api/addresses', [
+            ...$this->validPayload(),
+            'state' => 'AUK',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['state']);
+    }
+
+    public function test_customer_can_list_state_options_for_company_country(): void
+    {
+        $company = $this->companyWithStates();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->getJson('/api/addresses/state-options')
+            ->assertOk()
+            ->assertJsonCount(2, 'states')
+            ->assertJsonPath('states.0.code', 'NSW')
+            ->assertJsonPath('states.0.name', 'New South Wales')
+            ->assertJsonPath('states.1.code', 'VIC')
+            ->assertJsonPath('states.1.name', 'Victoria');
+    }
+
+    public function test_admin_and_guest_cannot_list_state_options(): void
+    {
+        $this->asSpa()->getJson('/api/addresses/state-options')->assertUnauthorized();
+
+        $this->loginAs(User::factory()->admin()->create([
+            'email' => 'admin@example.com',
+            'password' => 'Password1!',
+        ]));
+
+        $this->asSpa()->getJson('/api/addresses/state-options')->assertForbidden();
     }
 
     public function test_create_address_validates_required_fields_and_type(): void
@@ -352,6 +406,25 @@ class AddressManagementTest extends TestCase
             'state' => 'VIC',
             'postcode' => '3000',
         ];
+    }
+
+    private function companyWithStates(): Company
+    {
+        $country = Country::factory()->create(['code' => 'AU', 'name' => 'Australia']);
+        CountryState::factory()->create([
+            'country_id' => $country->id,
+            'code' => 'NSW',
+            'name' => 'New South Wales',
+        ]);
+        CountryState::factory()->create([
+            'country_id' => $country->id,
+            'code' => 'VIC',
+            'name' => 'Victoria',
+        ]);
+
+        return Company::factory()->create([
+            'country_id' => $country->id,
+        ]);
     }
 
     private function loginAs(User $user): void

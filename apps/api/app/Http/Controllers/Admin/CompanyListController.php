@@ -23,11 +23,16 @@ class CompanyListController extends Controller
         $page = min(max(1, (int) $request->input('page', 1)), $lastPage);
 
         $paginator = $query
+            ->with(['country' => static fn ($q) => $q->select('id', 'name', 'code')])
+            ->withCount('addresses')
             ->paginate($perPage, ['*'], 'page', $page)
             ->withQueryString();
 
         return response()->json([
-            'companies' => $paginator->items(),
+            'companies' => collect($paginator->items())
+                ->map(static fn (Company $company) => $company->toAdminPayload())
+                ->values()
+                ->all(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),

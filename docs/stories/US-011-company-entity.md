@@ -5,6 +5,7 @@ As the product, I need a Company record with registration and billing details, s
 
 ## Acceptance criteria
 - [x] A `companies` table/model exists with: `reg_number`, `reg_type` (e.g. ABN), `business_name`, `invoicee_name` (optional), `phone`, `email`, `address`
+- [x] Company has a required `country_id` referencing a country ([US-015](US-015-admin-countries-and-states.md)); used to drive address state options ([US-010](US-010-customer-address-management.md))
 - [x] Company has finance fields: `gst_rate` (fraction, default `0.1`), `tracking_option` (optional free text for Xero)
 - [x] Company has an **allowed domains** list (email domains used to decide which customers may join)
 - [x] Company can have many addresses ([US-010](US-010-customer-address-management.md))

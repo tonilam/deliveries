@@ -1,11 +1,16 @@
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { AddressRow, AddressType } from './addresses';
+
+interface StateOption {
+  code: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-customer-create-address',
@@ -14,7 +19,7 @@ import { AddressRow, AddressType } from './addresses';
   styleUrls: ['../../../shared/portal-shell.scss', './create-address.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CustomerCreateAddress {
+export class CustomerCreateAddress implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
@@ -22,6 +27,7 @@ export class CustomerCreateAddress {
 
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
+  protected readonly stateOptions = signal<StateOption[]>([]);
 
   protected readonly form = this.fb.nonNullable.group({
     type: this.fb.nonNullable.control<AddressType>('collection', [Validators.required]),
@@ -32,9 +38,31 @@ export class CustomerCreateAddress {
     postcode: ['', [Validators.required, Validators.maxLength(32)]],
   });
 
+  ngOnInit(): void {
+    this.form.controls.state.disable({ emitEvent: false });
+    this.http.get<{ states: StateOption[] }>('/api/addresses/state-options').subscribe({
+      next: ({ states }) => {
+        this.stateOptions.set(states);
+        if (states.length === 0) {
+          this.error.set('No states are configured for your company country.');
+          return;
+        }
+        this.form.controls.state.enable({ emitEvent: false });
+      },
+      error: () => {
+        this.error.set('Unable to load states for your company country.');
+      },
+    });
+  }
+
   protected submit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+
+    if (this.stateOptions().length === 0) {
+      this.error.set('No states are configured for your company country.');
       return;
     }
 

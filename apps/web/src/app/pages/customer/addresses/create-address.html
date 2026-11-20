@@ -39,7 +39,12 @@
 
     <label>
       State
-      <input type="text" formControlName="state" autocomplete="address-level1" />
+      <select formControlName="state" autocomplete="address-level1">
+        <option value="" disabled>Select a state</option>
+        @for (state of stateOptions(); track state.code) {
+          <option [value]="state.code">{{ state.name }}</option>
+        }
+      </select>
     </label>
 
     <label>

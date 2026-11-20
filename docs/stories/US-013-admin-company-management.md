@@ -10,10 +10,11 @@ As an admin user, I want to manage companies (list, create, edit) and attach cus
 - [x] Column filters stay available in the AG Grid UI for **Business name**, **Reg number**, **Email**, and **Allowed domains**; filtering is applied **server-side** (with pagination totals reflecting the filtered set)
 - [x] Column sorting is available in the AG Grid UI for **Business name**, **Reg number**, **Email**, and **Allowed domains**; sorting is applied **server-side** (single column; default **Business name** ascending)
 - [x] List API (`GET /api/admin/companies`) accepts `page`, `per_page` (allowed sizes above; default 25), optional `sort` / `direction` (sortable columns above; `asc`|`desc`; defaults `business_name` / `asc`), and optional column `filter` params, and returns the current page of companies plus pagination meta
-- [x] A **Create company** button opens a create flow for company identity/contact fields from [US-011](US-011-company-entity.md), plus **allowed domains** (finance fields are set on edit — [US-014](US-014-admin-company-finance-details.md))
+- [x] A **Create company** button opens a create flow for company identity/contact fields from [US-011](US-011-company-entity.md), including required **country**, plus **allowed domains** (finance fields are set on edit — [US-014](US-014-admin-company-finance-details.md))
 - [x] After successful create, the admin is redirected to that company’s **edit** page
 - [x] Each row has an **Edit** action; edit has **Details** and **Finance** tabs ([US-014](US-014-admin-company-finance-details.md))
-- [x] Saving create or **Details** edit opens a **confirmation modal** that shows **business name**, **reg number**, and **allowed domains** for the admin to review before the save is submitted
+- [x] On **Details** edit, **country** can be changed only while the company has **no addresses**; when addresses exist the country control is disabled and the API rejects country changes
+- [x] Saving create or **Details** edit opens a **confirmation modal** that shows **country**, **business name**, **reg number**, and **allowed domains** for the admin to review before the save is submitted
 - [x] When the confirmation modal opens, it automatically calls an admin uniqueness-check API; while checking, a **spinner** is shown; each field then shows a **green check** if unique or a **red cross** if conflicting, and conflicting results ask the admin to review the data
 - [x] Confirm save is only enabled when all checked fields pass
 - [x] **Business name**, **reg number**, and each **allowed domain** must be unique across companies (no duplicates in the system); duplicates are rejected

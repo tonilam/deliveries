@@ -67,6 +67,21 @@
         </label>
 
         <label>
+          <span class="label-text">Country <span class="required" aria-hidden="true">*</span></span>
+          <select formControlName="country_id">
+            <option [ngValue]="null" disabled>Select a country</option>
+            @for (country of countries(); track country.id) {
+              <option [ngValue]="country.id">{{ country.name }} ({{ country.code }})</option>
+            }
+          </select>
+          @if (countryLocked()) {
+            <span class="field-hint"
+              >Country cannot be changed while this company has addresses.</span
+            >
+          }
+        </label>
+
+        <label>
           <span class="label-text"
             >Registration type <span class="required" aria-hidden="true">*</span></span
           >
@@ -183,6 +198,13 @@
     </p>
 
     <dl class="confirm-list">
+      <div class="confirm-row">
+        <div class="confirm-row__text">
+          <dt>Country</dt>
+          <dd>{{ pendingCountryName() || preview.country_id }}</dd>
+        </div>
+      </div>
+
       <div class="confirm-row">
         <div class="confirm-row__text">
           <dt>Business name</dt>

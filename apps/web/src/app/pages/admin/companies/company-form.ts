@@ -19,6 +19,7 @@ import {
   normalizeRegNumber,
 } from '../../../core/company/company-normalize';
 import { Company, CompanyDetailsPayload } from '../../../core/company/company.model';
+import { Country } from '../../../core/country/country.model';
 
 type FieldKey = 'business_name' | 'reg_number' | 'allowed_domains';
 type FieldStatus = 'pending' | 'checking' | 'ok' | 'conflict' | 'error';
@@ -66,6 +67,9 @@ export class AdminCompanyForm implements OnInit {
   protected readonly checkError = signal<string | null>(null);
   protected readonly fieldChecks = signal<Record<FieldKey, FieldCheck>>({ ...EMPTY_CHECKS });
   protected readonly pendingPayload = signal<CompanyDetailsPayload | null>(null);
+  protected readonly countries = signal<Country[]>([]);
+  protected readonly hasAddresses = signal(false);
+  protected readonly countryLocked = computed(() => this.isEdit() && this.hasAddresses());
   private checkGeneration = 0;
   protected readonly companyId = signal<number | null>(null);
   protected readonly activeTab = signal<EditTab>('details');
@@ -90,8 +94,16 @@ export class AdminCompanyForm implements OnInit {
   protected readonly canConfirm = computed(
     () => this.allFieldsOk() && !this.checking() && !this.submitting() && !this.checkError(),
   );
+  protected readonly pendingCountryName = computed(() => {
+    const payload = this.pendingPayload();
+    if (!payload) {
+      return '';
+    }
+    return this.countries().find((country) => country.id === payload.country_id)?.name ?? '';
+  });
 
   protected readonly detailsForm = this.fb.nonNullable.group({
+    country_id: this.fb.nonNullable.control<number | null>(null, [Validators.required]),
     reg_number: ['', [Validators.required, Validators.maxLength(255)]],
     reg_type: ['ABN', [Validators.required, Validators.maxLength(255)]],
     business_name: ['', [Validators.required, Validators.maxLength(255)]],
@@ -111,8 +123,23 @@ export class AdminCompanyForm implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loading.set(true);
+    this.http.get<{ countries: Country[] }>('/api/admin/countries').subscribe({
+      next: ({ countries }) => {
+        this.countries.set(countries);
+        this.loadCompanyIfEditing();
+      },
+      error: () => {
+        this.error.set('Unable to load countries.');
+        this.loading.set(false);
+      },
+    });
+  }
+
+  private loadCompanyIfEditing(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
     if (!idParam) {
+      this.loading.set(false);
       return;
     }
 
@@ -128,7 +155,6 @@ export class AdminCompanyForm implements OnInit {
       this.activeTab.set('finance');
     }
 
-    this.loading.set(true);
     this.http.get<{ company: Company }>(`/api/admin/companies/${id}`).subscribe({
       next: ({ company }) => {
         this.patchCompany(company);
@@ -223,6 +249,7 @@ export class AdminCompanyForm implements OnInit {
     this.fieldChecks.set({ ...EMPTY_CHECKS });
     this.detailsForm.enable({ emitEvent: false });
     this.financeForm.enable({ emitEvent: false });
+    this.syncCountryControlLock();
   }
 
   protected confirmSave(): void {
@@ -237,6 +264,7 @@ export class AdminCompanyForm implements OnInit {
     const id = this.companyId();
     const detailsBody = {
       section: 'details' as const,
+      country_id: payload.country_id,
       reg_number: payload.reg_number,
       reg_type: payload.reg_type,
       business_name: payload.business_name,
@@ -274,6 +302,7 @@ export class AdminCompanyForm implements OnInit {
         this.patchDetails(company);
         this.detailsForm.enable({ emitEvent: false });
         this.financeForm.enable({ emitEvent: false });
+        this.syncCountryControlLock();
         this.fieldChecks.set({ ...EMPTY_CHECKS });
       },
       error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
@@ -283,6 +312,7 @@ export class AdminCompanyForm implements OnInit {
         this.fieldChecks.set({ ...EMPTY_CHECKS });
         this.detailsForm.enable({ emitEvent: false });
         this.financeForm.enable({ emitEvent: false });
+        this.syncCountryControlLock();
         this.error.set(this.firstError(err) ?? 'Could not save company');
       },
     });
@@ -301,7 +331,9 @@ export class AdminCompanyForm implements OnInit {
   }
 
   private patchDetails(company: Company): void {
+    this.hasAddresses.set(company.has_addresses);
     this.detailsForm.patchValue({
+      country_id: company.country_id,
       reg_number: company.reg_number,
       reg_type: company.reg_type,
       business_name: company.business_name,
@@ -310,6 +342,16 @@ export class AdminCompanyForm implements OnInit {
       address: company.address,
       allowed_domains: (company.allowed_domains ?? []).join(', '),
     });
+    this.syncCountryControlLock();
+  }
+
+  private syncCountryControlLock(): void {
+    const control = this.detailsForm.controls.country_id;
+    if (this.countryLocked()) {
+      control.disable({ emitEvent: false });
+    } else {
+      control.enable({ emitEvent: false });
+    }
   }
 
   private patchFinance(company: Company): void {
@@ -322,6 +364,12 @@ export class AdminCompanyForm implements OnInit {
 
   private buildDetailsPayload(): CompanyDetailsPayload | null {
     const raw = this.detailsForm.getRawValue();
+    const countryId = raw.country_id;
+    if (countryId === null || !Number.isFinite(countryId)) {
+      this.error.set('Select a country.');
+      return null;
+    }
+
     const domains = normalizeDomains(
       raw.allowed_domains
         .split(/[\s,;]+/)
@@ -335,6 +383,7 @@ export class AdminCompanyForm implements OnInit {
     }
 
     return {
+      country_id: countryId,
       reg_number: normalizeRegNumber(raw.reg_number),
       reg_type: raw.reg_type.trim(),
       business_name: normalizeBusinessName(raw.business_name),
@@ -439,6 +488,7 @@ export class AdminCompanyForm implements OnInit {
   }): string | undefined {
     const errors = err.error?.errors;
     return (
+      errors?.['country_id']?.[0] ??
       errors?.['allowed_domains']?.[0] ??
       errors?.['business_name']?.[0] ??
       errors?.['reg_number']?.[0] ??

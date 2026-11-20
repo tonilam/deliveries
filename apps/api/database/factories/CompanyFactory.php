@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Company;
 use App\Models\CompanyAllowedDomain;
+use App\Models\Country;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -22,6 +23,7 @@ class CompanyFactory extends Factory
         $trackingOption = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $businessName) ?? '');
 
         return [
+            'country_id' => Country::factory(),
             'reg_number' => preg_replace('/\s+/', '', $regNumber) ?? $regNumber,
             'reg_type' => 'ABN',
             'business_name' => $businessName,

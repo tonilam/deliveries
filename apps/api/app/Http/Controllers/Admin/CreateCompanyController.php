@@ -28,6 +28,7 @@ class CreateCompanyController extends Controller
         try {
             $company = DB::transaction(function () use ($request, $domains, $regNumber, $businessName): Company {
                 $company = Company::query()->create([
+                    'country_id' => $request->integer('country_id'),
                     'reg_number' => $regNumber,
                     'reg_type' => $request->string('reg_type')->toString(),
                     'business_name' => $businessName,
@@ -50,7 +51,7 @@ class CreateCompanyController extends Controller
         }
 
         return response()->json([
-            'company' => $company,
+            'company' => $company->toAdminPayload(),
         ], 201);
     }
 
