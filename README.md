@@ -16,6 +16,23 @@ deploy/    ECR push + EC2 run helpers
 - Docker (Compose + Buildx)
 - AWS CLI (for ECR/EC2 deploy)
 
+## Formatting & linting
+
+| App | Tools | Commands |
+| --- | --- | --- |
+| `apps/web` | Prettier, ESLint (`angular-eslint`) | `npm run format` / `npm run lint` |
+| `apps/api` | Pint, Rector | `composer format` / `composer rector` |
+
+Install the git pre-commit hook (formats staged web files with Prettier and staged PHP with Pint):
+
+```bash
+make hooks-install
+```
+
+## Get started
+
+Open [`get-started.html`](get-started.html) in a browser for a step-by-step local setup guide (prerequisites, MySQL, API, web, verify, daily commands).
+
 ## Local development
 
 ### 1. Start MySQL

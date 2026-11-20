@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Loadplanner — Get started locally</title>
+    <meta
+      name="description"
+      content="Set up the Loadplanner monorepo on your machine: MySQL, Laravel API, and Angular SPA."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Truckit demo tokens — https://component.truckitmetro.com/demo/ */
+      :root {
+        --brand-50: #fff3ee;
+        --brand-100: #ffe4d6;
+        --brand-200: #ffc4a8;
+        --brand-300: #ff9d79;
+        --brand-400: #ff7550;
+        --brand-500: #f05a28;
+        --brand-600: #cc4518;
+        --brand-700: #a3340f;
+        --brand-800: #7a2509;
+        --brand-900: #521704;
+
+        --navy-50: #eef2fa;
+        --navy-100: #d0d9f0;
+        --navy-200: #9aaedd;
+        --navy-300: #6483c9;
+        --navy-400: #3a5faf;
+        --navy-500: #1e3a8a;
+        --navy-600: #172e6f;
+        --navy-700: #102253;
+        --navy-800: #091638;
+        --navy-900: #040b1e;
+
+        --neutral-50: #f9fafb;
+        --neutral-100: #f3f4f6;
+        --neutral-200: #e5e7eb;
+        --neutral-300: #d1d5db;
+        --neutral-400: #9ca3af;
+        --neutral-500: #6b7280;
+        --neutral-600: #4b5563;
+        --neutral-700: #374151;
+        --neutral-800: #1f2937;
+        --neutral-900: #111827;
+
+        --success: #22c55e;
+        --error: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
+
+        --ink: var(--neutral-900);
+        --ink-soft: var(--neutral-700);
+        --paper: var(--neutral-50);
+        --muted: var(--neutral-500);
+        --line: var(--neutral-200);
+        --hi: var(--brand-500);
+        --hi-ink: #ffffff;
+        --glow: rgba(240, 90, 40, 0.35);
+        --code-bg: var(--neutral-800);
+        --code-fg: var(--neutral-100);
+        --ok: var(--success);
+        --warn: var(--warning);
+        --radius: 8px;
+        --max: 72rem;
+        --step: clamp(1.5rem, 4vw, 3rem);
+        --ease: cubic-bezier(0.16, 1, 0.3, 1);
+        --duration: 180ms;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+        color: var(--ink);
+        background:
+          radial-gradient(1100px 520px at 90% -5%, rgba(240, 90, 40, 0.1), transparent 55%),
+          radial-gradient(900px 480px at -5% 15%, rgba(30, 58, 138, 0.08), transparent 50%),
+          linear-gradient(180deg, var(--neutral-50) 0%, var(--neutral-100) 100%);
+        min-height: 100vh;
+      }
+
+      a {
+        color: var(--navy-500);
+      }
+
+      a:hover {
+        color: var(--brand-600);
+      }
+
+      .wrap {
+        width: min(100% - 2.5rem, var(--max));
+        margin-inline: auto;
+      }
+
+      /* —— Hero (one composition) —— */
+      .hero {
+        position: relative;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        align-content: end;
+        padding: 2rem 0 3.5rem;
+        overflow: hidden;
+      }
+
+      .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(
+            to top,
+            rgba(4, 11, 30, 0.92) 0%,
+            rgba(9, 22, 56, 0.72) 38%,
+            rgba(23, 46, 111, 0.35) 100%
+          ),
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%23F05A28' stroke-opacity='0.12' stroke-width='1'%3E%3Cpath d='M0 40h160M0 80h160M0 120h160M40 0v160M80 0v160M120 0v160'/%3E%3C/g%3E%3C/svg%3E"),
+          radial-gradient(ellipse 75% 55% at 72% 38%, var(--navy-600) 0%, var(--navy-900) 72%);
+        background-size: auto, 160px 160px, auto;
+        z-index: -1;
+        animation: hero-wash 12s ease-in-out infinite alternate;
+      }
+
+      @keyframes hero-wash {
+        from {
+          filter: saturate(1) brightness(1);
+        }
+        to {
+          filter: saturate(1.08) brightness(1.04);
+        }
+      }
+
+      .topbar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 1.25rem 0;
+      }
+
+      .topbar .wrap {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .brand {
+        font-family: 'Open Sans', sans-serif;
+        font-weight: 900;
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        text-decoration: none;
+        line-height: 1;
+        animation: brand-in 0.9s var(--ease) both;
+      }
+
+      .brand span {
+        color: var(--brand-500);
+      }
+
+      @keyframes brand-in {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .top-link {
+        color: rgba(249, 250, 251, 0.75);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        border-bottom: 1px solid transparent;
+        transition: border-color var(--duration) var(--ease), color var(--duration) var(--ease);
+      }
+
+      .top-link:hover {
+        color: var(--brand-400);
+        border-bottom-color: var(--brand-400);
+      }
+
+      .hero-copy {
+        color: #ffffff;
+        max-width: 36rem;
+        animation: copy-in 1s 0.15s var(--ease) both;
+      }
+
+      @keyframes copy-in {
+        from {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      .hero-copy h1 {
+        font-family: 'Open Sans', sans-serif;
+        font-weight: 800;
+        font-size: clamp(2rem, 5.5vw, 2.75rem);
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        margin: 0 0 1rem;
+      }
+
+      .hero-copy p {
+        margin: 0 0 1.75rem;
+        font-size: 1rem;
+        line-height: 1.65;
+        color: rgba(249, 250, 251, 0.85);
+        max-width: 32rem;
+        font-weight: 400;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        animation: copy-in 1s 0.35s var(--ease) both;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.85rem 1.25rem;
+        font: inherit;
+        font-weight: 700;
+        font-size: 0.875rem;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        border-radius: 9999px;
+        transition: transform var(--duration) var(--ease), box-shadow var(--duration) var(--ease),
+          background var(--duration) var(--ease);
+      }
+
+      .btn-primary {
+        background: var(--brand-500);
+        color: #ffffff;
+        box-shadow: 0 0 0 0 var(--glow);
+      }
+
+      .btn-primary:hover {
+        background: var(--brand-600);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 24px var(--glow);
+        color: #ffffff;
+      }
+
+      .btn-ghost {
+        background: transparent;
+        color: #ffffff;
+        outline: 1px solid rgba(249, 250, 251, 0.4);
+      }
+
+      .btn-ghost:hover {
+        background: rgba(249, 250, 251, 0.1);
+        color: #ffffff;
+      }
+
+      /* —— Sections —— */
+      main {
+        padding-bottom: 5rem;
+      }
+
+      section {
+        padding: var(--step) 0;
+        border-top: 1px solid var(--line);
+      }
+
+      section > .wrap > h2 {
+        font-family: 'Open Sans', sans-serif;
+        font-weight: 800;
+        font-size: clamp(1.5rem, 3vw, 1.75rem);
+        letter-spacing: -0.02em;
+        margin: 0 0 0.5rem;
+        color: var(--navy-500);
+      }
+
+      section > .wrap > .lede {
+        margin: 0 0 1.75rem;
+        color: var(--muted);
+        max-width: 40rem;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+      }
+
+      .step-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 1.75rem;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1rem 1.25rem;
+        align-items: start;
+      }
+
+      .step-num {
+        font-family: 'Open Sans', sans-serif;
+        font-weight: 800;
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        color: #ffffff;
+        background: var(--brand-500);
+        width: 2.25rem;
+        height: 2.25rem;
+        display: grid;
+        place-items: center;
+        border-radius: 9999px;
+        margin-top: 0.15rem;
+      }
+
+      .step h3 {
+        margin: 0 0 0.35rem;
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--neutral-800);
+      }
+
+      .step p {
+        margin: 0 0 0.85rem;
+        color: var(--ink-soft);
+        font-size: 0.9375rem;
+      }
+
+      .step p:last-child {
+        margin-bottom: 0;
+      }
+
+      .note {
+        margin: 0.75rem 0 0;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--brand-500);
+        background: var(--brand-50);
+        color: var(--ink-soft);
+        font-size: 0.875rem;
+        border-radius: 0 6px 6px 0;
+      }
+
+      .note.warn {
+        border-left-color: var(--warning);
+        background: #fffbeb;
+      }
+
+      /* —— Command blocks (interactive) —— */
+      .cmd {
+        position: relative;
+        margin: 0.65rem 0 0;
+        background: var(--code-bg);
+        color: var(--code-fg);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
+      }
+
+      .cmd pre {
+        margin: 0;
+        padding: 1rem 3.25rem 1rem 1rem;
+        overflow-x: auto;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.8125rem;
+        line-height: 1.55;
+        white-space: pre;
+      }
+
+      .cmd button {
+        position: absolute;
+        top: 0.55rem;
+        right: 0.55rem;
+        padding: 0.35rem 0.65rem;
+        font-family: 'Open Sans', sans-serif;
+        font-size: 0.6875rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: #ffffff;
+        background: var(--brand-500);
+        border: none;
+        border-radius: 9999px;
+        cursor: pointer;
+        opacity: 0.95;
+        transition: opacity 0.15s var(--ease), transform 0.15s var(--ease),
+          background var(--duration) var(--ease);
+      }
+
+      .cmd button:hover {
+        opacity: 1;
+        background: var(--brand-600);
+        transform: translateY(-1px);
+      }
+
+      .cmd button.copied {
+        background: var(--success);
+      }
+
+      .grid-2 {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      @media (min-width: 720px) {
+        .grid-2 {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      .check-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .check-list li {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.75rem;
+        align-items: baseline;
+        font-size: 0.9375rem;
+      }
+
+      .check-list li::before {
+        content: '→';
+        color: var(--brand-500);
+        font-weight: 700;
+      }
+
+      .check-list a {
+        font-weight: 700;
+        color: var(--navy-500);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .check-list a:hover {
+        color: var(--brand-600);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 0.7rem 0.85rem;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+
+      th {
+        font-weight: 700;
+        color: var(--navy-500);
+        background: var(--navy-50);
+      }
+
+      code.inline {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.8125em;
+        background: var(--neutral-100);
+        color: var(--neutral-800);
+        padding: 0.12em 0.35em;
+        border-radius: 4px;
+        border: 1px solid var(--neutral-200);
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 2rem 0 3rem;
+        color: var(--muted);
+        font-size: 0.875rem;
+      }
+
+      footer a {
+        font-weight: 700;
+        color: var(--navy-500);
+      }
+
+      footer a:hover {
+        color: var(--brand-600);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="topbar">
+        <div class="wrap">
+          <a class="brand" href="#top">Load<span>planner</span></a>
+          <a class="top-link" href="README.md">README.md</a>
+        </div>
+      </div>
+      <div class="wrap hero-copy" id="top">
+        <h1>Get everything running on your machine.</h1>
+        <p>
+          Laravel 13 API + Angular 22 SPA, with MySQL from Docker Compose. Follow the steps
+          below once, then use the daily commands to develop.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#prereqs">Start setup</a>
+          <a class="btn btn-ghost" href="#verify">Jump to verify</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="prereqs">
+        <div class="wrap">
+          <h2>Prerequisites</h2>
+          <p class="lede">Install these tools before cloning. Versions below match what the repo expects.</p>
+          <div class="grid-2">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tool</th>
+                  <th>Version</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>PHP</td>
+                  <td>8.3+</td>
+                </tr>
+                <tr>
+                  <td>Composer</td>
+                  <td>2.x</td>
+                </tr>
+                <tr>
+                  <td>Node.js</td>
+                  <td>22+ (24 works)</td>
+                </tr>
+                <tr>
+                  <td>npm</td>
+                  <td>comes with Node</td>
+                </tr>
+                <tr>
+                  <td>Docker</td>
+                  <td>Compose + Buildx</td>
+                </tr>
+                <tr>
+                  <td>Make</td>
+                  <td>optional but used throughout</td>
+                </tr>
+              </tbody>
+            </table>
+            <div>
+              <p class="note">
+                AWS CLI is only needed for CodeArtifact (Truckit UI library) or ECR/EC2 deploy — not for
+                day-to-day local API + web.
+              </p>
+              <div class="cmd" data-cmd>
+                <pre><code>php -v
+composer -V
+node -v
+docker compose version</code></pre>
+                <button type="button" data-copy>Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="setup">
+        <div class="wrap">
+          <h2>First-time setup</h2>
+          <p class="lede">From the repo root. Keep two terminals handy for API and web after MySQL is up.</p>
+
+          <ol class="step-list">
+            <li class="step">
+              <div class="step-num">1</div>
+              <div>
+                <h3>Clone &amp; root env</h3>
+                <p>Copy the shared Compose/AWS defaults, then start MySQL on port <code class="inline">3307</code>.</p>
+                <div class="cmd" data-cmd>
+                  <pre><code>cp .env.example .env
+make up</code></pre>
+                  <button type="button" data-copy>Copy</button>
+                </div>
+                <p class="note">
+                  Credentials: database <code class="inline">loadplanner</code>, user
+                  <code class="inline">loadplanner</code>, password <code class="inline">secret</code> · host
+                  <code class="inline">127.0.0.1:3307</code>
+                </p>
+              </div>
+            </li>
+
+            <li class="step">
+              <div class="step-num">2</div>
+              <div>
+                <h3>API (Laravel)</h3>
+                <p>
+                  Install PHP deps, generate <code class="inline">APP_KEY</code>, migrate, then serve on
+                  <code class="inline">:8000</code>.
+                </p>
+                <div class="cmd" data-cmd>
+                  <pre><code>cp apps/api/.env.example apps/api/.env
+cd apps/api &amp;&amp; composer install &amp;&amp; php artisan key:generate
+cd ../..
+make migrate
+make serve-api</code></pre>
+                  <button type="button" data-copy>Copy</button>
+                </div>
+                <p class="note">
+                  Host-run API uses <code class="inline">DB_HOST=127.0.0.1</code> and
+                  <code class="inline">DB_PORT=3307</code> (already in <code class="inline">apps/api/.env.example</code>).
+                </p>
+              </div>
+            </li>
+
+            <li class="step">
+              <div class="step-num">3</div>
+              <div>
+                <h3>Web (Angular)</h3>
+                <p>
+                  Install npm packages and start the SPA on <code class="inline">:4200</code>. Requests to
+                  <code class="inline">/api</code> are proxied to Laravel.
+                </p>
+                <div class="cmd" data-cmd>
+                  <pre><code>cd apps/web &amp;&amp; npm install
+cd ../..
+make serve-web</code></pre>
+                  <button type="button" data-copy>Copy</button>
+                </div>
+              </div>
+            </li>
+
+            <li class="step">
+              <div class="step-num">4</div>
+              <div>
+                <h3>Git pre-commit hook</h3>
+                <p>Formats staged web files with Prettier and staged PHP with Pint before each commit.</p>
+                <div class="cmd" data-cmd>
+                  <pre><code>make hooks-install</code></pre>
+                  <button type="button" data-copy>Copy</button>
+                </div>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="verify">
+        <div class="wrap">
+          <h2>Verify it works</h2>
+          <p class="lede">With MySQL, API, and web all running, check these URLs.</p>
+          <ul class="check-list">
+            <li>
+              API health:
+              <a href="http://127.0.0.1:8000/api/health" target="_blank" rel="noopener">http://127.0.0.1:8000/api/health</a>
+            </li>
+            <li>
+              Angular app:
+              <a href="http://localhost:4200" target="_blank" rel="noopener">http://localhost:4200</a>
+              — should show API status via the proxy
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="daily">
+        <div class="wrap">
+          <h2>Daily commands</h2>
+          <p class="lede">After the first setup, a typical day looks like this.</p>
+          <div class="cmd" data-cmd>
+            <pre><code>make up          # MySQL (if not already running)
+make serve-api   # terminal 1 — http://127.0.0.1:8000
+make serve-web   # terminal 2 — http://localhost:4200
+make down        # stop Compose when you are done</code></pre>
+            <button type="button" data-copy>Copy</button>
+          </div>
+          <table style="margin-top: 1.5rem">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Command</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Install API deps</td>
+                <td><code class="inline">make api-install</code></td>
+              </tr>
+              <tr>
+                <td>Install web deps</td>
+                <td><code class="inline">make web-install</code></td>
+              </tr>
+              <tr>
+                <td>Run migrations</td>
+                <td><code class="inline">make migrate</code></td>
+              </tr>
+              <tr>
+                <td>MySQL logs</td>
+                <td><code class="inline">make mysql-logs</code></td>
+              </tr>
+              <tr>
+                <td>Format / lint web</td>
+                <td><code class="inline">cd apps/web &amp;&amp; npm run format</code> · <code class="inline">npm run lint</code></td>
+              </tr>
+              <tr>
+                <td>Format / lint API</td>
+                <td><code class="inline">cd apps/api &amp;&amp; composer format</code> · <code class="inline">composer lint</code></td>
+              </tr>
+              <tr>
+                <td>Rector (dry-run)</td>
+                <td><code class="inline">cd apps/api &amp;&amp; composer rector</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="layout">
+        <div class="wrap">
+          <h2>Repo layout</h2>
+          <p class="lede">Know where to look when you open the monorepo.</p>
+          <div class="cmd" data-cmd>
+            <pre><code>apps/api     Laravel JSON API (:8000 locally)
+apps/web     Angular SPA (:4200, proxies /api)
+docker/      nginx + php-fpm runtime config
+deploy/      ECR push + EC2 helpers
+.githooks/   pre-commit (Prettier + Pint)
+docs/        changelogs &amp; stories</code></pre>
+            <button type="button" data-copy>Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="truckit">
+        <div class="wrap">
+          <h2>Optional: Truckit component library</h2>
+          <p class="lede">
+            Shared Angular UI from AWS CodeArtifact. Skip this until you need the design system.
+          </p>
+          <div class="cmd" data-cmd>
+            <pre><code>aws codeartifact login --tool npm \
+  --domain truckit --domain-owner 349139559071 \
+  --repository component-library --region ap-southeast-2
+
+cd apps/web &amp;&amp; npm install truckit-component-library</code></pre>
+            <button type="button" data-copy>Copy</button>
+          </div>
+          <p class="note">
+            Prepend <code class="inline">node_modules/truckit-component-library/styles/tokens.css</code> in
+            <code class="inline">apps/web/angular.json</code> <code class="inline">styles</code>. Storybook:
+            <a href="https://component.truckitmetro.com/storybook" target="_blank" rel="noopener"
+              >component.truckitmetro.com/storybook</a
+            >.
+          </p>
+        </div>
+      </section>
+
+      <section id="trouble">
+        <div class="wrap">
+          <h2>Troubleshooting</h2>
+          <p class="lede">Common first-day friction and what to check.</p>
+          <ol class="step-list">
+            <li class="step">
+              <div class="step-num">?</div>
+              <div>
+                <h3>API health fails / DB connection refused</h3>
+                <p>
+                  Confirm Compose MySQL is healthy (<code class="inline">make up</code>,
+                  <code class="inline">make mysql-logs</code>). Host API must use port
+                  <code class="inline">3307</code>, not <code class="inline">3306</code>.
+                </p>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">?</div>
+              <div>
+                <h3>SPA cannot reach API</h3>
+                <p>
+                  Keep <code class="inline">make serve-api</code> running. The Angular proxy only forwards to
+                  <code class="inline">127.0.0.1:8000</code>.
+                </p>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">?</div>
+              <div>
+                <h3>Pre-commit says prettier/pint missing</h3>
+                <p>
+                  Run <code class="inline">make web-install</code> and/or
+                  <code class="inline">make api-install</code>, then
+                  <code class="inline">make hooks-install</code> again.
+                </p>
+              </div>
+            </li>
+            <li class="step">
+              <div class="step-num">?</div>
+              <div>
+                <h3>Port already in use</h3>
+                <p class="note warn">
+                  Free <code class="inline">3307</code> (MySQL), <code class="inline">8000</code> (API), or
+                  <code class="inline">4200</code> (web), or change the serve commands in the Makefile.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        More detail in <a href="README.md">README.md</a> · colours from
+        <a href="https://component.truckitmetro.com/demo/" target="_blank" rel="noopener">Truckit demo tokens</a>
+        · changelogs under <code class="inline">docs/changelogs/</code>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        document.querySelectorAll('[data-cmd]').forEach(function (block) {
+          var btn = block.querySelector('[data-copy]');
+          var code = block.querySelector('code');
+          if (!btn || !code) return;
+
+          btn.addEventListener('click', function () {
+            var text = code.textContent || '';
+            var done = function () {
+              btn.textContent = 'Copied';
+              btn.classList.add('copied');
+              setTimeout(function () {
+                btn.textContent = 'Copy';
+                btn.classList.remove('copied');
+              }, 1400);
+            };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(text).then(done).catch(function () {
+                fallbackCopy(text, done);
+              });
+            } else {
+              fallbackCopy(text, done);
+            }
+          });
+        });
+
+        function fallbackCopy(text, done) {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            done();
+          } finally {
+            document.body.removeChild(ta);
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>

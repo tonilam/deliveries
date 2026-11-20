@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Format staged files with Prettier (apps/web) and Pint (apps/api).
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+WEB_FILES=()
+PHP_FILES=()
+
+while IFS= read -r file; do
+  [[ -z "$file" ]] && continue
+
+  if [[ "$file" == apps/web/* ]]; then
+    case "$file" in
+      *.ts|*.html|*.scss|*.css|*.json|*.md|*.mjs|*.cjs|*.js)
+        WEB_FILES+=("$file")
+        ;;
+    esac
+  elif [[ "$file" == apps/api/* && "$file" == *.php ]]; then
+    PHP_FILES+=("$file")
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACMR)
+
+if [[ ${#WEB_FILES[@]} -gt 0 ]]; then
+  PRETTIER="$ROOT/apps/web/node_modules/.bin/prettier"
+  if [[ ! -x "$PRETTIER" ]]; then
+    echo "pre-commit: prettier not found. Run: cd apps/web && npm install" >&2
+    exit 1
+  fi
+  echo "pre-commit: prettier (${#WEB_FILES[@]} file(s))"
+  "$PRETTIER" --write --ignore-unknown "${WEB_FILES[@]}"
+  git add -- "${WEB_FILES[@]}"
+fi
+
+if [[ ${#PHP_FILES[@]} -gt 0 ]]; then
+  PINT="$ROOT/apps/api/vendor/bin/pint"
+  if [[ ! -x "$PINT" ]]; then
+    echo "pre-commit: pint not found. Run: cd apps/api && composer install" >&2
+    exit 1
+  fi
+
+  REL_PHP=()
+  for file in "${PHP_FILES[@]}"; do
+    REL_PHP+=("${file#apps/api/}")
+  done
+
+  echo "pre-commit: pint (${#PHP_FILES[@]} file(s))"
+  (
+    cd "$ROOT/apps/api"
+    ./vendor/bin/pint "${REL_PHP[@]}"
+  )
+  git add -- "${PHP_FILES[@]}"
+fi
+
+exit 0
