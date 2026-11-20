@@ -32,7 +32,10 @@ class CompanyManagementTest extends TestCase
 
         $this->asSpa()->getJson('/api/admin/companies')
             ->assertOk()
-            ->assertJsonPath('companies', []);
+            ->assertJsonPath('companies', [])
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 25)
+            ->assertJsonPath('meta.total', 0);
 
         $create = $this->asSpa()->postJson('/api/admin/companies', [
             'reg_number' => '51824753556',
@@ -69,7 +72,111 @@ class CompanyManagementTest extends TestCase
 
         $this->asSpa()->getJson('/api/admin/companies')
             ->assertOk()
-            ->assertJsonCount(1, 'companies');
+            ->assertJsonCount(1, 'companies')
+            ->assertJsonPath('meta.total', 1);
+    }
+
+    public function test_admin_company_list_is_paginated(): void
+    {
+        $this->loginAsAdmin();
+
+        Company::factory()->count(30)->create();
+
+        $default = $this->asSpa()->getJson('/api/admin/companies');
+        $default->assertOk()
+            ->assertJsonCount(25, 'companies')
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 25)
+            ->assertJsonPath('meta.total', 30)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.from', 1)
+            ->assertJsonPath('meta.to', 25);
+
+        $pageTwo = $this->asSpa()->getJson('/api/admin/companies?page=2&per_page=10');
+        $pageTwo->assertOk()
+            ->assertJsonCount(10, 'companies')
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.per_page', 10)
+            ->assertJsonPath('meta.total', 30)
+            ->assertJsonPath('meta.from', 11)
+            ->assertJsonPath('meta.to', 20);
+
+        $this->asSpa()->getJson('/api/admin/companies?per_page=15')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page']);
+
+        $this->asSpa()->getJson('/api/admin/companies?page=99&per_page=10')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 3)
+            ->assertJsonPath('meta.last_page', 3)
+            ->assertJsonCount(10, 'companies');
+    }
+
+    public function test_admin_company_list_supports_server_side_filters(): void
+    {
+        $this->loginAsAdmin();
+
+        Company::factory()->withDomains(['alpha.test'])->create([
+            'business_name' => 'Alpha Logistics',
+            'reg_number' => '11111111111',
+            'email' => 'ops@alpha.test',
+        ]);
+        Company::factory()->withDomains(['beta.test'])->create([
+            'business_name' => 'Beta Freight',
+            'reg_number' => '22222222222',
+            'email' => 'hello@beta.test',
+        ]);
+        Company::factory()->withDomains(['shared.example'])->create([
+            'business_name' => 'Shared Haulage',
+            'reg_number' => '33333333333',
+            'email' => 'team@shared.example',
+        ]);
+
+        $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'filter' => [
+                'business_name' => [
+                    'type' => 'contains',
+                    'filter' => 'Alpha',
+                ],
+            ],
+        ]))->assertOk()
+            ->assertJsonCount(1, 'companies')
+            ->assertJsonPath('companies.0.business_name', 'Alpha Logistics')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'filter' => [
+                'allowed_domains' => [
+                    'type' => 'contains',
+                    'filter' => 'beta',
+                ],
+            ],
+        ]))->assertOk()
+            ->assertJsonCount(1, 'companies')
+            ->assertJsonPath('companies.0.business_name', 'Beta Freight')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'filter' => [
+                'email' => [
+                    'type' => 'endsWith',
+                    'filter' => 'shared.example',
+                ],
+            ],
+            'per_page' => 10,
+        ]))->assertOk()
+            ->assertJsonCount(1, 'companies')
+            ->assertJsonPath('companies.0.email', 'team@shared.example');
+
+        $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'filter' => [
+                'business_name' => [
+                    'type' => 'bogus',
+                    'filter' => 'x',
+                ],
+            ],
+        ]))->assertUnprocessable()
+            ->assertJsonValidationErrors(['filter.business_name.type']);
     }
 
     public function test_admin_can_update_company_finance_fields(): void

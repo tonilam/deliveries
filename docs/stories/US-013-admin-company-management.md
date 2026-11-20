@@ -6,6 +6,9 @@ As an admin user, I want to manage companies (list, create, edit) and attach cus
 ## Acceptance criteria
 - [x] Admin portal has a **Companies** page (`/admin/companies`) linked from admin nav
 - [x] Companies are listed in an AG Grid table with columns: **Business name**, **Reg number**, **Email**, **Allowed domains**
+- [x] The companies list is **server-paginated**: default page size **25**; page size options **10**, **25**, **50**, **100**, **200**; UI shows range + total and lets the admin change page and page size; the grid grows to show all rows on the current page (no fixed viewport height / inner scroll)
+- [x] Column filters stay available in the AG Grid UI for **Business name**, **Reg number**, **Email**, and **Allowed domains**; filtering is applied **server-side** (with pagination totals reflecting the filtered set)
+- [x] List API (`GET /api/admin/companies`) accepts `page`, `per_page` (allowed sizes above; default 25), and optional column `filter` params, and returns the current page of companies plus pagination meta
 - [x] A **Create company** button opens a create flow for company identity/contact fields from [US-011](US-011-company-entity.md), plus **allowed domains** (finance fields are set on edit — [US-014](US-014-admin-company-finance-details.md))
 - [x] After successful create, the admin is redirected to that company’s **edit** page
 - [x] Each row has an **Edit** action; edit has **Details** and **Finance** tabs ([US-014](US-014-admin-company-finance-details.md))
@@ -23,4 +26,5 @@ As an admin user, I want to manage companies (list, create, edit) and attach cus
 - Builds on [US-011](US-011-company-entity.md) and [US-012](US-012-user-belongs-to-company.md); admin users still never belong to a company.
 - Finance details on edit: [US-014](US-014-admin-company-finance-details.md).
 - Product intent today is one domain → one company; multi-match choice remains supported if data ever allows it.
+- Company pickers (e.g. create user) use a debounced autocomplete (min 2 characters, business-name starts-with) against the companies list API filters.
 - Out of scope: delete company, deactivate company, bulk import.

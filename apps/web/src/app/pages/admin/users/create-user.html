@@ -56,15 +56,60 @@
     </fieldset>
 
     @if (isCustomerRole()) {
-      <label>
-        Company
-        <select formControlName="company_id">
-          <option [ngValue]="null" disabled>Select a company</option>
-          @for (company of companies(); track company.id) {
-            <option [ngValue]="company.id">{{ company.business_name }}</option>
-          }
-        </select>
-      </label>
+      <div class="company-picker">
+        <label>
+          Company
+          <input
+            type="text"
+            [value]="companyQuery()"
+            (input)="onCompanyQueryInput($event)"
+            (focus)="onCompanyFocus()"
+            (blur)="onCompanyBlur()"
+            (keydown)="onCompanyKeydown($event)"
+            [disabled]="companyLocked()"
+            [attr.aria-expanded]="companyMenuOpen()"
+            [attr.aria-activedescendant]="activeSuggestionId()"
+            aria-autocomplete="list"
+            aria-controls="company-suggestions"
+            role="combobox"
+            autocomplete="off"
+            placeholder="Type at least 2 characters"
+          />
+        </label>
+
+        @if (companyMenuOpen() && companySuggestions().length > 0) {
+          <ul id="company-suggestions" class="company-picker__list" role="listbox">
+            @for (company of companySuggestions(); track company.id; let i = $index) {
+              <li
+                role="option"
+                [attr.id]="'company-option-' + company.id"
+                [attr.aria-selected]="activeSuggestionIndex() === i"
+              >
+                <button
+                  type="button"
+                  class="company-picker__option"
+                  [class.company-picker__option--active]="activeSuggestionIndex() === i"
+                  (mousedown)="selectCompany(company)"
+                >
+                  {{ company.business_name }}
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (companiesLoading()) {
+          <p class="company-picker__status">
+            {{ companyLocked() ? 'Loading company…' : 'Searching…' }}
+          </p>
+        } @else if (companySearchHint(); as hint) {
+          <p class="company-picker__status">{{ hint }}</p>
+        }
+
+        @if (form.controls.company_id.touched && form.controls.company_id.invalid) {
+          <p class="company-picker__error">Select a company from the suggestions.</p>
+        }
+      </div>
       <p class="invite-note">
         Email domain must be on the company’s allowed domains list.
         @if (companyLocked()) {

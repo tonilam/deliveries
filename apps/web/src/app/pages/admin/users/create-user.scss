@@ -66,6 +66,67 @@
   background: #fff;
 }
 
+.create-form input:disabled {
+  background: #f8fafc;
+  color: #475569;
+  cursor: not-allowed;
+}
+
+.company-picker {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.company-picker__list {
+  position: absolute;
+  top: calc(100% - 0.1rem);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 14rem;
+  overflow: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #fff;
+  box-shadow: 0 8px 20px rgb(15 23 42 / 8%);
+}
+
+.company-picker__option {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.company-picker__option:hover,
+.company-picker__option:focus-visible,
+.company-picker__option--active {
+  background: #f1f5f9;
+  outline: none;
+}
+
+.company-picker__status {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.company-picker__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
 .role-fieldset {
   border: none;
   padding: 0;

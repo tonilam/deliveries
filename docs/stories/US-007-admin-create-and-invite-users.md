@@ -8,7 +8,7 @@ As an admin user, I want to create a password admin or customer account with a t
 - [x] Create user preselects role from the active list tab (**Admin users** → admin, **Customer users** → customer); the admin can still change it
 - [x] The create-user page and button remain available when the **User registration** feature flag is off (not hidden or blocked by that flag)
 - [x] On the create-user page, the admin chooses mode: **Password account** or **Invite**, and role: **Admin** or **Customer**
-- [x] When role is **Customer**, the admin must choose a **company**; when opened from Companies with `company_id` query, that company is preselected ([US-013](US-013-admin-company-management.md))
+- [x] When role is **Customer**, the admin must choose a **company** via a **debounced autocomplete** (search starts after **2 characters**, matching business names that **start with** the query; **↑/↓** move through suggestions, **Enter** selects, **Esc** closes); when opened from Companies with `company_id` query, that company is preselected and the picker is locked ([US-013](US-013-admin-company-management.md))
 - [x] Customer create/invite is rejected unless the email domain is on the chosen company’s allowed domains list (no admin override)
 - [x] **Password account**: admin submits name, email, and a temporary password (with confirmation); a control generates a random temporary password; an optional checkbox forces the user to change password on first login
 - [x] **Invite**: admin submits name and email; API stores an invitation with the chosen role (and company for customers) and sends an email containing an invite link
