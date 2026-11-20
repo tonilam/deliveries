@@ -1,9 +1,69 @@
-<section class="portal">
+<section class="portal profile">
   <h1>My Profile</h1>
-  <p class="lede">Placeholder for profile settings.</p>
+  <p class="lede">Your account details for Loadplanner.</p>
+
   @if (user(); as u) {
-    <p class="lede">
-      <strong>{{ u.name }}</strong> · {{ u.email }}
-    </p>
+    <dl class="profile-details">
+      <div>
+        <dt>Name</dt>
+        <dd>{{ u.name }}</dd>
+      </div>
+      <div>
+        <dt>Email</dt>
+        <dd>{{ u.email }}</dd>
+      </div>
+      <div>
+        <dt>Role</dt>
+        <dd>{{ roleLabel(u.role) }}</dd>
+      </div>
+      <div>
+        <dt>Sign-in</dt>
+        <dd>{{ u.has_password ? 'Email and password' : 'SSO only' }}</dd>
+      </div>
+    </dl>
+
+    @if (canChangePassword()) {
+      <section class="password" aria-labelledby="password-heading">
+        <h2 id="password-heading">Change password</h2>
+        <p class="lede">Enter your current password, then choose a new one.</p>
+
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+        @if (success()) {
+          <p class="success" role="status">{{ success() }}</p>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="submitPassword()">
+          <label>
+            Current password
+            <input
+              type="password"
+              formControlName="current_password"
+              autocomplete="current-password"
+            />
+          </label>
+          <label>
+            New password
+            <input type="password" formControlName="password" autocomplete="new-password" />
+          </label>
+          <label>
+            Confirm new password
+            <input
+              type="password"
+              formControlName="password_confirmation"
+              autocomplete="new-password"
+            />
+          </label>
+          <button type="submit" class="primary" [disabled]="submitting()">
+            {{ submitting() ? 'Updating…' : 'Update password' }}
+          </button>
+        </form>
+      </section>
+    } @else {
+      <p class="sso-note">
+        You sign in with SSO, so password changes are not available for this account.
+      </p>
+    }
   }
 </section>

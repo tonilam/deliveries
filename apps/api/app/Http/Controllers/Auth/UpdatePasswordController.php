@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\UpdatePasswordRequest;
+use Illuminate\Http\JsonResponse;
+
+class UpdatePasswordController extends Controller
+{
+    public function __invoke(UpdatePasswordRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->password = $request->string('password')->toString();
+        $user->save();
+
+        return response()->json([
+            'user' => $user->fresh(),
+            'message' => 'Password updated',
+        ]);
+    }
+}

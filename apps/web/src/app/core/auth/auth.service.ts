@@ -53,6 +53,20 @@ export class AuthService {
     );
   }
 
+  updatePassword(payload: {
+    current_password: string;
+    password: string;
+    password_confirmation: string;
+  }): Observable<User> {
+    return this.ensureCsrf().pipe(
+      switchMap(() =>
+        this.http.put<AuthResponse & { message: string }>('/api/user/password', payload),
+      ),
+      tap((res) => this.user.set(res.user)),
+      map((res) => res.user),
+    );
+  }
+
   startSso(provider: SsoProvider): void {
     window.location.href = `/api/auth/${provider}/redirect`;
   }

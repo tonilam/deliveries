@@ -1,0 +1,114 @@
+@use '../../shared/portal-shell';
+
+.profile-details {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0 0 2rem;
+  padding: 0;
+}
+
+.profile-details > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.profile-details dt {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.profile-details dd {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.password {
+  max-width: 24rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.password h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--ui-color-navy);
+}
+
+.sso-note {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+}
+
+.error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 0.375rem;
+}
+
+.success {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  color: #166534;
+  background: #f0fdf4;
+  border-radius: 0.375rem;
+}
+
+form {
+  display: grid;
+  gap: 1rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+input {
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #fff;
+}
+
+input:focus {
+  outline: 2px solid color-mix(in srgb, var(--ui-color-brand) 40%, transparent);
+  border-color: var(--ui-color-brand);
+}
+
+button {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.7rem 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.primary {
+  color: #fff;
+  background: var(--ui-color-brand);
+}
+
+.primary:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
