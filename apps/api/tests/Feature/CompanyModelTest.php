@@ -47,4 +47,16 @@ class CompanyModelTest extends TestCase
         $this->assertTrue($company->addresses->contains($address));
         $this->assertTrue($address->company->is($company));
     }
+
+    public function test_admin_users_do_not_belong_to_a_company(): void
+    {
+        $company = Company::factory()->create();
+
+        $admin = User::factory()->admin()->create([
+            'company_id' => $company->id,
+        ]);
+
+        $this->assertNull($admin->fresh()->company_id);
+        $this->assertNull($admin->company);
+    }
 }

@@ -31,6 +31,15 @@ class User extends Authenticatable implements CanResetPasswordContract
      */
     protected $appends = ['has_password'];
 
+    protected static function booted(): void
+    {
+        static::saving(function (User $user): void {
+            if ($user->role === UserRole::Admin) {
+                $user->company_id = null;
+            }
+        });
+    }
+
     /**
      * Get the attributes that should be cast.
      *

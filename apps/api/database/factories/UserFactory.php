@@ -69,6 +69,7 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => UserRole::Admin,
+            'company_id' => null,
         ]);
     }
 
