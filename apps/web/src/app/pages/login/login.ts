@@ -42,9 +42,9 @@ export class Login {
     this.error.set(null);
 
     this.auth.login(this.form.getRawValue()).subscribe({
-      next: () => {
+      next: (user) => {
         this.submitting.set(false);
-        void this.router.navigateByUrl('/');
+        void this.router.navigateByUrl(this.auth.homePathFor(user));
       },
       error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);

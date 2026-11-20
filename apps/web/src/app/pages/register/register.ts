@@ -37,9 +37,9 @@ export class Register {
     this.error.set(null);
 
     this.auth.register(this.form.getRawValue()).subscribe({
-      next: () => {
+      next: (user) => {
         this.submitting.set(false);
-        void this.router.navigateByUrl('/');
+        void this.router.navigateByUrl(this.auth.homePathFor(user));
       },
       error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);

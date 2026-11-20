@@ -19,7 +19,7 @@ export class AuthCallback implements OnInit {
     this.auth.me().subscribe({
       next: (user) => {
         if (user) {
-          void this.router.navigateByUrl('/');
+          void this.router.navigateByUrl(this.auth.homePathFor(user));
           return;
         }
         this.message.set('Sign-in did not complete.');

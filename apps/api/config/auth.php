@@ -114,4 +114,16 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin SSO domain (optional)
+    |--------------------------------------------------------------------------
+    |
+    | When set (e.g. yourcompany.com), admin users signing in via Google must
+    | use a matching email domain and Google "hd" claim when present.
+    |
+    */
+
+    'admin_email_domain' => env('ADMIN_EMAIL_DOMAIN'),
+
 ];

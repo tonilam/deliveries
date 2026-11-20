@@ -15,5 +15,5 @@ As a new user, I want to create an account and sign in with either email/passwor
 ## Notes
 - Identifier is **email** (not a separate username field).
 - Session model: Sanctum SPA cookies.
-- Out of scope: password reset, email verification, account linking UI, additional IdPs, roles/tenants.
+- Out of scope: password reset, email verification, account linking UI, additional IdPs, tenants. Roles and admin portal: [US-002](US-002-admin-portal-and-roles.md).
 - Configure `GOOGLE_*` / `APPLE_*` in `apps/api/.env` before SSO works in a browser (see `.env.example`).

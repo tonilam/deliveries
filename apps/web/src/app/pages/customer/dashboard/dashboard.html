@@ -1,0 +1,16 @@
+<section class="portal">
+  <h1>Customer dashboard</h1>
+  <p class="lede">Placeholder for load and delivery overview.</p>
+  @if (user(); as u) {
+    <p class="lede">
+      Signed in as <strong>{{ u.name }}</strong>.
+    </p>
+  }
+  <nav>
+    <a routerLink="/app">Dashboard</a>
+    <a routerLink="/app/deliveries">Deliveries</a>
+  </nav>
+  <div class="actions">
+    <button type="button" (click)="logout()">Sign out</button>
+  </div>
+</section>

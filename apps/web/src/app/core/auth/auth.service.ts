@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
-import { AuthResponse, SsoProvider, User } from './user.model';
+import { AuthResponse, SsoProvider, User, UserRole } from './user.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -59,5 +59,13 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return this.user() !== null;
+  }
+
+  homePathFor(user: User): string {
+    return user.role === 'admin' ? '/admin' : '/app';
+  }
+
+  isAdminRole(role: UserRole): boolean {
+    return role === 'admin';
   }
 }

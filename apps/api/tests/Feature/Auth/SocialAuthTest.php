@@ -36,6 +36,7 @@ class SocialAuthTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'ada@gmail.com',
             'name' => 'Ada Lovelace',
+            'role' => 'customer',
         ]);
         $this->assertDatabaseHas('social_accounts', [
             'provider' => 'google',
@@ -106,6 +107,9 @@ class SocialAuthTest extends TestCase
         $socialUser->shouldReceive('getEmail')->andReturn($email);
         $socialUser->shouldReceive('getNickname')->andReturn(null);
         $socialUser->shouldReceive('getAvatar')->andReturn(null);
+        $socialUser->shouldReceive('getRaw')->andReturn([
+            'email_verified' => true,
+        ]);
 
         $provider = Mockery::mock(SocialiteProvider::class);
         $provider->shouldReceive('user')->andReturn($socialUser);

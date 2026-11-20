@@ -699,7 +699,48 @@ make serve-web</code></pre>
               <a href="http://localhost:4200" target="_blank" rel="noopener">http://localhost:4200</a>
               — should show API status via the proxy
             </li>
+            <li>
+              Admin portal: create a user first (see
+              <a href="#admin-user">First admin user</a>), then sign in and open
+              <a href="http://localhost:4200/admin" target="_blank" rel="noopener">/admin</a>
+            </li>
           </ul>
+        </div>
+      </section>
+
+      <section id="admin-user">
+        <div class="wrap">
+          <h2>First admin user</h2>
+          <p class="lede">
+            Admins are never auto-created on Google or Apple SSO. Provision the first admin in the
+            database after migrations, then use the same shared <code class="inline">/login</code> as
+            customers (you’ll be redirected to <code class="inline">/admin</code>).
+          </p>
+          <p>
+            Run this once from the repo root. Change <code class="inline">name</code>,
+            <code class="inline">email</code>, and <code class="inline">password</code> to your values.
+            Use the same email you’ll use for Google sign-in if you plan to use SSO.
+          </p>
+          <div class="cmd" data-cmd>
+            <pre><code>cd apps/api &amp;&amp; php artisan tinker --execute="
+\App\Models\User::factory()-&gt;admin()-&gt;create([
+  'name' => 'Admin',
+  'email' => 'you@yourcompany.com',
+  'password' => 'Password1!',
+]);
+"</code></pre>
+            <button type="button" data-copy>Copy</button>
+          </div>
+          <p class="note">
+            SSO-only admin (no password): swap <code class="inline">-&gt;admin()-&gt;create</code> for
+            <code class="inline">-&gt;admin()-&gt;withoutPassword()-&gt;create</code> and omit
+            <code class="inline">password</code>. The row must still exist before the first Google login.
+          </p>
+          <p class="note">
+            If <code class="inline">ADMIN_EMAIL_DOMAIN</code> is set in <code class="inline">apps/api/.env</code>,
+            the admin email must match that domain and Google must return a matching
+            <code class="inline">hd</code> claim when present.
+          </p>
         </div>
       </section>
 

@@ -36,6 +36,10 @@ class SocialAuthController extends Controller
             $socialUser = Socialite::driver($provider)->user();
             $user = $this->socialAuth->findOrCreate($provider, $socialUser);
 
+            if (! $user->is_active) {
+                return redirect()->away($frontend.'/login?error=sso_failed');
+            }
+
             Auth::login($user);
             $request->session()->regenerate();
         } catch (\Throwable) {

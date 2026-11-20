@@ -31,7 +31,11 @@ Route::post('/login', LoginController::class)->middleware('throttle:5,1');
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect']);
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/user', UserController::class);
     Route::post('/logout', LogoutController::class);
+});
+
+Route::middleware(['auth:sanctum', 'active', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/ping', fn () => response()->json(['ok' => true]));
 });

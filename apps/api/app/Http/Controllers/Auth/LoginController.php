@@ -18,6 +18,16 @@ class LoginController extends Controller
             ]);
         }
 
+        $user = $request->user();
+
+        if ($user !== null && ! $user->is_active) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => [__('auth.failed')],
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return response()->json([
