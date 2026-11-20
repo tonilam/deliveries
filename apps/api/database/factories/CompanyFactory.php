@@ -19,6 +19,7 @@ class CompanyFactory extends Factory
         $domain = fake()->unique()->domainName();
         $regNumber = (string) fake()->unique()->numerify('###########');
         $businessName = trim(preg_replace('/\s+/', ' ', fake()->unique()->company()) ?? fake()->unique()->company());
+        $trackingOption = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $businessName) ?? '');
 
         return [
             'reg_number' => preg_replace('/\s+/', '', $regNumber) ?? $regNumber,
@@ -26,7 +27,7 @@ class CompanyFactory extends Factory
             'business_name' => $businessName,
             'invoicee_name' => fake()->name(),
             'gst_rate' => 0.1,
-            'tracking_option' => null,
+            'tracking_option' => $trackingOption !== '' ? $trackingOption : null,
             'phone' => fake()->phoneNumber(),
             'email' => fake()->unique()->companyEmail(),
             'address' => fake()->streetAddress().', '.fake()->city().' NSW',
