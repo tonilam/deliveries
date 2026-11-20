@@ -220,6 +220,39 @@ class AddressManagementTest extends TestCase
 
         $this->asSpa()->getJson('/api/addresses?'.http_build_query([
             'filter' => [
+                'postcode' => [
+                    'type' => 'greaterThan',
+                    'filter' => '40',
+                ],
+            ],
+        ]))->assertOk();
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'filter' => [
+                'postcode' => [
+                    'type' => 'greaterThan',
+                    'filter' => '2500',
+                ],
+            ],
+        ]))->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.postcode', '3000')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'filter' => [
+                'postcode' => [
+                    'type' => 'lessThan',
+                    'filter' => '2500',
+                ],
+            ],
+        ]))->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.postcode', '2000')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'filter' => [
                 'state' => [
                     'type' => 'equals',
                     'filter' => 'NSW',

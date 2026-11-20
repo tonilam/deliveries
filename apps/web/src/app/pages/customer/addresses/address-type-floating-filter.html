@@ -1,0 +1,40 @@
+<div class="address-type-floating-filter">
+  <button
+    #trigger
+    type="button"
+    class="address-type-floating-filter__trigger"
+    [class.address-type-floating-filter__trigger--active]="filterActive()"
+    [attr.aria-expanded]="panelOpen()"
+    aria-haspopup="listbox"
+    (click)="togglePanel($event)"
+  >
+    <span class="address-type-floating-filter__label">{{ summary() }}</span>
+    <span class="address-type-floating-filter__caret" aria-hidden="true">▾</span>
+  </button>
+
+  @if (panelOpen()) {
+    <div
+      class="address-type-floating-filter__panel"
+      role="listbox"
+      [ngStyle]="panelStyle()"
+      (click)="onPanelClick($event)"
+    >
+      <label class="address-type-floating-filter__option">
+        <input
+          type="checkbox"
+          [checked]="collection()"
+          (change)="onCollectionChange($any($event.target).checked)"
+        />
+        <span>Collection</span>
+      </label>
+      <label class="address-type-floating-filter__option">
+        <input
+          type="checkbox"
+          [checked]="delivery()"
+          (change)="onDeliveryChange($any($event.target).checked)"
+        />
+        <span>Delivery</span>
+      </label>
+    </div>
+  }
+</div>

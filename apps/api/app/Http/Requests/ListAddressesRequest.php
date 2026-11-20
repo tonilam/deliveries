@@ -48,6 +48,11 @@ class ListAddressesRequest extends FormRequest
         'notContains',
         'startsWith',
         'endsWith',
+        'greaterThan',
+        'lessThan',
+        'greaterThanOrEqual',
+        'lessThanOrEqual',
+        'inRange',
         'blank',
         'notBlank',
     ];
@@ -80,6 +85,9 @@ class ListAddressesRequest extends FormRequest
                 Rule::in(self::FILTER_TYPES),
             ];
             $rules["filter.{$column}.filter"] = ['nullable', 'string', 'max:255'];
+            if ($column === 'postcode') {
+                $rules["filter.{$column}.filterTo"] = ['nullable', 'string', 'max:255'];
+            }
         }
 
         return $rules;
@@ -105,7 +113,7 @@ class ListAddressesRequest extends FormRequest
     }
 
     /**
-     * @return array<string, array{type: string, filter: ?string}>
+     * @return array<string, array{type: string, filter: ?string, filterTo?: ?string}>
      */
     public function filters(): array
     {
@@ -126,10 +134,14 @@ class ListAddressesRequest extends FormRequest
             }
 
             $value = $raw[$column]['filter'] ?? null;
+            $filterTo = $raw[$column]['filterTo'] ?? null;
             $filters[$column] = [
                 'type' => $type,
                 'filter' => is_string($value) ? $value : null,
             ];
+            if ($column === 'postcode' && is_string($filterTo)) {
+                $filters[$column]['filterTo'] = $filterTo;
+            }
         }
 
         return $filters;

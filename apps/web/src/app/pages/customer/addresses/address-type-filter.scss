@@ -1,0 +1,16 @@
+.address-type-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  min-width: 9rem;
+}
+
+.address-type-filter__option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  color: var(--ui-color-navy, #1e3a8a);
+  cursor: pointer;
+}

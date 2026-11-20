@@ -9,6 +9,8 @@ As a customer, I want to manage my company’s collection and delivery addresses
 - [x] Address type is `collection` or `delivery`
 - [x] The addresses list is **server-paginated**: default page size **25**; page size options **10**, **25**, **50**, **100**, **200**; UI shows range + total and lets the customer change page and page size; the grid grows to show all rows on the current page (no fixed viewport height / inner scroll)
 - [x] Column filters stay available in the AG Grid UI for **Type**, **Business name**, **Address**, **Zone**, **State**, and **Postcode**; filtering is applied **server-side** (with pagination totals reflecting the filtered set)
+- [x] **Type** uses a compact dropdown in the floating filter row (2nd row); opening it shows **Collection** / **Delivery** checkboxes (consistent with other columns’ inline controls)
+- [x] **Postcode** uses a numeric filter with comparison operators (e.g. greater than, less than)
 - [x] Column sorting is available in the AG Grid UI for those same columns; sorting is applied **server-side** (single column; default **Business name** ascending)
 - [x] A button opens a separate page to add a new address
 - [x] Create form captures: type, address, zone, state, postcode, business name; saving persists for the customer’s **company** and returns to the list

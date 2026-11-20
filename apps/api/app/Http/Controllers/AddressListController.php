@@ -6,6 +6,7 @@ use App\Http\Requests\ListAddressesRequest;
 use App\Models\Address;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class AddressListController extends Controller
 {
@@ -49,22 +50,34 @@ class AddressListController extends Controller
 
     /**
      * @param  Builder<Address>  $query
-     * @param  array<string, array{type: string, filter: ?string}>  $filters
+     * @param  array<string, array{type: string, filter: ?string, filterTo?: ?string}>  $filters
      */
     private function applyFilters(Builder $query, array $filters): void
     {
         foreach ($filters as $column => $filter) {
-            $this->applyColumnFilter($query, $column, $filter['type'], $filter['filter']);
+            $filterTo = $filter['filterTo'] ?? null;
+            $this->applyColumnFilter($query, $column, $filter['type'], $filter['filter'], $filterTo);
         }
     }
 
     /**
      * @param  Builder<Address>  $query
      */
-    private function applyColumnFilter(Builder $query, string $column, string $type, ?string $value): void
-    {
+    private function applyColumnFilter(
+        Builder $query,
+        string $column,
+        string $type,
+        ?string $value,
+        ?string $filterTo = null,
+    ): void {
         if ($column === 'type') {
             $this->applyTypeFilter($query, $type, $value);
+
+            return;
+        }
+
+        if ($column === 'postcode' && $this->usesPostcodeNumericComparison($type)) {
+            $this->applyPostcodeNumericFilter($query, $type, $value, $filterTo);
 
             return;
         }
@@ -164,5 +177,71 @@ class AddressListController extends Controller
     private function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    private function usesPostcodeNumericComparison(string $type): bool
+    {
+        return in_array($type, [
+            'equals',
+            'notEqual',
+            'greaterThan',
+            'lessThan',
+            'greaterThanOrEqual',
+            'lessThanOrEqual',
+            'inRange',
+        ], true);
+    }
+
+    /**
+     * Compare postcodes numerically (values are stored as strings).
+     *
+     * @param  Builder<Address>  $query
+     */
+    private function applyPostcodeNumericFilter(
+        Builder $query,
+        string $type,
+        ?string $value,
+        ?string $filterTo,
+    ): void {
+        if ($type === 'inRange') {
+            if ($value === null || $value === '' || $filterTo === null || $filterTo === '') {
+                return;
+            }
+
+            $from = (int) $value;
+            $to = (int) $filterTo;
+            $numericPostcode = $this->postcodeNumericSqlExpression();
+            $query->whereRaw("{$numericPostcode} >= ?", [$from])
+                ->whereRaw("{$numericPostcode} <= ?", [$to]);
+
+            return;
+        }
+
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        $bound = (int) $value;
+        $numericPostcode = $this->postcodeNumericSqlExpression();
+
+        match ($type) {
+            'equals' => $query->whereRaw("{$numericPostcode} = ?", [$bound]),
+            'notEqual' => $query->whereRaw("{$numericPostcode} != ?", [$bound]),
+            'greaterThan' => $query->whereRaw("{$numericPostcode} > ?", [$bound]),
+            'greaterThanOrEqual' => $query->whereRaw("{$numericPostcode} >= ?", [$bound]),
+            'lessThan' => $query->whereRaw("{$numericPostcode} < ?", [$bound]),
+            'lessThanOrEqual' => $query->whereRaw("{$numericPostcode} <= ?", [$bound]),
+            default => null,
+        };
+    }
+
+    /** @return string SQL fragment comparing postcode numerically (driver-specific CAST). */
+    private function postcodeNumericSqlExpression(): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => 'CAST(postcode AS UNSIGNED)',
+            'pgsql' => 'CAST(postcode AS INTEGER)',
+            default => 'CAST(postcode AS INTEGER)',
+        };
     }
 }

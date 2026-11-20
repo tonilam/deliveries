@@ -37,6 +37,12 @@
   width: 100%;
 }
 
+:host ::ng-deep .addresses-grid .ag-floating-filter-body,
+:host ::ng-deep .addresses-grid .ag-floating-filter-full-body {
+  width: 100%;
+  align-items: center;
+}
+
 .addresses-error {
   margin: 0 0 0.75rem;
   color: #b91c1c;

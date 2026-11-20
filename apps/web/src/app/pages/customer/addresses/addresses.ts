@@ -8,13 +8,19 @@ import {
   ColDef,
   FilterChangedEvent,
   FilterModel,
+  INumberFilterParams,
   ITextFilterParams,
   ModuleRegistry,
+  NumberFilterModel,
+  SetFilterModel,
   SortChangedEvent,
   TextFilterModel,
   themeQuartz,
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
+
+import { AddressTypeFilter } from './address-type-filter';
+import { AddressTypeFloatingFilter } from './address-type-floating-filter';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -47,6 +53,8 @@ type SortDirection = 'asc' | 'desc';
 const DEFAULT_SORT: SortableField = 'business_name';
 const DEFAULT_DIRECTION: SortDirection = 'asc';
 
+const TYPE_FILTER_LABELS = ['Collection', 'Delivery'] as const;
+
 /** Keep row order as returned by the server (pagination is server-side). */
 const serverSideSortComparator = (): number => 0;
 
@@ -71,9 +79,41 @@ const serverSideTextFilterParams: ITextFilterParams = {
   textMatcher: () => true,
 };
 
+const serverSideNumberFilterParams: INumberFilterParams = {
+  debounceMs: 300,
+  maxNumConditions: 1,
+  filterOptions: [
+    'equals',
+    'notEqual',
+    'greaterThan',
+    'lessThan',
+    'greaterThanOrEqual',
+    'lessThanOrEqual',
+    'inRange',
+  ],
+};
+
+function typeLabel(type: AddressType | undefined): string {
+  if (type === 'collection') {
+    return 'Collection';
+  }
+  if (type === 'delivery') {
+    return 'Delivery';
+  }
+  return type ?? '';
+}
+
+function postcodeAsNumber(postcode: string | undefined | null): number | null {
+  if (postcode == null || postcode.trim() === '') {
+    return null;
+  }
+  const value = Number.parseInt(postcode.trim(), 10);
+  return Number.isNaN(value) ? null : value;
+}
+
 @Component({
   selector: 'app-customer-addresses',
-  imports: [AgGridAngular, FormsModule, RouterLink],
+  imports: [AgGridAngular, FormsModule, RouterLink, AddressTypeFilter, AddressTypeFloatingFilter],
   templateUrl: './addresses.html',
   styleUrls: ['../../../shared/portal-shell.scss', './addresses.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -98,23 +138,15 @@ export class CustomerAddresses implements OnInit {
     {
       field: 'type',
       headerName: 'Type',
-      flex: 0.8,
-      minWidth: 120,
+      flex: 0.9,
+      minWidth: 132,
       comparator: serverSideSortComparator,
-      filter: 'agTextColumnFilter',
-      filterParams: serverSideTextFilterParams,
-      valueFormatter: (params) =>
-        params.value === 'collection'
-          ? 'Collection'
-          : params.value === 'delivery'
-            ? 'Delivery'
-            : (params.value ?? ''),
-      filterValueGetter: (params) =>
-        params.data?.type === 'collection'
-          ? 'Collection'
-          : params.data?.type === 'delivery'
-            ? 'Delivery'
-            : (params.data?.type ?? ''),
+      filter: AddressTypeFilter,
+      floatingFilterComponent: AddressTypeFloatingFilter,
+      suppressHeaderFilterButton: true,
+      suppressFloatingFilterButton: true,
+      valueFormatter: (params) => typeLabel(params.value as AddressType | undefined),
+      filterValueGetter: (params) => typeLabel(params.data?.type),
     },
     {
       field: 'business_name',
@@ -159,8 +191,9 @@ export class CustomerAddresses implements OnInit {
       flex: 0.7,
       minWidth: 100,
       comparator: serverSideSortComparator,
-      filter: 'agTextColumnFilter',
-      filterParams: serverSideTextFilterParams,
+      filter: 'agNumberColumnFilter',
+      filterParams: serverSideNumberFilterParams,
+      filterValueGetter: (params) => postcodeAsNumber(params.data?.postcode),
     },
   ];
 
@@ -213,9 +246,11 @@ export class CustomerAddresses implements OnInit {
   }
 
   protected onFilterChanged(event: FilterChangedEvent<AddressRow>): void {
-    this.filterModel = event.api.getFilterModel() ?? {};
-    this.page.set(1);
-    this.loadAddresses();
+    queueMicrotask(() => {
+      this.filterModel = event.api.getFilterModel() ?? {};
+      this.page.set(1);
+      this.loadAddresses();
+    });
   }
 
   protected onSortChanged(event: SortChangedEvent<AddressRow>): void {
@@ -266,12 +301,26 @@ export class CustomerAddresses implements OnInit {
 
     for (const field of FILTERABLE_FIELDS) {
       const model = this.filterModel[field];
+      if (!model) {
+        continue;
+      }
+
+      if (field === 'type') {
+        params = this.appendTypeSetFilterParams(params, model);
+        continue;
+      }
+
+      if (field === 'postcode') {
+        params = this.appendPostcodeFilterParams(params, model);
+        continue;
+      }
+
       if (!this.isTextFilterModel(model) || !model.type) {
         continue;
       }
 
       const isBlankType = model.type === 'blank' || model.type === 'notBlank';
-      const filterText = model.filter?.trim() ?? '';
+      const filterText = typeof model.filter === 'string' ? model.filter.trim() : '';
       if (!isBlankType && filterText === '') {
         continue;
       }
@@ -285,6 +334,56 @@ export class CustomerAddresses implements OnInit {
     return params;
   }
 
+  private appendTypeSetFilterParams(params: HttpParams, model: FilterModel[string]): HttpParams {
+    if (!this.isSetFilterModel(model)) {
+      return params;
+    }
+
+    const selected = (model.values ?? []).filter(
+      (value): value is string => typeof value === 'string' && value.length > 0,
+    );
+
+    if (selected.length === 0) {
+      return params.set('filter[type][type]', 'equals').set('filter[type][filter]', '__no_match__');
+    }
+
+    if (selected.length === 1) {
+      return params.set('filter[type][type]', 'equals').set('filter[type][filter]', selected[0]);
+    }
+
+    if (selected.length >= TYPE_FILTER_LABELS.length) {
+      return params;
+    }
+
+    return params;
+  }
+
+  private appendPostcodeFilterParams(params: HttpParams, model: FilterModel[string]): HttpParams {
+    if (!this.isNumberFilterModel(model) || !model.type) {
+      return params;
+    }
+
+    const isBlankType = model.type === 'blank' || model.type === 'notBlank';
+    if (isBlankType) {
+      return params.set('filter[postcode][type]', model.type).set('filter[postcode][filter]', '');
+    }
+
+    const filterValue = model.filter;
+    if (filterValue == null || Number.isNaN(filterValue)) {
+      return params;
+    }
+
+    params = params
+      .set('filter[postcode][type]', model.type)
+      .set('filter[postcode][filter]', String(filterValue));
+
+    if (model.type === 'inRange' && model.filterTo != null && !Number.isNaN(model.filterTo)) {
+      params = params.set('filter[postcode][filterTo]', String(model.filterTo));
+    }
+
+    return params;
+  }
+
   private isTextFilterModel(
     model: FilterModel[string] | null | undefined,
   ): model is TextFilterModel {
@@ -293,6 +392,24 @@ export class CustomerAddresses implements OnInit {
     }
     const filterType = 'filterType' in model ? model.filterType : 'text';
     return filterType === 'text' || filterType == null;
+  }
+
+  private isSetFilterModel(model: FilterModel[string] | null | undefined): model is SetFilterModel {
+    if (!model || typeof model !== 'object' || !('values' in model)) {
+      return false;
+    }
+    const filterType = 'filterType' in model ? model.filterType : 'set';
+    return filterType === 'set';
+  }
+
+  private isNumberFilterModel(
+    model: FilterModel[string] | null | undefined,
+  ): model is NumberFilterModel {
+    if (!model || typeof model !== 'object' || !('type' in model)) {
+      return false;
+    }
+    const filterType = 'filterType' in model ? model.filterType : 'number';
+    return filterType === 'number';
   }
 
   private isSortableField(field: string): field is SortableField {
