@@ -42,4 +42,14 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * SSO-only account with no password.
+     */
+    public function withoutPassword(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'password' => null,
+        ]);
+    }
 }

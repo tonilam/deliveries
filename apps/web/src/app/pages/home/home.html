@@ -1,0 +1,9 @@
+<section class="home">
+  <h1>Welcome</h1>
+  @if (user(); as u) {
+    <p>
+      Signed in as <strong>{{ u.name }}</strong> ({{ u.email }}).
+    </p>
+  }
+  <button type="button" (click)="logout()">Sign out</button>
+</section>
