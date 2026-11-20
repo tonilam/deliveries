@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
@@ -8,6 +8,8 @@ import {
   ColDef,
   FilterChangedEvent,
   FilterModel,
+  GridApi,
+  GridReadyEvent,
   ITextFilterParams,
   ModuleRegistry,
   SortChangedEvent,
@@ -16,6 +18,13 @@ import {
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
+import { createCompactViewportSignal } from '../../../shared/compact-viewport';
+import { DataListComponent } from '../../../shared/data-list/data-list';
+import {
+  DataListAction,
+  DataListColumn,
+  DataListSortOption,
+} from '../../../shared/data-list/data-list.types';
 import { Company } from '../../../core/company/company.model';
 import {
   CompanyActionItem,
@@ -64,7 +73,7 @@ const serverSideTextFilterParams: ITextFilterParams = {
 
 @Component({
   selector: 'app-admin-companies',
-  imports: [AgGridAngular, FormsModule, RouterLink],
+  imports: [AgGridAngular, DataListComponent, FormsModule, RouterLink],
   templateUrl: './companies.html',
   styleUrls: ['../../../shared/portal-shell.scss', './companies.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,9 +82,56 @@ export class AdminCompanies implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
+  private gridApi: GridApi<Company> | null = null;
+  private suppressGridEvents = false;
+  private lastCompactView: boolean | null = null;
   private filterModel: FilterModel = {};
-  private sortField: SortableField = DEFAULT_SORT;
-  private sortDirection: SortDirection = DEFAULT_DIRECTION;
+
+  constructor() {
+    effect(() => {
+      const isCompact = this.compact();
+      if (this.lastCompactView === null) {
+        this.lastCompactView = isCompact;
+        return;
+      }
+      if (this.lastCompactView === isCompact) {
+        return;
+      }
+      this.lastCompactView = isCompact;
+      if (isCompact) {
+        this.filterModel = {};
+        this.gridApi = null;
+      } else {
+        this.searchQuery.set('');
+      }
+      this.page.set(1);
+      this.loadCompanies();
+    });
+  }
+
+  protected readonly compact = createCompactViewportSignal();
+  protected sortField: SortableField = DEFAULT_SORT;
+  protected sortDirection: SortDirection = DEFAULT_DIRECTION;
+  protected readonly searchQuery = signal('');
+
+  protected readonly companyListTitle = (row: Company): string => row.business_name;
+
+  protected readonly listColumns: DataListColumn<Company>[] = [
+    { field: 'reg_number', label: 'Reg number' },
+    { field: 'email', label: 'Email' },
+    {
+      field: 'allowed_domains',
+      label: 'Allowed domains',
+      valueFor: (row) => row.allowed_domains.join(', '),
+    },
+  ];
+
+  protected readonly sortOptions: DataListSortOption[] = [
+    { field: 'business_name', label: 'Business name' },
+    { field: 'reg_number', label: 'Reg number' },
+    { field: 'email', label: 'Email' },
+    { field: 'allowed_domains', label: 'Allowed domains' },
+  ];
 
   protected readonly theme = themeQuartz;
   protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
@@ -190,13 +246,25 @@ export class AdminCompanies implements OnInit {
     this.loadCompanies();
   }
 
+  protected onGridReady(event: GridReadyEvent<Company>): void {
+    this.gridApi = event.api;
+    this.syncGridUiFromState();
+  }
+
   protected onFilterChanged(event: FilterChangedEvent<Company>): void {
+    if (this.suppressGridEvents || this.compact()) {
+      return;
+    }
     this.filterModel = event.api.getFilterModel() ?? {};
     this.page.set(1);
     this.loadCompanies();
   }
 
   protected onSortChanged(event: SortChangedEvent<Company>): void {
+    if (this.suppressGridEvents) {
+      return;
+    }
+
     const sorted = event.api
       .getColumnState()
       .find((column) => column.sort === 'asc' || column.sort === 'desc');
@@ -215,6 +283,56 @@ export class AdminCompanies implements OnInit {
     this.page.set(1);
     this.loadCompanies();
   }
+
+  protected onListSearch(value: string): void {
+    if (value === this.searchQuery()) {
+      return;
+    }
+    this.searchQuery.set(value);
+    this.page.set(1);
+    this.loadCompanies();
+  }
+
+  protected onListSortField(field: string): void {
+    if (!this.isSortableField(field) || field === this.sortField) {
+      return;
+    }
+    this.sortField = field;
+    this.page.set(1);
+    this.loadCompanies();
+  }
+
+  protected onListSortDirection(direction: SortDirection): void {
+    if (direction === this.sortDirection) {
+      return;
+    }
+    this.sortDirection = direction;
+    this.page.set(1);
+    this.loadCompanies();
+  }
+
+  protected actionsForList = (row: Company): DataListAction<Company>[] => {
+    return [
+      {
+        id: 'edit',
+        label: 'Edit',
+        variant: 'primary',
+        run: (data) => {
+          void this.router.navigateByUrl(`/admin/companies/${data.id}/edit`);
+        },
+      },
+      {
+        id: 'add-customer',
+        label: 'Add customer',
+        variant: 'ghost',
+        run: (data) => {
+          void this.router.navigate(['/admin/users/create'], {
+            queryParams: { role: 'customer', company_id: data.id },
+          });
+        },
+      },
+    ];
+  };
 
   protected onPageSizeChange(value: number): void {
     const next = value as PageSize;
@@ -263,6 +381,15 @@ export class AdminCompanies implements OnInit {
       .set('sort', this.sortField)
       .set('direction', this.sortDirection);
 
+    if (this.compact()) {
+      const search = this.searchQuery().trim();
+      if (search !== '') {
+        params = params.set('search', search);
+      }
+
+      return params;
+    }
+
     for (const field of FILTERABLE_FIELDS) {
       const model = this.filterModel[field];
       if (!this.isTextFilterModel(model) || !model.type) {
@@ -296,6 +423,22 @@ export class AdminCompanies implements OnInit {
 
   private isSortableField(field: string): field is SortableField {
     return (SORTABLE_FIELDS as readonly string[]).includes(field);
+  }
+
+  private syncGridUiFromState(): void {
+    if (!this.gridApi) {
+      return;
+    }
+
+    this.suppressGridEvents = true;
+    this.gridApi.setFilterModel(Object.keys(this.filterModel).length > 0 ? this.filterModel : null);
+    this.gridApi.applyColumnState({
+      defaultState: { sort: null },
+      state: [{ colId: this.sortField, sort: this.sortDirection }],
+    });
+    queueMicrotask(() => {
+      this.suppressGridEvents = false;
+    });
   }
 
   private loadCompanies(): void {

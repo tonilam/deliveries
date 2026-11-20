@@ -241,6 +241,36 @@ class CompanyManagementTest extends TestCase
             ->assertJsonValidationErrors(['filter.business_name.type']);
     }
 
+    public function test_admin_company_list_supports_search(): void
+    {
+        $this->loginAsAdmin();
+
+        Company::factory()->withDomains(['alpha.test'])->create([
+            'business_name' => 'Alpha Logistics',
+            'reg_number' => '11111111111',
+            'email' => 'ops@alpha.test',
+        ]);
+        Company::factory()->withDomains(['shared.example'])->create([
+            'business_name' => 'Beta Freight',
+            'reg_number' => '22222222222',
+            'email' => 'team@shared.example',
+        ]);
+
+        $this->asSpa()->getJson('/api/admin/companies?search=Alpha')
+            ->assertOk()
+            ->assertJsonCount(1, 'companies')
+            ->assertJsonPath('companies.0.business_name', 'Alpha Logistics');
+
+        $this->asSpa()->getJson('/api/admin/companies?search=shared.example')
+            ->assertOk()
+            ->assertJsonCount(1, 'companies')
+            ->assertJsonPath('companies.0.business_name', 'Beta Freight');
+
+        $this->asSpa()->getJson('/api/admin/companies?search=')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 2);
+    }
+
     public function test_admin_company_list_supports_server_side_sorting(): void
     {
         $this->loginAsAdmin();

@@ -7,12 +7,14 @@ As an admin user, I want to see both an admin user list and a customer user list
 - [x] User management (`/admin/users`) has two tabs: **Admin users** and **Customer users**
 - [x] Admin users tab shows a table (AG Grid) with columns: **Name**, **Email**, **Active**
 - [x] Customer users tab shows a table (AG Grid) with columns: **Name**, **Company**, **Email**, **Active** (Company is the user’s company business name, after Name)
+- [x] On compact viewports (**720px** or narrower), each tab shows a **data list** (name as title, other columns as labeled lines, up to **three** action buttons) with **search** and **sort by** instead of AG Grid
 - [x] Admin tab lists users with `role=admin`; Customer tab lists users with `role=customer`
 - [x] Data is loaded from an admin-only API (`GET /api/admin/users?role=admin|customer`); customer list rows include company business name
 - [x] The active tab’s list is **server-paginated**: default page size **25**; page size options **10**, **25**, **50**, **100**, **200**; UI shows range + total and lets the admin change page and page size; the grid grows to show all rows on the current page (no fixed viewport height / inner scroll)
 - [x] Column filters stay available in the AG Grid UI for **Name**, **Email**, **Active**, and (customer tab) **Company**; filtering is applied **server-side** (with pagination totals reflecting the filtered set)
 - [x] Column sorting is available in the AG Grid UI for those same columns; sorting is applied **server-side** (single column; default **Name** ascending)
 - [x] List API accepts required `role`, plus `page`, `per_page` (allowed sizes above; default 25), optional `sort` / `direction` (sortable columns above; `asc`|`desc`; defaults `name` / `asc`), and optional column `filter` params, and returns the current page of users plus pagination meta
+- [x] List API accepts optional `search` (contains match across listed columns for the active tab; customer tab includes company business name)
 - [x] Customers cannot access the users API; unauthenticated requests are rejected
 - [x] `ag-grid-angular` is installed and used for both tables
 

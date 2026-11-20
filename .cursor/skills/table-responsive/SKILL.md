@@ -67,11 +67,8 @@ When compact search is server-paginated, add optional validated `search` on the 
 - Add `truckit-component-library` solely for this pattern (app uses tokens + existing `.btn` until the library is installed project-wide).
 - Show more than three action buttons on a list item.
 
-## Later pages
+## Pages using this pattern
 
-Apply the same pattern to:
-
-- Admin users — `apps/web/src/app/pages/admin/users/`
-- Admin companies — `apps/web/src/app/pages/admin/companies/`
-
-Each page needs its own `search` support on the corresponding list API if not already present.
+- Customer addresses — `apps/web/src/app/pages/customer/addresses/`
+- Admin users — `apps/web/src/app/pages/admin/users/` (per-tab columns; `search` on `GET /api/admin/users`)
+- Admin companies — `apps/web/src/app/pages/admin/companies/` (`search` on `GET /api/admin/companies`)

@@ -18,6 +18,7 @@ class UserListController extends Controller
 
         $query = User::query()->where('role', $role);
         $this->applyFilters($query, $request->filters());
+        $this->applySearch($query, $request->search(), $role);
         $this->applySort($query, $request->sort(), $request->direction());
 
         if ($role === UserRole::Customer) {
@@ -53,6 +54,34 @@ class UserListController extends Controller
                 'to' => $paginator->lastItem(),
             ],
         ]);
+    }
+
+    /**
+     * Free-text search across list columns (compact/mobile list).
+     *
+     * @param  Builder<User>  $query
+     */
+    private function applySearch(Builder $query, ?string $search, UserRole $role): void
+    {
+        if ($search === null) {
+            return;
+        }
+
+        $like = '%'.$this->escapeLike($search).'%';
+        $activeExpr = "CASE WHEN is_active THEN 'Yes' ELSE 'No' END";
+
+        $query->where(function (Builder $inner) use ($like, $activeExpr, $role): void {
+            $inner->where('name', 'like', $like)
+                ->orWhere('email', 'like', $like)
+                ->orWhereRaw("{$activeExpr} LIKE ?", [$like]);
+
+            if ($role === UserRole::Customer) {
+                $inner->orWhereHas(
+                    'company',
+                    fn (Builder $company) => $company->where('business_name', 'like', $like),
+                );
+            }
+        });
     }
 
     /**

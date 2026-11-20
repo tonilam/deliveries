@@ -221,6 +221,43 @@ class UserListTest extends TestCase
             ->assertJsonValidationErrors(['filter.name.type']);
     }
 
+    public function test_admin_user_list_supports_search(): void
+    {
+        $this->loginAsAdmin();
+
+        $alpha = Company::factory()->create(['business_name' => 'Alpha Logistics']);
+        $beta = Company::factory()->create(['business_name' => 'Beta Freight']);
+
+        User::factory()->admin()->create([
+            'name' => 'Ada Admin',
+            'email' => 'ada@loadplanner.test',
+        ]);
+        User::factory()->forCompany($alpha)->create([
+            'name' => 'Alice Active',
+            'email' => 'alice@alpha.test',
+        ]);
+        User::factory()->forCompany($beta)->create([
+            'name' => 'Bob Beta',
+            'email' => 'bob@beta.test',
+        ]);
+
+        $this->asSpa()->getJson('/api/admin/users?role=admin&search=Ada')
+            ->assertOk()
+            ->assertJsonCount(1, 'users')
+            ->assertJsonPath('users.0.name', 'Ada Admin')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->asSpa()->getJson('/api/admin/users?role=customer&search=Alpha')
+            ->assertOk()
+            ->assertJsonCount(1, 'users')
+            ->assertJsonPath('users.0.name', 'Alice Active');
+
+        $this->asSpa()->getJson('/api/admin/users?role=customer&search=Yes')
+            ->assertOk()
+            ->assertJsonCount(2, 'users')
+            ->assertJsonPath('meta.total', 2);
+    }
+
     public function test_admin_user_list_supports_server_side_sorting(): void
     {
         $this->loginAsAdmin();

@@ -55,19 +55,37 @@
     role="tabpanel"
     [attr.aria-labelledby]="activeTab() === 'admin' ? 'tab-admin' : 'tab-customer'"
   >
-    <ag-grid-angular
-      class="users-grid"
-      [theme]="theme"
-      [rowData]="users()"
-      [columnDefs]="columnDefs()"
-      [defaultColDef]="defaultColDef"
-      [loading]="loading()"
-      [suppressMultiSort]="true"
-      domLayout="autoHeight"
-      (gridReady)="onGridReady($event)"
-      (filterChanged)="onFilterChanged($event)"
-      (sortChanged)="onSortChanged($event)"
-    />
+    @if (compact()) {
+      <app-data-list
+        [loading]="loading()"
+        [rows]="users()"
+        [titleFor]="userListTitle"
+        [columns]="listColumns()"
+        [actionsFor]="actionsForList"
+        [searchValue]="searchQuery()"
+        [searchPlaceholder]="listSearchPlaceholder()"
+        [sortOptions]="sortOptions()"
+        [sortField]="sortField"
+        [sortDirection]="sortDirection"
+        (searchChange)="onListSearch($event)"
+        (sortFieldChange)="onListSortField($event)"
+        (sortDirectionChange)="onListSortDirection($event)"
+      />
+    } @else {
+      <ag-grid-angular
+        class="users-grid"
+        [theme]="theme"
+        [rowData]="users()"
+        [columnDefs]="columnDefs()"
+        [defaultColDef]="defaultColDef"
+        [loading]="loading()"
+        [suppressMultiSort]="true"
+        domLayout="autoHeight"
+        (gridReady)="onGridReady($event)"
+        (filterChanged)="onFilterChanged($event)"
+        (sortChanged)="onSortChanged($event)"
+      />
+    }
 
     @if (meta(); as pagination) {
       <div class="pagination" aria-label="Users pagination">

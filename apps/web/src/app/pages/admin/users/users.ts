@@ -1,5 +1,13 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
@@ -18,6 +26,13 @@ import {
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
+import { createCompactViewportSignal } from '../../../shared/compact-viewport';
+import { DataListComponent } from '../../../shared/data-list/data-list';
+import {
+  DataListAction,
+  DataListColumn,
+  DataListSortOption,
+} from '../../../shared/data-list/data-list.types';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UserActionItem, UserActionsCell, UserActionsCellRow } from './user-actions-cell';
 
@@ -71,9 +86,13 @@ const serverSideTextFilterParams: ITextFilterParams = {
   textMatcher: () => true,
 };
 
+function activeLabel(isActive: boolean): string {
+  return isActive ? 'Yes' : 'No';
+}
+
 @Component({
   selector: 'app-admin-users',
-  imports: [AgGridAngular, FormsModule, RouterLink],
+  imports: [AgGridAngular, DataListComponent, FormsModule, RouterLink],
   templateUrl: './users.html',
   styleUrls: ['../../../shared/portal-shell.scss', './users.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -85,10 +104,44 @@ export class AdminUsers implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly load$ = new Subject<void>();
   private filterModel: FilterModel = {};
-  private sortField: SortableField = DEFAULT_SORT;
-  private sortDirection: SortDirection = DEFAULT_DIRECTION;
+  private lastCompactView: boolean | null = null;
   private gridApi: GridApi<ManagedUserRow> | null = null;
   private suppressGridEvents = false;
+
+  constructor() {
+    effect(() => {
+      const isCompact = this.compact();
+      if (this.lastCompactView === null) {
+        this.lastCompactView = isCompact;
+        return;
+      }
+      if (this.lastCompactView === isCompact) {
+        return;
+      }
+      this.lastCompactView = isCompact;
+      if (isCompact) {
+        this.filterModel = {};
+        this.gridApi = null;
+      } else {
+        this.searchQuery.set('');
+      }
+      this.page.set(1);
+      this.loadUsers();
+    });
+  }
+
+  protected readonly compact = createCompactViewportSignal();
+  protected sortField: SortableField = DEFAULT_SORT;
+  protected sortDirection: SortDirection = DEFAULT_DIRECTION;
+  protected readonly searchQuery = signal('');
+
+  protected readonly userListTitle = (row: ManagedUserRow): string => row.name;
+
+  protected readonly listColumns = computed(() => this.buildListColumns(this.activeTab()));
+  protected readonly sortOptions = computed(() => this.buildSortOptions(this.activeTab()));
+  protected readonly listSearchPlaceholder = computed(() =>
+    this.activeTab() === 'customer' ? 'Search customer users…' : 'Search admin users…',
+  );
 
   protected readonly theme = themeQuartz;
   protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
@@ -171,6 +224,7 @@ export class AdminUsers implements OnInit {
 
   protected onGridReady(event: GridReadyEvent<ManagedUserRow>): void {
     this.gridApi = event.api;
+    this.syncGridUiFromState();
   }
 
   protected selectTab(tab: UsersTab): void {
@@ -181,24 +235,31 @@ export class AdminUsers implements OnInit {
     this.activeTab.set(tab);
     this.actionError.set(null);
     this.filterModel = {};
+    this.searchQuery.set('');
     this.sortField = DEFAULT_SORT;
     this.sortDirection = DEFAULT_DIRECTION;
     this.page.set(1);
     this.columnDefs.set(this.buildColumnDefs(tab));
 
-    this.suppressGridEvents = true;
-    this.gridApi?.setFilterModel(null);
-    this.gridApi?.applyColumnState({
-      defaultState: { sort: null },
-      state: [{ colId: DEFAULT_SORT, sort: DEFAULT_DIRECTION }],
-    });
-    this.suppressGridEvents = false;
+    if (!this.compact()) {
+      this.suppressGridEvents = true;
+      this.gridApi?.setFilterModel(null);
+      this.gridApi?.applyColumnState({
+        defaultState: { sort: null },
+        state: [{ colId: DEFAULT_SORT, sort: DEFAULT_DIRECTION }],
+      });
+      queueMicrotask(() => {
+        this.suppressGridEvents = false;
+      });
+    } else {
+      this.gridApi = null;
+    }
 
     this.loadUsers();
   }
 
   protected onFilterChanged(event: FilterChangedEvent<ManagedUserRow>): void {
-    if (this.suppressGridEvents) {
+    if (this.suppressGridEvents || this.compact()) {
       return;
     }
     this.filterModel = event.api.getFilterModel() ?? {};
@@ -229,6 +290,42 @@ export class AdminUsers implements OnInit {
     this.page.set(1);
     this.loadUsers();
   }
+
+  protected onListSearch(value: string): void {
+    if (value === this.searchQuery()) {
+      return;
+    }
+    this.searchQuery.set(value);
+    this.page.set(1);
+    this.loadUsers();
+  }
+
+  protected onListSortField(field: string): void {
+    if (!this.isSortableField(field) || field === this.sortField) {
+      return;
+    }
+    this.sortField = field;
+    this.page.set(1);
+    this.loadUsers();
+  }
+
+  protected onListSortDirection(direction: SortDirection): void {
+    if (direction === this.sortDirection) {
+      return;
+    }
+    this.sortDirection = direction;
+    this.page.set(1);
+    this.loadUsers();
+  }
+
+  protected actionsForList = (row: ManagedUserRow): DataListAction<ManagedUserRow>[] => {
+    return this.actionsFor(row).map((action) => ({
+      id: action.id,
+      label: action.label,
+      variant: action.id === 'impersonate' ? 'primary' : 'ghost',
+      run: () => action.run(),
+    }));
+  };
 
   protected onPageSizeChange(value: number): void {
     const next = value as PageSize;
@@ -315,6 +412,41 @@ export class AdminUsers implements OnInit {
     return cols;
   }
 
+  private buildListColumns(tab: UsersTab): DataListColumn<ManagedUserRow>[] {
+    const cols: DataListColumn<ManagedUserRow>[] = [];
+
+    if (tab === 'customer') {
+      cols.push({
+        field: 'company',
+        label: 'Company',
+        valueFor: (row) => row.company ?? '',
+      });
+    }
+
+    cols.push(
+      { field: 'email', label: 'Email' },
+      {
+        field: 'is_active',
+        label: 'Active',
+        valueFor: (row) => activeLabel(row.is_active),
+      },
+    );
+
+    return cols;
+  }
+
+  private buildSortOptions(tab: UsersTab): DataListSortOption[] {
+    const options: DataListSortOption[] = [{ field: 'name', label: 'Name' }];
+
+    if (tab === 'customer') {
+      options.push({ field: 'company', label: 'Company' });
+    }
+
+    options.push({ field: 'email', label: 'Email' }, { field: 'is_active', label: 'Active' });
+
+    return options;
+  }
+
   private actionsFor(data: UserActionsCellRow): UserActionItem[] {
     const actions: UserActionItem[] = [];
 
@@ -360,6 +492,15 @@ export class AdminUsers implements OnInit {
       .set('sort', this.sortField)
       .set('direction', this.sortDirection);
 
+    if (this.compact()) {
+      const search = this.searchQuery().trim();
+      if (search !== '') {
+        params = params.set('search', search);
+      }
+
+      return params;
+    }
+
     for (const field of this.filterableFields()) {
       const model = this.filterModel[field];
       if (!this.isTextFilterModel(model) || !model.type) {
@@ -397,6 +538,22 @@ export class AdminUsers implements OnInit {
 
   private isSortableField(field: string): field is SortableField {
     return (this.filterableFields() as readonly string[]).includes(field);
+  }
+
+  private syncGridUiFromState(): void {
+    if (!this.gridApi) {
+      return;
+    }
+
+    this.suppressGridEvents = true;
+    this.gridApi.setFilterModel(Object.keys(this.filterModel).length > 0 ? this.filterModel : null);
+    this.gridApi.applyColumnState({
+      defaultState: { sort: null },
+      state: [{ colId: this.sortField, sort: this.sortDirection }],
+    });
+    queueMicrotask(() => {
+      this.suppressGridEvents = false;
+    });
   }
 
   private loadUsers(): void {

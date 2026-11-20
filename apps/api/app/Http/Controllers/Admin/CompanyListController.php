@@ -15,6 +15,7 @@ class CompanyListController extends Controller
     {
         $query = Company::query();
         $this->applyFilters($query, $request->filters());
+        $this->applySearch($query, $request->search());
         $this->applySort($query, $request->sort(), $request->direction());
 
         $perPage = $request->perPage();
@@ -42,6 +43,30 @@ class CompanyListController extends Controller
                 'to' => $paginator->lastItem(),
             ],
         ]);
+    }
+
+    /**
+     * Free-text search across company list columns (compact/mobile list).
+     *
+     * @param  Builder<Company>  $query
+     */
+    private function applySearch(Builder $query, ?string $search): void
+    {
+        if ($search === null) {
+            return;
+        }
+
+        $like = '%'.$this->escapeLike($search).'%';
+
+        $query->where(function (Builder $inner) use ($like): void {
+            $inner->where('business_name', 'like', $like)
+                ->orWhere('reg_number', 'like', $like)
+                ->orWhere('email', 'like', $like)
+                ->orWhereHas(
+                    'allowedDomainRows',
+                    fn (Builder $domain) => $domain->where('domain', 'like', $like),
+                );
+        });
     }
 
     /**
