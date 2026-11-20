@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Enums\UserRole;
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -61,11 +62,13 @@ class UserListTest extends TestCase
                 'name' => 'Ada Admin',
                 'email' => 'ada@example.com',
                 'is_active' => true,
+                'company' => null,
             ])
             ->assertJsonFragment([
                 'name' => 'Inactive Admin',
                 'email' => 'inactive-admin@example.com',
                 'is_active' => false,
+                'company' => null,
             ])
             ->assertJsonMissing(['email' => 'customer@example.com']);
     }
@@ -76,7 +79,10 @@ class UserListTest extends TestCase
             'email' => 'admin@example.com',
             'password' => 'Password1!',
         ]);
-        $customer = User::factory()->create([
+        $company = Company::factory()->create([
+            'business_name' => 'Acme Pty Ltd',
+        ]);
+        $customer = User::factory()->forCompany($company)->create([
             'name' => 'Casey Customer',
             'email' => 'casey@example.com',
         ]);
@@ -91,6 +97,7 @@ class UserListTest extends TestCase
             ->assertJsonCount(1, 'users')
             ->assertJsonPath('users.0.id', $customer->id)
             ->assertJsonPath('users.0.name', 'Casey Customer')
+            ->assertJsonPath('users.0.company', 'Acme Pty Ltd')
             ->assertJsonPath('users.0.email', 'casey@example.com')
             ->assertJsonPath('users.0.is_active', true);
     }

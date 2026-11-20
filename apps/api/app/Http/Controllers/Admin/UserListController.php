@@ -19,16 +19,23 @@ class UserListController extends Controller
 
         $role = UserRole::from($validated['role']);
 
-        $users = User::query()
+        $query = User::query()
             ->where('role', $role)
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'is_active', 'password'])
+            ->orderBy('name');
+
+        if ($role === UserRole::Customer) {
+            $query->with('company:id,business_name');
+        }
+
+        $users = $query
+            ->get(['id', 'name', 'email', 'is_active', 'password', 'company_id'])
             ->map(fn (User $user) => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'is_active' => $user->is_active,
                 'has_password' => $user->has_password,
+                'company' => $user->company?->business_name,
             ]);
 
         return response()->json([

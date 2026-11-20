@@ -27,6 +27,7 @@ export interface ManagedUserRow {
   email: string;
   is_active: boolean;
   has_password: boolean;
+  company: string | null;
 }
 
 @Component({
@@ -55,29 +56,46 @@ export class AdminUsers implements OnInit {
     this.activeTab() === 'admin' ? this.adminUsers() : this.customerUsers(),
   );
 
-  protected readonly columnDefs = computed<ColDef<ManagedUserRow>[]>(() => [
-    { field: 'name', headerName: 'Name', flex: 1, minWidth: 160 },
-    { field: 'email', headerName: 'Email', flex: 1.4, minWidth: 200 },
-    {
-      field: 'is_active',
-      headerName: 'Active',
-      flex: 0.6,
-      minWidth: 100,
-      valueFormatter: (params) => (params.value ? 'Yes' : 'No'),
-    },
-    {
-      headerName: 'Actions',
-      flex: 0.9,
-      minWidth: 140,
-      sortable: false,
-      filter: false,
-      cellClass: 'users-grid__actions-cell',
-      cellRenderer: UserActionsCell,
-      cellRendererParams: {
-        actionsFor: (data: UserActionsCellRow) => this.actionsFor(data),
+  protected readonly columnDefs = computed<ColDef<ManagedUserRow>[]>(() => {
+    const cols: ColDef<ManagedUserRow>[] = [
+      { field: 'name', headerName: 'Name', flex: 1, minWidth: 160 },
+    ];
+
+    if (this.activeTab() === 'customer') {
+      cols.push({
+        field: 'company',
+        headerName: 'Company',
+        flex: 1,
+        minWidth: 160,
+        valueFormatter: (params) => params.value ?? '',
+      });
+    }
+
+    cols.push(
+      { field: 'email', headerName: 'Email', flex: 1.4, minWidth: 200 },
+      {
+        field: 'is_active',
+        headerName: 'Active',
+        flex: 0.6,
+        minWidth: 100,
+        valueFormatter: (params) => (params.value ? 'Yes' : 'No'),
       },
-    },
-  ]);
+      {
+        headerName: 'Actions',
+        flex: 0.9,
+        minWidth: 140,
+        sortable: false,
+        filter: false,
+        cellClass: 'users-grid__actions-cell',
+        cellRenderer: UserActionsCell,
+        cellRendererParams: {
+          actionsFor: (data: UserActionsCellRow) => this.actionsFor(data),
+        },
+      },
+    );
+
+    return cols;
+  });
 
   protected readonly defaultColDef: ColDef = {
     sortable: true,
