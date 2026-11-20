@@ -130,6 +130,182 @@ class AddressManagementTest extends TestCase
             ]);
     }
 
+    public function test_address_list_is_paginated(): void
+    {
+        $company = Company::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        Address::factory()->for($company)->count(30)->create();
+        $this->loginAs($customer);
+
+        $default = $this->asSpa()->getJson('/api/addresses');
+        $default->assertOk()
+            ->assertJsonCount(25, 'addresses')
+            ->assertJsonPath('meta.current_page', 1)
+            ->assertJsonPath('meta.per_page', 25)
+            ->assertJsonPath('meta.total', 30)
+            ->assertJsonPath('meta.last_page', 2)
+            ->assertJsonPath('meta.from', 1)
+            ->assertJsonPath('meta.to', 25);
+
+        $pageTwo = $this->asSpa()->getJson('/api/addresses?page=2&per_page=10');
+        $pageTwo->assertOk()
+            ->assertJsonCount(10, 'addresses')
+            ->assertJsonPath('meta.current_page', 2)
+            ->assertJsonPath('meta.per_page', 10)
+            ->assertJsonPath('meta.total', 30)
+            ->assertJsonPath('meta.from', 11)
+            ->assertJsonPath('meta.to', 20);
+
+        $this->asSpa()->getJson('/api/addresses?per_page=15')
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['per_page']);
+
+        $this->asSpa()->getJson('/api/addresses?page=99&per_page=10')
+            ->assertOk()
+            ->assertJsonPath('meta.current_page', 3)
+            ->assertJsonPath('meta.last_page', 3)
+            ->assertJsonCount(10, 'addresses');
+    }
+
+    public function test_address_list_supports_server_side_filters(): void
+    {
+        $company = Company::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+
+        Address::factory()->for($company)->collection()->create([
+            'business_name' => 'Alpha Yard',
+            'address' => '1 Alpha St',
+            'zone' => 'Sydney',
+            'state' => 'NSW',
+            'postcode' => '2000',
+        ]);
+        Address::factory()->for($company)->delivery()->create([
+            'business_name' => 'Beta Depot',
+            'address' => '2 Beta Rd',
+            'zone' => 'Melbourne',
+            'state' => 'VIC',
+            'postcode' => '3000',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'filter' => [
+                'business_name' => [
+                    'type' => 'contains',
+                    'filter' => 'Alpha',
+                ],
+            ],
+        ]))->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.business_name', 'Alpha Yard')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'filter' => [
+                'type' => [
+                    'type' => 'equals',
+                    'filter' => 'Delivery',
+                ],
+            ],
+        ]))->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.type', 'delivery')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'filter' => [
+                'state' => [
+                    'type' => 'equals',
+                    'filter' => 'NSW',
+                ],
+            ],
+            'per_page' => 10,
+        ]))->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.state', 'NSW');
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'filter' => [
+                'business_name' => [
+                    'type' => 'bogus',
+                    'filter' => 'x',
+                ],
+            ],
+        ]))->assertUnprocessable()
+            ->assertJsonValidationErrors(['filter.business_name.type']);
+    }
+
+    public function test_address_list_supports_server_side_sorting(): void
+    {
+        $company = Company::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+
+        Address::factory()->for($company)->create([
+            'business_name' => 'Zulu Yard',
+            'zone' => 'Zeta',
+            'state' => 'WA',
+            'postcode' => '6000',
+        ]);
+        Address::factory()->for($company)->create([
+            'business_name' => 'Alpha Yard',
+            'zone' => 'Alpha',
+            'state' => 'NSW',
+            'postcode' => '2000',
+        ]);
+        Address::factory()->for($company)->create([
+            'business_name' => 'Mike Yard',
+            'zone' => 'Mike',
+            'state' => 'VIC',
+            'postcode' => '3000',
+        ]);
+        $this->loginAs($customer);
+
+        $default = $this->asSpa()->getJson('/api/addresses');
+        $default->assertOk()
+            ->assertJsonPath('addresses.0.business_name', 'Alpha Yard')
+            ->assertJsonPath('addresses.1.business_name', 'Mike Yard')
+            ->assertJsonPath('addresses.2.business_name', 'Zulu Yard');
+
+        $byNameDesc = $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'sort' => 'business_name',
+            'direction' => 'desc',
+        ]));
+        $byNameDesc->assertOk()
+            ->assertJsonPath('addresses.0.business_name', 'Zulu Yard')
+            ->assertJsonPath('addresses.2.business_name', 'Alpha Yard');
+
+        $byZone = $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'sort' => 'zone',
+            'direction' => 'asc',
+            'per_page' => 10,
+        ]));
+        $byZone->assertOk()
+            ->assertJsonPath('addresses.0.zone', 'Alpha')
+            ->assertJsonPath('addresses.1.zone', 'Mike')
+            ->assertJsonPath('addresses.2.zone', 'Zeta');
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'sort' => 'not_a_column',
+            'direction' => 'asc',
+        ]))->assertUnprocessable()
+            ->assertJsonValidationErrors(['sort']);
+
+        $this->asSpa()->getJson('/api/addresses?'.http_build_query([
+            'sort' => 'business_name',
+            'direction' => 'sideways',
+        ]))->assertUnprocessable()
+            ->assertJsonValidationErrors(['direction']);
+    }
+
     /**
      * @return array<string, mixed>
      */

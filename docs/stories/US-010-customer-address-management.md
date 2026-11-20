@@ -7,13 +7,17 @@ As a customer, I want to manage my company’s collection and delivery addresses
 - [x] Customer left menu includes **Addresses** linking to `/app/addresses`
 - [x] Addresses page lists the signed-in customer’s **company** addresses in an AG Grid table (type, business name, address, zone, state, postcode)
 - [x] Address type is `collection` or `delivery`
+- [x] The addresses list is **server-paginated**: default page size **25**; page size options **10**, **25**, **50**, **100**, **200**; UI shows range + total and lets the customer change page and page size; the grid grows to show all rows on the current page (no fixed viewport height / inner scroll)
+- [x] Column filters stay available in the AG Grid UI for **Type**, **Business name**, **Address**, **Zone**, **State**, and **Postcode**; filtering is applied **server-side** (with pagination totals reflecting the filtered set)
+- [x] Column sorting is available in the AG Grid UI for those same columns; sorting is applied **server-side** (single column; default **Business name** ascending)
 - [x] A button opens a separate page to add a new address
 - [x] Create form captures: type, address, zone, state, postcode, business name; saving persists for the customer’s **company** and returns to the list
-- [x] `GET /api/addresses` and `POST /api/addresses` are available to authenticated customers and scoped to the user’s company ([US-012](US-012-user-belongs-to-company.md))
+- [x] `GET /api/addresses` accepts `page`, `per_page` (allowed sizes above; default 25), optional `sort` / `direction` (sortable columns above; `asc`|`desc`; defaults `business_name` / `asc`), and optional column `filter` params, and returns the current page of addresses plus pagination meta; `POST /api/addresses` creates an address — both are available to authenticated customers and scoped to the user’s company ([US-012](US-012-user-belongs-to-company.md))
 - [x] Guests and admins cannot list or create company addresses via those endpoints
 - [x] An address belongs to a [company](US-011-company-entity.md), not directly to a user
 
 ## Notes
 - Menu item extends [US-004](US-004-authenticated-app-shell.md) customer nav.
+- List behaviour matches companies ([US-013](US-013-admin-company-management.md)): server-side pagination, filtering, and sorting.
 - Edit/delete and admin management of addresses are out of scope for this story.
 - Customers without a company cannot list or create addresses (forbidden).

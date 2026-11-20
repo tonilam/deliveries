@@ -1,20 +1,24 @@
-import { HttpClient } from '@angular/common/http';
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  OnInit,
-  signal,
-} from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
-import { AllCommunityModule, ColDef, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-
-import { forkJoin, map } from 'rxjs';
+import {
+  AllCommunityModule,
+  ColDef,
+  FilterChangedEvent,
+  FilterModel,
+  GridApi,
+  GridReadyEvent,
+  ITextFilterParams,
+  ModuleRegistry,
+  SortChangedEvent,
+  TextFilterModel,
+  themeQuartz,
+} from 'ag-grid-community';
+import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
-import { UserRole } from '../../../core/auth/user.model';
 import { UserActionItem, UserActionsCell, UserActionsCellRow } from './user-actions-cell';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -30,9 +34,46 @@ export interface ManagedUserRow {
   company: string | null;
 }
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const;
+type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
+
+const ADMIN_FILTERABLE_FIELDS = ['name', 'email', 'is_active'] as const;
+const CUSTOMER_FILTERABLE_FIELDS = ['name', 'company', 'email', 'is_active'] as const;
+type AdminSortableField = (typeof ADMIN_FILTERABLE_FIELDS)[number];
+type CustomerSortableField = (typeof CUSTOMER_FILTERABLE_FIELDS)[number];
+type SortableField = AdminSortableField | CustomerSortableField;
+type SortDirection = 'asc' | 'desc';
+
+const DEFAULT_SORT: SortableField = 'name';
+const DEFAULT_DIRECTION: SortDirection = 'asc';
+
+/** Keep row order as returned by the server (pagination is server-side). */
+const serverSideSortComparator = (): number => 0;
+
+interface UsersListMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number | null;
+  to: number | null;
+}
+
+interface UsersListResponse {
+  users: ManagedUserRow[];
+  meta: UsersListMeta;
+}
+
+const serverSideTextFilterParams: ITextFilterParams = {
+  debounceMs: 300,
+  trimInput: true,
+  maxNumConditions: 1,
+  textMatcher: () => true,
+};
+
 @Component({
   selector: 'app-admin-users',
-  imports: [AgGridAngular, RouterLink],
+  imports: [AgGridAngular, FormsModule, RouterLink],
   templateUrl: './users.html',
   styleUrls: ['../../../shared/portal-shell.scss', './users.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -42,71 +83,38 @@ export class AdminUsers implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly load$ = new Subject<void>();
+  private filterModel: FilterModel = {};
+  private sortField: SortableField = DEFAULT_SORT;
+  private sortDirection: SortDirection = DEFAULT_DIRECTION;
+  private gridApi: GridApi<ManagedUserRow> | null = null;
+  private suppressGridEvents = false;
 
   protected readonly theme = themeQuartz;
+  protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   protected readonly activeTab = signal<UsersTab>('admin');
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly inviteNotice = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
-  protected readonly adminUsers = signal<ManagedUserRow[]>([]);
-  protected readonly customerUsers = signal<ManagedUserRow[]>([]);
-
-  protected readonly rowData = computed(() =>
-    this.activeTab() === 'admin' ? this.adminUsers() : this.customerUsers(),
-  );
-
-  protected readonly columnDefs = computed<ColDef<ManagedUserRow>[]>(() => {
-    const cols: ColDef<ManagedUserRow>[] = [
-      { field: 'name', headerName: 'Name', flex: 1, minWidth: 160 },
-    ];
-
-    if (this.activeTab() === 'customer') {
-      cols.push({
-        field: 'company',
-        headerName: 'Company',
-        flex: 1,
-        minWidth: 160,
-        valueFormatter: (params) => params.value ?? '',
-      });
-    }
-
-    cols.push(
-      { field: 'email', headerName: 'Email', flex: 1.4, minWidth: 200 },
-      {
-        field: 'is_active',
-        headerName: 'Active',
-        flex: 0.6,
-        minWidth: 100,
-        valueFormatter: (params) => (params.value ? 'Yes' : 'No'),
-      },
-      {
-        headerName: 'Actions',
-        flex: 0.9,
-        minWidth: 140,
-        sortable: false,
-        filter: false,
-        cellClass: 'users-grid__actions-cell',
-        cellRenderer: UserActionsCell,
-        cellRendererParams: {
-          actionsFor: (data: UserActionsCellRow) => this.actionsFor(data),
-        },
-      },
-    );
-
-    return cols;
-  });
+  protected readonly users = signal<ManagedUserRow[]>([]);
+  protected readonly page = signal(1);
+  protected readonly pageSize = signal<PageSize>(25);
+  protected readonly meta = signal<UsersListMeta | null>(null);
+  protected readonly columnDefs = signal<ColDef<ManagedUserRow>[]>(this.buildColumnDefs('admin'));
 
   protected readonly defaultColDef: ColDef = {
     sortable: true,
     resizable: true,
-    filter: true,
+    floatingFilter: true,
+    sortingOrder: ['asc', 'desc'],
   };
 
   ngOnInit(): void {
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab === 'admin' || tab === 'customer') {
       this.activeTab.set(tab);
+      this.columnDefs.set(this.buildColumnDefs(tab));
     }
 
     const invited = this.route.snapshot.queryParamMap.get('invited');
@@ -120,12 +128,191 @@ export class AdminUsers implements OnInit {
     } else if (passwordReset) {
       this.inviteNotice.set(`Password updated for ${passwordReset}.`);
     }
-    this.loadAllUsers();
+
+    this.load$
+      .pipe(
+        tap(() => {
+          this.loading.set(true);
+          this.error.set(null);
+        }),
+        switchMap(() => {
+          return this.http
+            .get<UsersListResponse>('/api/admin/users', {
+              params: this.buildParams(),
+            })
+            .pipe(
+              catchError(() => {
+                const lastGood = this.meta();
+                if (lastGood) {
+                  this.page.set(lastGood.current_page);
+                  if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
+                    this.pageSize.set(lastGood.per_page as PageSize);
+                  }
+                }
+                this.error.set('Unable to load users. Please try again.');
+                this.loading.set(false);
+                return of(null);
+              }),
+            );
+        }),
+      )
+      .subscribe((res) => {
+        if (!res) {
+          return;
+        }
+        this.users.set(res.users);
+        this.meta.set(res.meta);
+        this.page.set(res.meta.current_page);
+        this.loading.set(false);
+      });
+
+    this.loadUsers();
+  }
+
+  protected onGridReady(event: GridReadyEvent<ManagedUserRow>): void {
+    this.gridApi = event.api;
   }
 
   protected selectTab(tab: UsersTab): void {
+    if (tab === this.activeTab()) {
+      return;
+    }
+
     this.activeTab.set(tab);
     this.actionError.set(null);
+    this.filterModel = {};
+    this.sortField = DEFAULT_SORT;
+    this.sortDirection = DEFAULT_DIRECTION;
+    this.page.set(1);
+    this.columnDefs.set(this.buildColumnDefs(tab));
+
+    this.suppressGridEvents = true;
+    this.gridApi?.setFilterModel(null);
+    this.gridApi?.applyColumnState({
+      defaultState: { sort: null },
+      state: [{ colId: DEFAULT_SORT, sort: DEFAULT_DIRECTION }],
+    });
+    this.suppressGridEvents = false;
+
+    this.loadUsers();
+  }
+
+  protected onFilterChanged(event: FilterChangedEvent<ManagedUserRow>): void {
+    if (this.suppressGridEvents) {
+      return;
+    }
+    this.filterModel = event.api.getFilterModel() ?? {};
+    this.page.set(1);
+    this.loadUsers();
+  }
+
+  protected onSortChanged(event: SortChangedEvent<ManagedUserRow>): void {
+    if (this.suppressGridEvents) {
+      return;
+    }
+
+    const sorted = event.api
+      .getColumnState()
+      .find((column) => column.sort === 'asc' || column.sort === 'desc');
+
+    const nextField =
+      sorted?.colId && this.isSortableField(sorted.colId) ? sorted.colId : DEFAULT_SORT;
+    const nextDirection: SortDirection =
+      sorted?.sort === 'asc' || sorted?.sort === 'desc' ? sorted.sort : DEFAULT_DIRECTION;
+
+    if (nextField === this.sortField && nextDirection === this.sortDirection) {
+      return;
+    }
+
+    this.sortField = nextField;
+    this.sortDirection = nextDirection;
+    this.page.set(1);
+    this.loadUsers();
+  }
+
+  protected onPageSizeChange(value: number): void {
+    const next = value as PageSize;
+    if (!PAGE_SIZE_OPTIONS.includes(next) || next === this.pageSize()) {
+      return;
+    }
+    this.pageSize.set(next);
+    this.page.set(1);
+    this.loadUsers();
+  }
+
+  protected goToPage(nextPage: number): void {
+    const lastPage = this.meta()?.last_page ?? 1;
+    if (nextPage < 1 || nextPage > lastPage || nextPage === this.page()) {
+      return;
+    }
+    this.page.set(nextPage);
+    this.loadUsers();
+  }
+
+  private buildColumnDefs(tab: UsersTab): ColDef<ManagedUserRow>[] {
+    const cols: ColDef<ManagedUserRow>[] = [
+      {
+        field: 'name',
+        headerName: 'Name',
+        flex: 1,
+        minWidth: 160,
+        sort: DEFAULT_DIRECTION,
+        comparator: serverSideSortComparator,
+        filter: 'agTextColumnFilter',
+        filterParams: serverSideTextFilterParams,
+      },
+    ];
+
+    if (tab === 'customer') {
+      cols.push({
+        field: 'company',
+        headerName: 'Company',
+        flex: 1,
+        minWidth: 160,
+        comparator: serverSideSortComparator,
+        filter: 'agTextColumnFilter',
+        filterParams: serverSideTextFilterParams,
+        valueFormatter: (params) => params.value ?? '',
+      });
+    }
+
+    cols.push(
+      {
+        field: 'email',
+        headerName: 'Email',
+        flex: 1.4,
+        minWidth: 200,
+        comparator: serverSideSortComparator,
+        filter: 'agTextColumnFilter',
+        filterParams: serverSideTextFilterParams,
+      },
+      {
+        field: 'is_active',
+        headerName: 'Active',
+        flex: 0.6,
+        minWidth: 100,
+        comparator: serverSideSortComparator,
+        filter: 'agTextColumnFilter',
+        filterParams: serverSideTextFilterParams,
+        valueFormatter: (params) => (params.value ? 'Yes' : 'No'),
+        filterValueGetter: (params) => (params.data?.is_active ? 'Yes' : 'No'),
+      },
+      {
+        headerName: 'Actions',
+        flex: 0.9,
+        minWidth: 140,
+        sortable: false,
+        filter: false,
+        floatingFilter: false,
+        cellClass: 'users-grid__actions-cell',
+        cellRenderer: UserActionsCell,
+        cellRendererParams: {
+          actionsFor: (data: UserActionsCellRow) => this.actionsFor(data),
+        },
+      },
+    );
+
+    return cols;
   }
 
   private actionsFor(data: UserActionsCellRow): UserActionItem[] {
@@ -165,29 +352,54 @@ export class AdminUsers implements OnInit {
     });
   }
 
-  private loadAllUsers(): void {
-    this.loading.set(true);
-    this.error.set(null);
+  private buildParams(): HttpParams {
+    let params = new HttpParams()
+      .set('role', this.activeTab())
+      .set('page', String(this.page()))
+      .set('per_page', String(this.pageSize()))
+      .set('sort', this.sortField)
+      .set('direction', this.sortDirection);
 
-    forkJoin({
-      admin: this.fetchUsers('admin'),
-      customer: this.fetchUsers('customer'),
-    }).subscribe({
-      next: ({ admin, customer }) => {
-        this.adminUsers.set(admin);
-        this.customerUsers.set(customer);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Unable to load users. Please try again.');
-        this.loading.set(false);
-      },
-    });
+    for (const field of this.filterableFields()) {
+      const model = this.filterModel[field];
+      if (!this.isTextFilterModel(model) || !model.type) {
+        continue;
+      }
+
+      const isBlankType = model.type === 'blank' || model.type === 'notBlank';
+      const filterText = model.filter?.trim() ?? '';
+      if (!isBlankType && filterText === '') {
+        continue;
+      }
+
+      params = params.set(`filter[${field}][type]`, model.type);
+      if (!isBlankType) {
+        params = params.set(`filter[${field}][filter]`, filterText);
+      }
+    }
+
+    return params;
   }
 
-  private fetchUsers(role: UserRole) {
-    return this.http
-      .get<{ users: ManagedUserRow[] }>('/api/admin/users', { params: { role } })
-      .pipe(map((res) => res.users));
+  private filterableFields(): readonly SortableField[] {
+    return this.activeTab() === 'customer' ? CUSTOMER_FILTERABLE_FIELDS : ADMIN_FILTERABLE_FIELDS;
+  }
+
+  private isTextFilterModel(
+    model: FilterModel[string] | null | undefined,
+  ): model is TextFilterModel {
+    if (!model || typeof model !== 'object' || !('type' in model)) {
+      return false;
+    }
+    const filterType = 'filterType' in model ? model.filterType : 'text';
+    return filterType === 'text' || filterType == null;
+  }
+
+  private isSortableField(field: string): field is SortableField {
+    return (this.filterableFields() as readonly string[]).includes(field);
+  }
+
+  private loadUsers(): void {
+    this.load$.next();
   }
 }

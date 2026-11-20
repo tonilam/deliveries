@@ -14,9 +14,60 @@
   <ag-grid-angular
     class="addresses-grid"
     [theme]="theme"
-    [rowData]="rowData()"
+    [rowData]="addresses()"
     [columnDefs]="columnDefs"
     [defaultColDef]="defaultColDef"
     [loading]="loading()"
+    [suppressMultiSort]="true"
+    domLayout="autoHeight"
+    (filterChanged)="onFilterChanged($event)"
+    (sortChanged)="onSortChanged($event)"
   />
+
+  @if (meta(); as pagination) {
+    <div class="pagination" aria-label="Addresses pagination">
+      <p class="pagination__summary">
+        @if (pagination.total === 0) {
+          No addresses
+        } @else {
+          Showing {{ pagination.from }}–{{ pagination.to }} of {{ pagination.total }}
+        }
+      </p>
+
+      <label class="pagination__size">
+        <span>Rows per page</span>
+        <select
+          [ngModel]="pageSize()"
+          (ngModelChange)="onPageSizeChange($event)"
+          [disabled]="loading()"
+        >
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="pagination__nav">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page <= 1"
+          (click)="goToPage(pagination.current_page - 1)"
+        >
+          Previous
+        </button>
+        <span class="pagination__page">
+          Page {{ pagination.current_page }} of {{ pagination.last_page }}
+        </span>
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page >= pagination.last_page"
+          (click)="goToPage(pagination.current_page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
 </section>
