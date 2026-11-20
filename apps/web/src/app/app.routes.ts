@@ -25,29 +25,46 @@ export const routes: Routes = [
   {
     path: 'app',
     canActivate: [customerGuard],
-    loadComponent: () =>
-      import('./pages/customer/dashboard/dashboard').then((m) => m.CustomerDashboard),
-  },
-  {
-    path: 'app/deliveries',
-    canActivate: [customerGuard],
-    loadComponent: () =>
-      import('./pages/customer/deliveries/deliveries').then((m) => m.CustomerDeliveries),
+    loadComponent: () => import('./layout/app-shell/app-shell').then((m) => m.AppShell),
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/customer/dashboard/dashboard').then((m) => m.CustomerDashboard),
+      },
+      {
+        path: 'deliveries',
+        loadComponent: () =>
+          import('./pages/customer/deliveries/deliveries').then((m) => m.CustomerDeliveries),
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
+      },
+    ],
   },
   {
     path: 'admin',
     canActivate: [adminGuard],
-    loadComponent: () => import('./pages/admin/admin-home/admin-home').then((m) => m.AdminHome),
-  },
-  {
-    path: 'admin/settings',
-    canActivate: [adminGuard],
-    loadComponent: () => import('./pages/admin/settings/settings').then((m) => m.AdminSettings),
-  },
-  {
-    path: 'admin/users',
-    canActivate: [adminGuard],
-    loadComponent: () => import('./pages/admin/users/users').then((m) => m.AdminUsers),
+    loadComponent: () => import('./layout/app-shell/app-shell').then((m) => m.AppShell),
+    children: [
+      {
+        path: '',
+        loadComponent: () => import('./pages/admin/admin-home/admin-home').then((m) => m.AdminHome),
+      },
+      {
+        path: 'settings',
+        loadComponent: () => import('./pages/admin/settings/settings').then((m) => m.AdminSettings),
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('./pages/admin/users/users').then((m) => m.AdminUsers),
+      },
+      {
+        path: 'profile',
+        loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
+      },
+    ],
   },
   { path: '**', redirectTo: '' },
 ];

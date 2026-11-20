@@ -1,0 +1,9 @@
+<section class="portal">
+  <h1>My Profile</h1>
+  <p class="lede">Placeholder for profile settings.</p>
+  @if (user(); as u) {
+    <p class="lede">
+      <strong>{{ u.name }}</strong> · {{ u.email }}
+    </p>
+  }
+</section>

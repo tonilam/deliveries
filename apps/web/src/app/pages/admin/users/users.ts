@@ -7,13 +7,11 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import { AllCommunityModule, ColDef, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 
 import { forkJoin, map } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
 import { UserRole } from '../../../core/auth/user.model';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -29,15 +27,13 @@ export interface ManagedUserRow {
 
 @Component({
   selector: 'app-admin-users',
-  imports: [RouterLink, AgGridAngular],
+  imports: [AgGridAngular],
   templateUrl: './users.html',
   styleUrls: ['../../../shared/portal-shell.scss', './users.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminUsers implements OnInit {
-  private readonly auth = inject(AuthService);
   private readonly http = inject(HttpClient);
-  private readonly router = inject(Router);
 
   protected readonly theme = themeQuartz;
   protected readonly activeTab = signal<UsersTab>('admin');
@@ -74,13 +70,6 @@ export class AdminUsers implements OnInit {
 
   protected selectTab(tab: UsersTab): void {
     this.activeTab.set(tab);
-  }
-
-  protected logout(): void {
-    this.auth.logout().subscribe({
-      next: () => void this.router.navigateByUrl('/login'),
-      error: () => void this.router.navigateByUrl('/login'),
-    });
   }
 
   private loadAllUsers(): void {

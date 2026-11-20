@@ -1,11 +1,6 @@
 <section class="portal portal--wide">
   <h1>User management</h1>
   <p class="lede">Review admin and customer accounts and whether they are active.</p>
-  <nav>
-    <a routerLink="/admin">Home</a>
-    <a routerLink="/admin/settings">System settings</a>
-    <a routerLink="/admin/users" aria-current="page">User management</a>
-  </nav>
 
   <div class="tabs" role="tablist" aria-label="User lists">
     <button
@@ -49,9 +44,5 @@
       [defaultColDef]="defaultColDef"
       [loading]="loading()"
     />
-  </div>
-
-  <div class="actions">
-    <button type="button" (click)="logout()">Sign out</button>
   </div>
 </section>
