@@ -8,7 +8,7 @@ As an admin user, I want access to an admin portal separate from the customer-fa
 - [x] Admin accounts are never auto-created on first login; admins must be provisioned in advance with `role=admin`
 - [x] One shared `/login` and SSO flow; after successful auth, admins land on `/admin` and customers on `/app`
 - [x] Angular guards prevent customers from opening `/admin/**` and admins from opening `/app/**` (redirect to their home)
-- [x] Placeholder pages: admin System Settings (`/admin/settings`), User Management (`/admin/users`); customer Dashboard (`/app`), Deliveries list (`/app/deliveries`)
+- [x] Placeholder pages: admin System Settings (`/admin/settings`), User Management (`/admin/users`); customer Dashboard (`/app`), Deliveries list (`/app/deliveries`) — user lists: [US-003](US-003-admin-user-management-lists.md)
 - [x] `GET /api/user` includes `role`; admin-only API routes require admin role
 - [x] Google SSO requires a verified email before linking to an existing account by email
 - [x] Inactive users (`is_active=false`) cannot sign in

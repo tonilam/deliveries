@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserListController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -38,4 +39,5 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
 Route::middleware(['auth:sanctum', 'active', 'admin'])->prefix('admin')->group(function () {
     Route::get('/ping', fn () => response()->json(['ok' => true]));
+    Route::get('/users', UserListController::class);
 });

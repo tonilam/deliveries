@@ -1,11 +1,56 @@
-<section class="portal">
+<section class="portal portal--wide">
   <h1>User management</h1>
-  <p class="lede">Placeholder for staff and customer account administration.</p>
+  <p class="lede">Review admin and customer accounts and whether they are active.</p>
   <nav>
     <a routerLink="/admin">Home</a>
     <a routerLink="/admin/settings">System settings</a>
-    <a routerLink="/admin/users">User management</a>
+    <a routerLink="/admin/users" aria-current="page">User management</a>
   </nav>
+
+  <div class="tabs" role="tablist" aria-label="User lists">
+    <button
+      type="button"
+      role="tab"
+      class="tabs__tab"
+      id="tab-admin"
+      [attr.aria-selected]="activeTab() === 'admin'"
+      [class.tabs__tab--active]="activeTab() === 'admin'"
+      (click)="selectTab('admin')"
+    >
+      Admin users
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="tabs__tab"
+      id="tab-customer"
+      [attr.aria-selected]="activeTab() === 'customer'"
+      [class.tabs__tab--active]="activeTab() === 'customer'"
+      (click)="selectTab('customer')"
+    >
+      Customer users
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="users-error" role="alert">{{ error() }}</p>
+  }
+
+  <div
+    class="tab-panel"
+    role="tabpanel"
+    [attr.aria-labelledby]="activeTab() === 'admin' ? 'tab-admin' : 'tab-customer'"
+  >
+    <ag-grid-angular
+      class="users-grid"
+      [theme]="theme"
+      [rowData]="rowData()"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [loading]="loading()"
+    />
+  </div>
+
   <div class="actions">
     <button type="button" (click)="logout()">Sign out</button>
   </div>

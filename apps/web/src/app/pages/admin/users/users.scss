@@ -1,0 +1,49 @@
+.portal--wide {
+  max-width: 56rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.tabs__tab {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.65rem 1rem;
+  color: #475569;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.tabs__tab:hover {
+  color: var(--ui-color-navy);
+  filter: none;
+}
+
+.tabs__tab--active {
+  color: var(--ui-color-navy);
+  border-bottom-color: var(--ui-color-brand);
+}
+
+.tab-panel {
+  min-height: 20rem;
+}
+
+.users-grid {
+  display: block;
+  width: 100%;
+  height: 22rem;
+}
+
+.users-error {
+  margin: 0 0 0.75rem;
+  color: #b91c1c;
+  font-weight: 600;
+}
