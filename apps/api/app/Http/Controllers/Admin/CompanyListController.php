@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ListCompaniesRequest;
 use App\Models\Company;
+use App\Models\CompanyAllowedDomain;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 
@@ -12,8 +13,9 @@ class CompanyListController extends Controller
 {
     public function __invoke(ListCompaniesRequest $request): JsonResponse
     {
-        $query = Company::query()->orderBy('business_name');
+        $query = Company::query();
         $this->applyFilters($query, $request->filters());
+        $this->applySort($query, $request->sort(), $request->direction());
 
         $perPage = $request->perPage();
         $total = (clone $query)->count();
@@ -35,6 +37,26 @@ class CompanyListController extends Controller
                 'to' => $paginator->lastItem(),
             ],
         ]);
+    }
+
+    /**
+     * @param  Builder<Company>  $query
+     */
+    private function applySort(Builder $query, string $sort, string $direction): void
+    {
+        if ($sort === 'allowed_domains') {
+            $domainSubquery = CompanyAllowedDomain::query()
+                ->select('domain')
+                ->whereColumn('company_id', 'companies.id')
+                ->orderBy('domain')
+                ->limit(1);
+
+            $query->orderBy($domainSubquery, $direction)->orderBy('id');
+
+            return;
+        }
+
+        $query->orderBy($sort, $direction)->orderBy('id');
     }
 
     /**

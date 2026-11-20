@@ -18,8 +18,10 @@
     [columnDefs]="columnDefs"
     [defaultColDef]="defaultColDef"
     [loading]="loading()"
+    [suppressMultiSort]="true"
     domLayout="autoHeight"
     (filterChanged)="onFilterChanged($event)"
+    (sortChanged)="onSortChanged($event)"
   />
 
   @if (meta(); as pagination) {

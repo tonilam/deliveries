@@ -179,6 +179,72 @@ class CompanyManagementTest extends TestCase
             ->assertJsonValidationErrors(['filter.business_name.type']);
     }
 
+    public function test_admin_company_list_supports_server_side_sorting(): void
+    {
+        $this->loginAsAdmin();
+
+        Company::factory()->withDomains(['zeta.test'])->create([
+            'business_name' => 'Zulu Transport',
+            'reg_number' => '11111111111',
+            'email' => 'z@example.test',
+        ]);
+        Company::factory()->withDomains(['alpha.test'])->create([
+            'business_name' => 'Alpha Logistics',
+            'reg_number' => '33333333333',
+            'email' => 'a@example.test',
+        ]);
+        Company::factory()->withDomains(['mike.test'])->create([
+            'business_name' => 'Mike Haulage',
+            'reg_number' => '22222222222',
+            'email' => 'm@example.test',
+        ]);
+
+        $default = $this->asSpa()->getJson('/api/admin/companies');
+        $default->assertOk()
+            ->assertJsonPath('companies.0.business_name', 'Alpha Logistics')
+            ->assertJsonPath('companies.1.business_name', 'Mike Haulage')
+            ->assertJsonPath('companies.2.business_name', 'Zulu Transport');
+
+        $byNameDesc = $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'sort' => 'business_name',
+            'direction' => 'desc',
+        ]));
+        $byNameDesc->assertOk()
+            ->assertJsonPath('companies.0.business_name', 'Zulu Transport')
+            ->assertJsonPath('companies.2.business_name', 'Alpha Logistics');
+
+        $byEmail = $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'sort' => 'email',
+            'direction' => 'asc',
+            'per_page' => 10,
+        ]));
+        $byEmail->assertOk()
+            ->assertJsonPath('companies.0.email', 'a@example.test')
+            ->assertJsonPath('companies.1.email', 'm@example.test')
+            ->assertJsonPath('companies.2.email', 'z@example.test');
+
+        $byDomains = $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'sort' => 'allowed_domains',
+            'direction' => 'asc',
+        ]));
+        $byDomains->assertOk()
+            ->assertJsonPath('companies.0.business_name', 'Alpha Logistics')
+            ->assertJsonPath('companies.1.business_name', 'Mike Haulage')
+            ->assertJsonPath('companies.2.business_name', 'Zulu Transport');
+
+        $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'sort' => 'not_a_column',
+            'direction' => 'asc',
+        ]))->assertUnprocessable()
+            ->assertJsonValidationErrors(['sort']);
+
+        $this->asSpa()->getJson('/api/admin/companies?'.http_build_query([
+            'sort' => 'business_name',
+            'direction' => 'sideways',
+        ]))->assertUnprocessable()
+            ->assertJsonValidationErrors(['direction']);
+    }
+
     public function test_admin_can_update_company_finance_fields(): void
     {
         $company = Company::factory()->withDomains(['acme.test'])->create([

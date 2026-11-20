@@ -22,6 +22,21 @@ class ListCompaniesRequest extends FormRequest
     ];
 
     /** @var list<string> */
+    public const SORTABLE_COLUMNS = [
+        'business_name',
+        'reg_number',
+        'email',
+        'allowed_domains',
+    ];
+
+    public const DEFAULT_SORT = 'business_name';
+
+    public const DEFAULT_DIRECTION = 'asc';
+
+    /** @var list<string> */
+    public const SORT_DIRECTIONS = ['asc', 'desc'];
+
+    /** @var list<string> */
     public const FILTER_TYPES = [
         'equals',
         'notEqual',
@@ -46,6 +61,8 @@ class ListCompaniesRequest extends FormRequest
         $rules = [
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', Rule::in(self::ALLOWED_PER_PAGE)],
+            'sort' => ['sometimes', 'string', Rule::in(self::SORTABLE_COLUMNS)],
+            'direction' => ['sometimes', 'string', Rule::in(self::SORT_DIRECTIONS)],
             'filter' => ['sometimes', 'array'],
         ];
 
@@ -65,6 +82,20 @@ class ListCompaniesRequest extends FormRequest
     public function perPage(): int
     {
         return (int) $this->validated('per_page', self::DEFAULT_PER_PAGE);
+    }
+
+    public function sort(): string
+    {
+        $sort = $this->validated('sort', self::DEFAULT_SORT);
+
+        return is_string($sort) ? $sort : self::DEFAULT_SORT;
+    }
+
+    public function direction(): string
+    {
+        $direction = $this->validated('direction', self::DEFAULT_DIRECTION);
+
+        return is_string($direction) ? $direction : self::DEFAULT_DIRECTION;
     }
 
     /**

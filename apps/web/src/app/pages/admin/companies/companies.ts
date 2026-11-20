@@ -10,6 +10,7 @@ import {
   FilterModel,
   ITextFilterParams,
   ModuleRegistry,
+  SortChangedEvent,
   TextFilterModel,
   themeQuartz,
 } from 'ag-grid-community';
@@ -28,6 +29,15 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
 const FILTERABLE_FIELDS = ['business_name', 'reg_number', 'email', 'allowed_domains'] as const;
+const SORTABLE_FIELDS = FILTERABLE_FIELDS;
+type SortableField = (typeof SORTABLE_FIELDS)[number];
+type SortDirection = 'asc' | 'desc';
+
+const DEFAULT_SORT: SortableField = 'business_name';
+const DEFAULT_DIRECTION: SortDirection = 'asc';
+
+/** Keep row order as returned by the server (pagination is server-side). */
+const serverSideSortComparator = (): number => 0;
 
 interface CompaniesListMeta {
   current_page: number;
@@ -64,6 +74,8 @@ export class AdminCompanies implements OnInit {
   private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
   private filterModel: FilterModel = {};
+  private sortField: SortableField = DEFAULT_SORT;
+  private sortDirection: SortDirection = DEFAULT_DIRECTION;
 
   protected readonly theme = themeQuartz;
   protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
@@ -80,6 +92,8 @@ export class AdminCompanies implements OnInit {
       headerName: 'Business name',
       flex: 1.2,
       minWidth: 180,
+      sort: DEFAULT_DIRECTION,
+      comparator: serverSideSortComparator,
       filter: 'agTextColumnFilter',
       filterParams: serverSideTextFilterParams,
     },
@@ -88,6 +102,7 @@ export class AdminCompanies implements OnInit {
       headerName: 'Reg number',
       flex: 0.9,
       minWidth: 130,
+      comparator: serverSideSortComparator,
       filter: 'agTextColumnFilter',
       filterParams: serverSideTextFilterParams,
     },
@@ -96,6 +111,7 @@ export class AdminCompanies implements OnInit {
       headerName: 'Email',
       flex: 1.2,
       minWidth: 180,
+      comparator: serverSideSortComparator,
       filter: 'agTextColumnFilter',
       filterParams: serverSideTextFilterParams,
     },
@@ -104,6 +120,7 @@ export class AdminCompanies implements OnInit {
       headerName: 'Allowed domains',
       flex: 1.2,
       minWidth: 160,
+      comparator: serverSideSortComparator,
       filter: 'agTextColumnFilter',
       filterParams: serverSideTextFilterParams,
       valueFormatter: (params) => (Array.isArray(params.value) ? params.value.join(', ') : ''),
@@ -126,9 +143,10 @@ export class AdminCompanies implements OnInit {
   ];
 
   protected readonly defaultColDef: ColDef = {
-    sortable: false,
+    sortable: true,
     resizable: true,
     floatingFilter: true,
+    sortingOrder: ['asc', 'desc'],
   };
 
   ngOnInit(): void {
@@ -178,6 +196,26 @@ export class AdminCompanies implements OnInit {
     this.loadCompanies();
   }
 
+  protected onSortChanged(event: SortChangedEvent<Company>): void {
+    const sorted = event.api
+      .getColumnState()
+      .find((column) => column.sort === 'asc' || column.sort === 'desc');
+
+    const nextField =
+      sorted?.colId && this.isSortableField(sorted.colId) ? sorted.colId : DEFAULT_SORT;
+    const nextDirection: SortDirection =
+      sorted?.sort === 'asc' || sorted?.sort === 'desc' ? sorted.sort : DEFAULT_DIRECTION;
+
+    if (nextField === this.sortField && nextDirection === this.sortDirection) {
+      return;
+    }
+
+    this.sortField = nextField;
+    this.sortDirection = nextDirection;
+    this.page.set(1);
+    this.loadCompanies();
+  }
+
   protected onPageSizeChange(value: number): void {
     const next = value as PageSize;
     if (!PAGE_SIZE_OPTIONS.includes(next) || next === this.pageSize()) {
@@ -221,7 +259,9 @@ export class AdminCompanies implements OnInit {
   private buildParams(): HttpParams {
     let params = new HttpParams()
       .set('page', String(this.page()))
-      .set('per_page', String(this.pageSize()));
+      .set('per_page', String(this.pageSize()))
+      .set('sort', this.sortField)
+      .set('direction', this.sortDirection);
 
     for (const field of FILTERABLE_FIELDS) {
       const model = this.filterModel[field];
@@ -252,6 +292,10 @@ export class AdminCompanies implements OnInit {
     }
     const filterType = 'filterType' in model ? model.filterType : 'text';
     return filterType === 'text' || filterType == null;
+  }
+
+  private isSortableField(field: string): field is SortableField {
+    return (SORTABLE_FIELDS as readonly string[]).includes(field);
   }
 
   private loadCompanies(): void {
