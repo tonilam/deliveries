@@ -18,4 +18,5 @@ As an admin user, I want to turn system features on or off from a Features page 
 ## Notes
 - New page (not the existing System Settings placeholder at `/admin/settings`).
 - Extends admin portal from [US-002](US-002-admin-portal-and-roles.md); auth mechanics remain in [US-001](US-001-user-auth-sso-and-password.md).
-- Decisions: block both password and SSO new-user creation when off; hide register UI; default User registration **on**.
+- Decisions: block both **public** password and SSO new-user creation when off; hide register UI; default User registration **on**.
+- Admin-provisioned accounts (create password user / SSO invite) are **not** gated by this flag — see [US-007](US-007-admin-create-and-invite-users.md).

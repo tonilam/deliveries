@@ -7,9 +7,17 @@ export interface User {
   role: UserRole;
   is_active: boolean;
   has_password: boolean;
+  must_change_password: boolean;
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface PendingInvitation {
+  name: string;
+  email: string;
+  role: UserRole;
+  expires_at: string;
 }
 
 export interface AuthResponse {

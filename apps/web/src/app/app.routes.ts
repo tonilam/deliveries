@@ -20,6 +20,17 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/register/register').then((m) => m.Register),
   },
   {
+    path: 'invite/:token',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./pages/invite/invite').then((m) => m.Invite),
+  },
+  {
+    path: 'change-password',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/change-password/change-password').then((m) => m.ChangePassword),
+  },
+  {
     path: 'auth/callback',
     loadComponent: () => import('./pages/auth-callback/auth-callback').then((m) => m.AuthCallback),
   },
@@ -64,6 +75,11 @@ export const routes: Routes = [
       {
         path: 'users',
         loadComponent: () => import('./pages/admin/users/users').then((m) => m.AdminUsers),
+      },
+      {
+        path: 'users/create',
+        loadComponent: () =>
+          import('./pages/admin/users/create-user').then((m) => m.AdminCreateUser),
       },
       {
         path: 'profile',

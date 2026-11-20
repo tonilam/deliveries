@@ -7,6 +7,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import { AllCommunityModule, ColDef, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 
@@ -27,18 +28,20 @@ export interface ManagedUserRow {
 
 @Component({
   selector: 'app-admin-users',
-  imports: [AgGridAngular],
+  imports: [AgGridAngular, RouterLink],
   templateUrl: './users.html',
   styleUrls: ['../../../shared/portal-shell.scss', './users.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminUsers implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly theme = themeQuartz;
   protected readonly activeTab = signal<UsersTab>('admin');
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly inviteNotice = signal<string | null>(null);
   protected readonly adminUsers = signal<ManagedUserRow[]>([]);
   protected readonly customerUsers = signal<ManagedUserRow[]>([]);
 
@@ -65,6 +68,10 @@ export class AdminUsers implements OnInit {
   };
 
   ngOnInit(): void {
+    const invited = this.route.snapshot.queryParamMap.get('invited');
+    if (invited) {
+      this.inviteNotice.set(`Invitation sent to ${invited}.`);
+    }
     this.loadAllUsers();
   }
 

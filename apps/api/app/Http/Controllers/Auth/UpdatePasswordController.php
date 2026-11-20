@@ -12,6 +12,7 @@ class UpdatePasswordController extends Controller
     {
         $user = $request->user();
         $user->password = $request->string('password')->toString();
+        $user->must_change_password = false;
         $user->save();
 
         return response()->json([

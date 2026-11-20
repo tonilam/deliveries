@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
-import { AuthResponse, SsoProvider, User, UserRole } from './user.model';
+import { AuthResponse, PendingInvitation, SsoProvider, User, UserRole } from './user.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -67,8 +67,26 @@ export class AuthService {
     );
   }
 
-  startSso(provider: SsoProvider): void {
-    window.location.href = `/api/auth/${provider}/redirect`;
+  startSso(provider: SsoProvider, options?: { invite?: string }): void {
+    const params = options?.invite ? `?invite=${encodeURIComponent(options.invite)}` : '';
+    window.location.href = `/api/auth/${provider}/redirect${params}`;
+  }
+
+  getInvitation(token: string): Observable<PendingInvitation> {
+    return this.http
+      .get<{ invitation: PendingInvitation }>(`/api/invitations/${token}`)
+      .pipe(map((res) => res.invitation));
+  }
+
+  acceptInvitation(
+    token: string,
+    payload: { password: string; password_confirmation: string },
+  ): Observable<User> {
+    return this.ensureCsrf().pipe(
+      switchMap(() => this.http.post<AuthResponse>(`/api/invitations/${token}/register`, payload)),
+      tap((res) => this.user.set(res.user)),
+      map((res) => res.user),
+    );
   }
 
   isAuthenticated(): boolean {
@@ -76,6 +94,9 @@ export class AuthService {
   }
 
   homePathFor(user: User): string {
+    if (user.must_change_password) {
+      return '/change-password';
+    }
     return user.role === 'admin' ? '/admin' : '/app';
   }
 

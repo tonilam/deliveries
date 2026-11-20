@@ -1,0 +1,94 @@
+<section class="portal">
+  <p class="back">
+    <a routerLink="/admin/users">← User management</a>
+  </p>
+  <h1>Create user</h1>
+  <p class="lede">Provision a password account or send an invitation to finish signup.</p>
+
+  <div class="mode-tabs" role="tablist" aria-label="Create mode">
+    <button
+      type="button"
+      role="tab"
+      class="mode-tabs__tab"
+      [attr.aria-selected]="mode() === 'password'"
+      [class.mode-tabs__tab--active]="mode() === 'password'"
+      (click)="setMode('password')"
+    >
+      Password account
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="mode-tabs__tab"
+      [attr.aria-selected]="mode() === 'invite'"
+      [class.mode-tabs__tab--active]="mode() === 'invite'"
+      (click)="setMode('invite')"
+    >
+      Invite
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="create-form">
+    <label>
+      Name
+      <input type="text" formControlName="name" autocomplete="name" />
+    </label>
+
+    <label>
+      Email
+      <input type="email" formControlName="email" autocomplete="email" />
+    </label>
+
+    <fieldset class="role-fieldset">
+      <legend>Role</legend>
+      <label class="radio">
+        <input type="radio" formControlName="role" value="customer" />
+        Customer
+      </label>
+      <label class="radio">
+        <input type="radio" formControlName="role" value="admin" />
+        Admin
+      </label>
+    </fieldset>
+
+    @if (isPasswordMode()) {
+      <div class="password-row">
+        <label class="password-field">
+          Temporary password
+          <input type="text" formControlName="password" autocomplete="new-password" />
+        </label>
+        <button type="button" class="btn btn--ghost" (click)="generatePassword()">Generate</button>
+      </div>
+
+      <label>
+        Confirm password
+        <input type="text" formControlName="password_confirmation" autocomplete="new-password" />
+      </label>
+
+      <label class="check">
+        <input type="checkbox" formControlName="must_change_password" />
+        Require password change on first login
+      </label>
+    } @else {
+      <p class="invite-note">
+        We’ll email an invite link. The recipient can finish with a password or Google / Apple SSO.
+        Their role will be the one selected above.
+      </p>
+    }
+
+    <div class="actions">
+      <a routerLink="/admin/users" class="btn btn--ghost">Cancel</a>
+      <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+        @if (submitting()) {
+          {{ isPasswordMode() ? 'Creating…' : 'Sending…' }}
+        } @else {
+          {{ isPasswordMode() ? 'Create user' : 'Send invitation' }}
+        }
+      </button>
+    </div>
+  </form>
+</section>

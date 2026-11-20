@@ -12,5 +12,5 @@ As an admin user, I want to see both an admin user list and a customer user list
 - [x] `ag-grid-angular` is installed and used for both tables
 
 ## Notes
-- Extends the User Management placeholder from [US-002](US-002-admin-portal-and-roles.md); does not cover create/edit/deactivate actions yet.
+- Extends the User Management placeholder from [US-002](US-002-admin-portal-and-roles.md); create/invite is [US-007](US-007-admin-create-and-invite-users.md); edit/deactivate still out of scope.
 - Prefer Truckit `UiTabs` / Data Grid wrappers when CodeArtifact access is available; until then use AG Grid Community directly with a local tab control styled with `--ui-*` tokens.

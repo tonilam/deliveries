@@ -8,6 +8,7 @@ use App\Exceptions\RegistrationDisabledException;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Contracts\User as SocialiteUser;
 use RuntimeException;
 
@@ -15,11 +16,12 @@ class SocialAuthService
 {
     public function __construct(
         private readonly FeatureService $features,
+        private readonly InvitationService $invitations,
     ) {}
 
-    public function findOrCreate(string $provider, SocialiteUser $socialUser): User
+    public function findOrCreate(string $provider, SocialiteUser $socialUser, ?string $invitationToken = null): User
     {
-        return DB::transaction(function () use ($provider, $socialUser): User {
+        return DB::transaction(function () use ($provider, $socialUser, $invitationToken): User {
             $account = SocialAccount::query()
                 ->where('provider', $provider)
                 ->where('provider_id', $socialUser->getId())
@@ -42,24 +44,41 @@ class SocialAuthService
                 : null;
 
             if ($user === null) {
-                if (! $this->features->isEnabled(FeatureKey::UserRegistration)) {
-                    throw new RegistrationDisabledException;
-                }
+                if ($invitationToken !== null) {
+                    if ($email === null) {
+                        throw ValidationException::withMessages([
+                            'email' => ['SSO did not provide an email address.'],
+                        ]);
+                    }
 
-                if ($email !== null) {
                     $this->assertProviderEmailVerified($provider, $socialUser);
-                }
+                    $invitation = $this->invitations->findPending($invitationToken);
+                    $user = $this->invitations->consumeForSso(
+                        $invitation,
+                        $email,
+                        $socialUser->getName(),
+                    );
+                } else {
+                    if (! $this->features->isEnabled(FeatureKey::UserRegistration)) {
+                        throw new RegistrationDisabledException;
+                    }
 
-                $user = User::query()->create([
-                    'name' => $socialUser->getName() ?: ($email ?? 'User'),
-                    'email' => $email ?? $provider.'-'.$socialUser->getId().'@users.noreply.loadplanner.local',
-                    'password' => null,
-                    'role' => UserRole::Customer,
-                    'is_active' => true,
-                ]);
+                    if ($email !== null) {
+                        $this->assertProviderEmailVerified($provider, $socialUser);
+                    }
 
-                if ($email !== null) {
-                    $user->forceFill(['email_verified_at' => now()])->save();
+                    $user = User::query()->create([
+                        'name' => $socialUser->getName() ?: ($email ?? 'User'),
+                        'email' => $email ?? $provider.'-'.$socialUser->getId().'@users.noreply.loadplanner.local',
+                        'password' => null,
+                        'role' => UserRole::Customer,
+                        'is_active' => true,
+                        'must_change_password' => false,
+                    ]);
+
+                    if ($email !== null) {
+                        $user->forceFill(['email_verified_at' => now()])->save();
+                    }
                 }
             } else {
                 $this->assertProviderEmailVerified($provider, $socialUser);

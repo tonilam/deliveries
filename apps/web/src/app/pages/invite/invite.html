@@ -1,0 +1,48 @@
+<section class="auth">
+  <h1>Accept invitation</h1>
+
+  @if (loading()) {
+    <p class="lede">Loading invitation…</p>
+  } @else if (invitation(); as invite) {
+    <p class="lede">
+      Hi {{ invite.name }} — finish setting up your
+      <strong>{{ roleLabel(invite.role) }}</strong> account for {{ invite.email }}.
+    </p>
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Password
+        <input type="password" formControlName="password" autocomplete="new-password" />
+      </label>
+      <label>
+        Confirm password
+        <input
+          type="password"
+          formControlName="password_confirmation"
+          autocomplete="new-password"
+        />
+      </label>
+      <button type="submit" class="primary" [disabled]="submitting()">
+        {{ submitting() ? 'Creating…' : 'Create account' }}
+      </button>
+    </form>
+
+    <div class="divider"><span>or</span></div>
+
+    <div class="sso">
+      <button type="button" class="secondary" (click)="sso('google')">Continue with Google</button>
+      <button type="button" class="secondary" (click)="sso('apple')">Continue with Apple</button>
+    </div>
+  } @else {
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+    <p class="footer">
+      <a routerLink="/login">Back to sign in</a>
+    </p>
+  }
+</section>

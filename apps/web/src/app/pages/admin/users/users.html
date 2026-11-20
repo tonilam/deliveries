@@ -1,6 +1,21 @@
 <section class="portal portal--wide">
-  <h1>User management</h1>
-  <p class="lede">Review admin and customer accounts and whether they are active.</p>
+  <div class="users-header">
+    <div>
+      <h1>User management</h1>
+      <p class="lede">Review admin and customer accounts and whether they are active.</p>
+    </div>
+    <a
+      routerLink="/admin/users/create"
+      [queryParams]="{ role: activeTab() }"
+      class="btn btn--primary"
+    >
+      Create user
+    </a>
+  </div>
+
+  @if (inviteNotice()) {
+    <p class="users-success" role="status">{{ inviteNotice() }}</p>
+  }
 
   <div class="tabs" role="tablist" aria-label="User lists">
     <button
