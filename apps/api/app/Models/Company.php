@@ -16,11 +16,22 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'phone',
     'email',
     'address',
+    'allowed_domains',
 ])]
 class Company extends Model
 {
     /** @use HasFactory<CompanyFactory> */
     use HasFactory;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'allowed_domains' => 'array',
+        ];
+    }
 
     /**
      * @return HasMany<User, $this>
@@ -36,5 +47,13 @@ class Company extends Model
     public function addresses(): HasMany
     {
         return $this->hasMany(Address::class);
+    }
+
+    /**
+     * @return HasMany<CompanyAllowedDomain, $this>
+     */
+    public function allowedDomainRows(): HasMany
+    {
+        return $this->hasMany(CompanyAllowedDomain::class);
     }
 }

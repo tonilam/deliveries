@@ -1,13 +1,18 @@
 <?php
 
 use App\Http\Controllers\AddressListController;
+use App\Http\Controllers\Admin\CheckCompanyUniquenessController;
+use App\Http\Controllers\Admin\CompanyListController;
+use App\Http\Controllers\Admin\CreateCompanyController;
 use App\Http\Controllers\Admin\CreateUserController;
 use App\Http\Controllers\Admin\FeatureListController;
 use App\Http\Controllers\Admin\ImpersonateUserController;
 use App\Http\Controllers\Admin\InviteUserController;
 use App\Http\Controllers\Admin\ResetUserPasswordController;
 use App\Http\Controllers\Admin\SendPasswordResetController;
+use App\Http\Controllers\Admin\ShowCompanyController;
 use App\Http\Controllers\Admin\ShowUserController;
+use App\Http\Controllers\Admin\UpdateCompanyController;
 use App\Http\Controllers\Admin\UpdateFeatureController;
 use App\Http\Controllers\Admin\UserListController;
 use App\Http\Controllers\Auth\AcceptInvitationController;
@@ -22,6 +27,7 @@ use App\Http\Controllers\Auth\UpdatePasswordController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CreateAddressController;
 use App\Http\Controllers\FeatureFlagsController;
+use App\Http\Controllers\RegistrationCompaniesController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +50,7 @@ Route::get('/health', function () {
 
 Route::get('/features', FeatureFlagsController::class);
 
+Route::get('/registration/companies', RegistrationCompaniesController::class)->middleware('throttle:20,1');
 Route::post('/register', RegisterController::class);
 Route::post('/login', LoginController::class)->middleware('throttle:5,1');
 Route::post('/password/reset', ResetPasswordController::class)->middleware('throttle:5,1');
@@ -73,6 +80,11 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->pref
     Route::post('/users/{user}/password-reset', SendPasswordResetController::class);
     Route::post('/users/{user}/impersonate', ImpersonateUserController::class);
     Route::post('/invitations', InviteUserController::class);
+    Route::get('/companies', CompanyListController::class);
+    Route::post('/companies', CreateCompanyController::class);
+    Route::post('/companies/check-uniqueness', CheckCompanyUniquenessController::class);
+    Route::get('/companies/{company}', ShowCompanyController::class);
+    Route::put('/companies/{company}', UpdateCompanyController::class);
     Route::get('/features', FeatureListController::class);
     Route::patch('/features/{key}', UpdateFeatureController::class);
 });

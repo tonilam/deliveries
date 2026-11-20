@@ -13,14 +13,20 @@ use Illuminate\Validation\ValidationException;
 
 class InvitationService
 {
-    public function createAndSend(User $inviter, string $name, string $email, UserRole $role): UserInvitation
-    {
+    public function createAndSend(
+        User $inviter,
+        string $name,
+        string $email,
+        UserRole $role,
+        ?int $companyId = null,
+    ): UserInvitation {
         $this->assertEmailAvailable($email);
 
         $invitation = UserInvitation::query()->create([
             'name' => $name,
             'email' => $email,
             'role' => $role,
+            'company_id' => $role === UserRole::Customer ? $companyId : null,
             'token' => Str::random(64),
             'invited_by' => $inviter->id,
             'expires_at' => now()->addDays(7),
@@ -64,6 +70,7 @@ class InvitationService
                 'role' => $invitation->role,
                 'is_active' => true,
                 'must_change_password' => false,
+                'company_id' => $invitation->role === UserRole::Customer ? $invitation->company_id : null,
             ]);
 
             $invitation->forceFill(['accepted_at' => now()])->save();
@@ -93,6 +100,7 @@ class InvitationService
                 'is_active' => true,
                 'must_change_password' => false,
                 'email_verified_at' => now(),
+                'company_id' => $invitation->role === UserRole::Customer ? $invitation->company_id : null,
             ]);
 
             $invitation->forceFill(['accepted_at' => now()])->save();

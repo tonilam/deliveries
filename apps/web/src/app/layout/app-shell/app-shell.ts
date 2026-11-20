@@ -43,6 +43,7 @@ export class AppShell {
           { label: 'Home', path: '/admin', exact: true },
           { label: 'System settings', path: '/admin/settings' },
           { label: 'Features', path: '/admin/features' },
+          { label: 'Companies', path: '/admin/companies' },
           { label: 'User management', path: '/admin/users' },
         ]
       : [

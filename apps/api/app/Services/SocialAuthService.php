@@ -17,11 +17,16 @@ class SocialAuthService
     public function __construct(
         private readonly FeatureService $features,
         private readonly InvitationService $invitations,
+        private readonly CompanyDomainService $domains,
     ) {}
 
-    public function findOrCreate(string $provider, SocialiteUser $socialUser, ?string $invitationToken = null): User
-    {
-        return DB::transaction(function () use ($provider, $socialUser, $invitationToken): User {
+    public function findOrCreate(
+        string $provider,
+        SocialiteUser $socialUser,
+        ?string $invitationToken = null,
+        ?int $companyId = null,
+    ): User {
+        return DB::transaction(function () use ($provider, $socialUser, $invitationToken, $companyId): User {
             $account = SocialAccount::query()
                 ->where('provider', $provider)
                 ->where('provider_id', $socialUser->getId())
@@ -67,18 +72,25 @@ class SocialAuthService
                         $this->assertProviderEmailVerified($provider, $socialUser);
                     }
 
+                    if ($email === null) {
+                        throw ValidationException::withMessages([
+                            'email' => ['SSO did not provide an email address.'],
+                        ]);
+                    }
+
+                    $company = $this->domains->resolveCompanyForEmail($email, $companyId);
+
                     $user = User::query()->create([
-                        'name' => $socialUser->getName() ?: ($email ?? 'User'),
-                        'email' => $email ?? $provider.'-'.$socialUser->getId().'@users.noreply.loadplanner.local',
+                        'name' => $socialUser->getName() ?: $email,
+                        'email' => $email,
                         'password' => null,
                         'role' => UserRole::Customer,
                         'is_active' => true,
                         'must_change_password' => false,
+                        'company_id' => $company->id,
                     ]);
 
-                    if ($email !== null) {
-                        $user->forceFill(['email_verified_at' => now()])->save();
-                    }
+                    $user->forceFill(['email_verified_at' => now()])->save();
                 }
             } else {
                 $this->assertProviderEmailVerified($provider, $socialUser);

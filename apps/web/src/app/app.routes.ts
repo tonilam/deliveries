@@ -89,6 +89,21 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/admin/features/features').then((m) => m.AdminFeatures),
       },
       {
+        path: 'companies',
+        loadComponent: () =>
+          import('./pages/admin/companies/companies').then((m) => m.AdminCompanies),
+      },
+      {
+        path: 'companies/create',
+        loadComponent: () =>
+          import('./pages/admin/companies/company-form').then((m) => m.AdminCompanyForm),
+      },
+      {
+        path: 'companies/:id/edit',
+        loadComponent: () =>
+          import('./pages/admin/companies/company-form').then((m) => m.AdminCompanyForm),
+      },
+      {
         path: 'users',
         loadComponent: () => import('./pages/admin/users/users').then((m) => m.AdminUsers),
       },

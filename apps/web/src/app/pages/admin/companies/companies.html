@@ -1,0 +1,22 @@
+<section class="portal portal--wide">
+  <div class="users-header">
+    <div>
+      <h1>Companies</h1>
+      <p class="lede">Manage customer companies and their allowed email domains.</p>
+    </div>
+    <a routerLink="/admin/companies/create" class="btn btn--primary">Create company</a>
+  </div>
+
+  @if (error()) {
+    <p class="users-error" role="alert">{{ error() }}</p>
+  }
+
+  <ag-grid-angular
+    class="users-grid"
+    [theme]="theme"
+    [rowData]="companies()"
+    [columnDefs]="columnDefs"
+    [defaultColDef]="defaultColDef"
+    [loading]="loading()"
+  />
+</section>

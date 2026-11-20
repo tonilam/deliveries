@@ -23,6 +23,19 @@
       Confirm password
       <input type="password" formControlName="password_confirmation" autocomplete="new-password" />
     </label>
+
+    @if (companyChoices().length > 1) {
+      <label>
+        Company
+        <select formControlName="company_id">
+          <option [ngValue]="null" disabled>Select a company</option>
+          @for (company of companyChoices(); track company.id) {
+            <option [ngValue]="company.id">{{ company.business_name }}</option>
+          }
+        </select>
+      </label>
+    }
+
     <button type="submit" class="primary" [disabled]="submitting()">
       {{ submitting() ? 'Creating…' : 'Create account' }}
     </button>

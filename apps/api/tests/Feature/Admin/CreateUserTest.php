@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Company;
 use App\Models\Feature;
 use App\Models\User;
 use App\Models\UserInvitation;
@@ -54,13 +55,43 @@ class CreateUserTest extends TestCase
     public function test_admin_can_create_customer_when_registration_disabled(): void
     {
         Feature::query()->where('key', 'user_registration')->update(['enabled' => false]);
+        $company = Company::factory()->withDomains(['example.com'])->create();
         $this->loginAsAdmin();
 
         $this->asSpa()->postJson('/api/admin/users', [
             ...$this->validPayload(),
+            'email' => 'new.customer@example.com',
             'role' => 'customer',
+            'company_id' => $company->id,
         ])->assertCreated()
-            ->assertJsonPath('user.role', 'customer');
+            ->assertJsonPath('user.role', 'customer')
+            ->assertJsonPath('user.company_id', $company->id);
+    }
+
+    public function test_admin_cannot_create_customer_with_disallowed_email_domain(): void
+    {
+        $company = Company::factory()->withDomains(['acme.test'])->create();
+        $this->loginAsAdmin();
+
+        $this->asSpa()->postJson('/api/admin/users', [
+            ...$this->validPayload(),
+            'email' => 'person@other.test',
+            'role' => 'customer',
+            'company_id' => $company->id,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
+    }
+
+    public function test_customer_create_requires_company(): void
+    {
+        $this->loginAsAdmin();
+
+        $this->asSpa()->postJson('/api/admin/users', [
+            ...$this->validPayload(),
+            'email' => 'new.customer@example.com',
+            'role' => 'customer',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['company_id']);
     }
 
     public function test_duplicate_email_is_rejected(): void

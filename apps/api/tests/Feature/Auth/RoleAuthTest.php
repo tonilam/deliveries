@@ -3,6 +3,7 @@
 namespace Tests\Feature\Auth;
 
 use App\Enums\UserRole;
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Socialite\Contracts\Provider as SocialiteProvider;
@@ -17,6 +18,8 @@ class RoleAuthTest extends TestCase
 
     public function test_register_sets_customer_role(): void
     {
+        Company::factory()->withDomains(['example.com'])->create();
+
         $this->asSpa()->postJson('/api/register', [
             'name' => 'Customer',
             'email' => 'c@example.com',
@@ -127,6 +130,8 @@ class RoleAuthTest extends TestCase
 
     public function test_sso_does_not_create_admin_users(): void
     {
+        Company::factory()->withDomains(['company.com'])->create();
+
         $this->mockSocialiteUser(
             id: 'google-new-admin',
             name: 'New Admin',

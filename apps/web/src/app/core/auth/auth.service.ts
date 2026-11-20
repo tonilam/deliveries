@@ -28,6 +28,7 @@ export class AuthService {
     email: string;
     password: string;
     password_confirmation: string;
+    company_id?: number | null;
   }): Observable<User> {
     return this.ensureCsrf().pipe(
       switchMap(() => this.http.post<AuthResponse>('/api/register', payload)),
@@ -92,9 +93,16 @@ export class AuthService {
     );
   }
 
-  startSso(provider: SsoProvider, options?: { invite?: string }): void {
-    const params = options?.invite ? `?invite=${encodeURIComponent(options.invite)}` : '';
-    window.location.href = `/api/auth/${provider}/redirect${params}`;
+  startSso(provider: SsoProvider, options?: { invite?: string; companyId?: number }): void {
+    const params = new URLSearchParams();
+    if (options?.invite) {
+      params.set('invite', options.invite);
+    }
+    if (options?.companyId != null) {
+      params.set('company_id', String(options.companyId));
+    }
+    const query = params.toString();
+    window.location.href = `/api/auth/${provider}/redirect${query ? `?${query}` : ''}`;
   }
 
   getInvitation(token: string): Observable<PendingInvitation> {

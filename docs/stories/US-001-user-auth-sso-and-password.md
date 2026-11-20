@@ -5,6 +5,7 @@ As a new user, I want to create an account and sign in with either email/passwor
 
 ## Acceptance criteria
 - [x] New user can register with email + password and is logged in (Sanctum SPA session)
+- [x] Customer self-registration assigns a company whose allowed domains include the email’s domain; if none match, registration is rejected; if multiple match, the user must choose which company to join ([US-013](US-013-admin-company-management.md))
 - [x] Existing user can log in with email + password
 - [x] New or returning user can sign up / log in with Google via Socialite
 - [x] New or returning user can sign up / log in with Apple via Socialite

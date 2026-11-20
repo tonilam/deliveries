@@ -22,6 +22,7 @@ class CompanyModelTest extends TestCase
             'phone' => '0299998888',
             'email' => 'billing@truckit.example',
             'address' => '100 Warehouse Way, Sydney NSW 2000',
+            'allowed_domains' => ['truckit.example'],
         ]);
 
         $this->assertDatabaseHas('companies', [
@@ -34,6 +35,7 @@ class CompanyModelTest extends TestCase
             'email' => 'billing@truckit.example',
             'address' => '100 Warehouse Way, Sydney NSW 2000',
         ]);
+        $this->assertSame(['truckit.example'], $company->fresh()->allowed_domains);
     }
 
     public function test_user_belongs_to_company_and_company_has_users_and_addresses(): void

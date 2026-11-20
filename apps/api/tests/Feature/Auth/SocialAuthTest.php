@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Company;
 use App\Models\Feature;
 use App\Models\SocialAccount;
 use App\Models\User;
@@ -23,6 +24,8 @@ class SocialAuthTest extends TestCase
 
     public function test_sso_callback_creates_user_and_social_account(): void
     {
+        $company = Company::factory()->withDomains(['gmail.com'])->create();
+
         $this->mockSocialiteUser(
             id: 'google-123',
             name: 'Ada Lovelace',
@@ -38,6 +41,7 @@ class SocialAuthTest extends TestCase
             'email' => 'ada@gmail.com',
             'name' => 'Ada Lovelace',
             'role' => 'customer',
+            'company_id' => $company->id,
         ]);
         $this->assertDatabaseHas('social_accounts', [
             'provider' => 'google',

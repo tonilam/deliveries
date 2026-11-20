@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Mail\UserInvitationMail;
+use App\Models\Company;
 use App\Models\Feature;
 use App\Models\User;
 use App\Models\UserInvitation;
@@ -21,27 +22,46 @@ class InviteUserTest extends TestCase
     public function test_admin_can_invite_user_and_email_is_sent(): void
     {
         Mail::fake();
+        $company = Company::factory()->withDomains(['example.com'])->create();
         $this->loginAsAdmin();
 
         $response = $this->asSpa()->postJson('/api/admin/invitations', [
             'name' => 'Invited User',
             'email' => 'invitee@example.com',
             'role' => 'customer',
+            'company_id' => $company->id,
         ]);
 
         $response->assertCreated()
             ->assertJsonPath('invitation.email', 'invitee@example.com')
             ->assertJsonPath('invitation.role', 'customer')
+            ->assertJsonPath('invitation.company_id', $company->id)
             ->assertJsonPath('message', 'Invitation sent');
 
         $this->assertDatabaseHas('user_invitations', [
             'email' => 'invitee@example.com',
             'role' => 'customer',
+            'company_id' => $company->id,
         ]);
 
         Mail::assertSent(UserInvitationMail::class, function (UserInvitationMail $mail) {
             return $mail->invitation->email === 'invitee@example.com';
         });
+    }
+
+    public function test_admin_cannot_invite_customer_with_disallowed_domain(): void
+    {
+        Mail::fake();
+        $company = Company::factory()->withDomains(['acme.test'])->create();
+        $this->loginAsAdmin();
+
+        $this->asSpa()->postJson('/api/admin/invitations', [
+            'name' => 'Invited User',
+            'email' => 'invitee@other.test',
+            'role' => 'customer',
+            'company_id' => $company->id,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['email']);
     }
 
     public function test_invite_works_when_registration_disabled(): void
@@ -125,10 +145,12 @@ class InviteUserTest extends TestCase
     {
         Feature::query()->where('key', 'user_registration')->update(['enabled' => false]);
 
+        $company = Company::factory()->withDomains(['gmail.com'])->create();
         $invitation = UserInvitation::factory()->create([
             'name' => 'Pat',
             'email' => 'pat@gmail.com',
             'role' => 'customer',
+            'company_id' => $company->id,
         ]);
 
         $this->mockGoogleUser('pat@gmail.com', 'google-invite-1');
@@ -141,6 +163,7 @@ class InviteUserTest extends TestCase
         $this->assertDatabaseHas('users', [
             'email' => 'pat@gmail.com',
             'role' => 'customer',
+            'company_id' => $company->id,
         ]);
         $this->assertNotNull($invitation->fresh()->accepted_at);
     }

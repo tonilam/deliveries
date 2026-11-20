@@ -57,7 +57,8 @@
 }
 
 .create-form input[type='text'],
-.create-form input[type='email'] {
+.create-form input[type='email'],
+.create-form select {
   padding: 0.65rem 0.75rem;
   font: inherit;
   border: 1px solid #cbd5e1;

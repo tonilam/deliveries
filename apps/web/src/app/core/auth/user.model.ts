@@ -8,6 +8,7 @@ export interface User {
   is_active: boolean;
   has_password: boolean;
   must_change_password: boolean;
+  company_id: number | null;
   email_verified_at: string | null;
   created_at: string;
   updated_at: string;

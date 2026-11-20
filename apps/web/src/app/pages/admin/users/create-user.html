@@ -55,6 +55,24 @@
       </label>
     </fieldset>
 
+    @if (isCustomerRole()) {
+      <label>
+        Company
+        <select formControlName="company_id">
+          <option [ngValue]="null" disabled>Select a company</option>
+          @for (company of companies(); track company.id) {
+            <option [ngValue]="company.id">{{ company.business_name }}</option>
+          }
+        </select>
+      </label>
+      <p class="invite-note">
+        Email domain must be on the company’s allowed domains list.
+        @if (companyLocked()) {
+          Company is set from the Companies page.
+        }
+      </p>
+    }
+
     @if (isPasswordMode()) {
       <div class="password-row">
         <label class="password-field">

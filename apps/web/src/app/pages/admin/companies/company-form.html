@@ -1,0 +1,200 @@
+<section class="portal">
+  <p class="back">
+    <a routerLink="/admin/companies">← Companies</a>
+  </p>
+  <h1>{{ title() }}</h1>
+  <p class="lede">Company details and the email domains customers may use to join this company.</p>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p>Loading…</p>
+  } @else {
+    <form
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      class="create-form"
+      [attr.inert]="confirmOpen() ? '' : null"
+      [attr.aria-hidden]="confirmOpen() ? true : null"
+    >
+      <label>
+        Business name
+        <input type="text" formControlName="business_name" />
+      </label>
+
+      <label>
+        Registration type
+        <input type="text" formControlName="reg_type" />
+      </label>
+
+      <label>
+        Registration number
+        <input type="text" formControlName="reg_number" />
+      </label>
+
+      <label>
+        Invoicee name
+        <input type="text" formControlName="invoicee_name" />
+      </label>
+
+      <label>
+        Phone
+        <input type="text" formControlName="phone" />
+      </label>
+
+      <label>
+        Email
+        <input type="email" formControlName="email" />
+      </label>
+
+      <label>
+        Address
+        <input type="text" formControlName="address" />
+      </label>
+
+      <label>
+        Allowed domains
+        <input type="text" formControlName="allowed_domains" placeholder="acme.com, acme.com.au" />
+      </label>
+      <p class="invite-note">
+        Comma-separated email domains. Business name, registration number, and each domain must be
+        unique across companies.
+      </p>
+
+      <div class="actions">
+        <a routerLink="/admin/companies" class="btn btn--ghost">Cancel</a>
+        <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+          {{ isEdit() ? 'Review &amp; save' : 'Review &amp; create' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>
+
+@if (confirmOpen() && pendingPayload(); as preview) {
+  <div class="confirm-backdrop" (click)="cancelConfirm()" role="presentation"></div>
+  <div
+    class="confirm-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="company-confirm-title"
+  >
+    <h2 id="company-confirm-title">Confirm company details</h2>
+    <p class="confirm-lede">
+      @if (checking()) {
+        Checking business name, registration number, and allowed domains for conflicts…
+      } @else if (hasConflicts()) {
+        One or more values conflict with an existing company. Go back and review the data.
+      } @else if (checkError()) {
+        {{ checkError() }}
+      } @else {
+        All checked fields are unique. Confirm to save.
+      }
+    </p>
+
+    <dl class="confirm-list">
+      <div class="confirm-row">
+        <div class="confirm-row__text">
+          <dt>Business name</dt>
+          <dd>{{ preview.business_name }}</dd>
+          @if (fieldChecks().business_name.message) {
+            <p class="confirm-row__message">{{ fieldChecks().business_name.message }}</p>
+          }
+        </div>
+        <span
+          class="confirm-status"
+          [attr.data-status]="fieldChecks().business_name.status"
+          [attr.aria-label]="fieldChecks().business_name.status"
+        >
+          @if (fieldChecks().business_name.status === 'checking') {
+            <span class="confirm-spinner" aria-hidden="true"></span>
+          } @else if (fieldChecks().business_name.status === 'ok') {
+            <span class="confirm-icon confirm-icon--ok" aria-hidden="true">✓</span>
+          } @else if (
+            fieldChecks().business_name.status === 'conflict' ||
+            fieldChecks().business_name.status === 'error'
+          ) {
+            <span class="confirm-icon confirm-icon--fail" aria-hidden="true">✕</span>
+          }
+        </span>
+      </div>
+
+      <div class="confirm-row">
+        <div class="confirm-row__text">
+          <dt>Registration number</dt>
+          <dd>{{ preview.reg_number }}</dd>
+          @if (fieldChecks().reg_number.message) {
+            <p class="confirm-row__message">{{ fieldChecks().reg_number.message }}</p>
+          }
+        </div>
+        <span
+          class="confirm-status"
+          [attr.data-status]="fieldChecks().reg_number.status"
+          [attr.aria-label]="fieldChecks().reg_number.status"
+        >
+          @if (fieldChecks().reg_number.status === 'checking') {
+            <span class="confirm-spinner" aria-hidden="true"></span>
+          } @else if (fieldChecks().reg_number.status === 'ok') {
+            <span class="confirm-icon confirm-icon--ok" aria-hidden="true">✓</span>
+          } @else if (
+            fieldChecks().reg_number.status === 'conflict' ||
+            fieldChecks().reg_number.status === 'error'
+          ) {
+            <span class="confirm-icon confirm-icon--fail" aria-hidden="true">✕</span>
+          }
+        </span>
+      </div>
+
+      <div class="confirm-row">
+        <div class="confirm-row__text">
+          <dt>Allowed domains</dt>
+          <dd>{{ preview.allowed_domains.join(', ') }}</dd>
+          @if (fieldChecks().allowed_domains.message) {
+            <p class="confirm-row__message">{{ fieldChecks().allowed_domains.message }}</p>
+          }
+        </div>
+        <span
+          class="confirm-status"
+          [attr.data-status]="fieldChecks().allowed_domains.status"
+          [attr.aria-label]="fieldChecks().allowed_domains.status"
+        >
+          @if (fieldChecks().allowed_domains.status === 'checking') {
+            <span class="confirm-spinner" aria-hidden="true"></span>
+          } @else if (fieldChecks().allowed_domains.status === 'ok') {
+            <span class="confirm-icon confirm-icon--ok" aria-hidden="true">✓</span>
+          } @else if (
+            fieldChecks().allowed_domains.status === 'conflict' ||
+            fieldChecks().allowed_domains.status === 'error'
+          ) {
+            <span class="confirm-icon confirm-icon--fail" aria-hidden="true">✕</span>
+          }
+        </span>
+      </div>
+    </dl>
+
+    <div class="actions">
+      <button
+        type="button"
+        class="btn btn--ghost"
+        (click)="cancelConfirm()"
+        [disabled]="submitting()"
+      >
+        Go back
+      </button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        (click)="confirmSave()"
+        [disabled]="!canConfirm()"
+      >
+        @if (submitting()) {
+          Saving…
+        } @else {
+          {{ isEdit() ? 'Confirm &amp; save' : 'Confirm &amp; create' }}
+        }
+      </button>
+    </div>
+  </div>
+}

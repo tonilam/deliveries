@@ -13,6 +13,7 @@ import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { User, UserRole } from '../../../core/auth/user.model';
+import { Company } from '../../../core/company/company.model';
 
 type CreateMode = 'password' | 'invite';
 
@@ -33,12 +34,17 @@ export class AdminCreateUser implements OnInit {
   protected readonly mode = signal<CreateMode>('password');
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
+  protected readonly companies = signal<Company[]>([]);
+  protected readonly companiesLoading = signal(false);
+  protected readonly companyLocked = signal(false);
   protected readonly isPasswordMode = computed(() => this.mode() === 'password');
+  protected readonly isCustomerRole = signal(true);
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(255)]],
     email: ['', [Validators.required, Validators.email]],
     role: this.fb.nonNullable.control<UserRole>('customer', [Validators.required]),
+    company_id: this.fb.control<number | null>(null),
     password: ['', [Validators.required, Validators.minLength(8)]],
     password_confirmation: ['', [Validators.required]],
     must_change_password: [true],
@@ -49,6 +55,23 @@ export class AdminCreateUser implements OnInit {
     if (role === 'admin' || role === 'customer') {
       this.form.controls.role.setValue(role);
     }
+
+    const companyIdRaw = this.route.snapshot.queryParamMap.get('company_id');
+    const companyId = companyIdRaw ? Number(companyIdRaw) : null;
+    if (companyId !== null && Number.isFinite(companyId)) {
+      this.form.controls.company_id.setValue(companyId);
+      this.form.controls.company_id.disable({ emitEvent: false });
+      this.form.controls.role.setValue('customer');
+      this.form.controls.role.disable({ emitEvent: false });
+      this.companyLocked.set(true);
+    }
+
+    this.syncCompanyValidators(this.form.controls.role.value);
+    this.form.controls.role.valueChanges.subscribe((nextRole) => {
+      this.syncCompanyValidators(nextRole);
+    });
+
+    this.loadCompanies();
   }
 
   protected setMode(mode: CreateMode): void {
@@ -91,6 +114,7 @@ export class AdminCreateUser implements OnInit {
     this.error.set(null);
 
     const raw = this.form.getRawValue();
+    const companyId = raw.role === 'customer' ? raw.company_id : null;
 
     if (this.mode() === 'password') {
       this.auth
@@ -101,6 +125,7 @@ export class AdminCreateUser implements OnInit {
               name: raw.name,
               email: raw.email,
               role: raw.role,
+              company_id: companyId,
               password: raw.password,
               password_confirmation: raw.password_confirmation,
               must_change_password: raw.must_change_password,
@@ -128,6 +153,7 @@ export class AdminCreateUser implements OnInit {
             name: raw.name,
             email: raw.email,
             role: raw.role,
+            company_id: companyId,
           }),
         ),
       )
@@ -145,12 +171,41 @@ export class AdminCreateUser implements OnInit {
       });
   }
 
+  private syncCompanyValidators(role: UserRole): void {
+    this.isCustomerRole.set(role === 'customer');
+    const company = this.form.controls.company_id;
+    if (role === 'customer') {
+      company.setValidators([Validators.required]);
+    } else {
+      company.clearValidators();
+      if (!this.companyLocked()) {
+        company.setValue(null);
+      }
+    }
+    company.updateValueAndValidity();
+  }
+
+  private loadCompanies(): void {
+    this.companiesLoading.set(true);
+    this.http.get<{ companies: Company[] }>('/api/admin/companies').subscribe({
+      next: ({ companies }) => {
+        this.companies.set(companies);
+        this.companiesLoading.set(false);
+      },
+      error: () => {
+        this.companiesLoading.set(false);
+        this.error.set('Unable to load companies.');
+      },
+    });
+  }
+
   private firstError(err: {
     error?: { message?: string; errors?: Record<string, string[]> };
   }): string | undefined {
     const errors = err.error?.errors;
     return (
       errors?.['email']?.[0] ??
+      errors?.['company_id']?.[0] ??
       errors?.['password']?.[0] ??
       errors?.['name']?.[0] ??
       errors?.['role']?.[0] ??

@@ -20,6 +20,7 @@ class UserInvitation extends Model
         'name',
         'email',
         'role',
+        'company_id',
         'token',
         'invited_by',
         'expires_at',
@@ -54,5 +55,13 @@ class UserInvitation extends Model
     public function inviter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'invited_by');
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
     }
 }

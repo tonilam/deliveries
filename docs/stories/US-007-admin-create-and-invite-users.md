@@ -8,8 +8,10 @@ As an admin user, I want to create a password admin or customer account with a t
 - [x] Create user preselects role from the active list tab (**Admin users** → admin, **Customer users** → customer); the admin can still change it
 - [x] The create-user page and button remain available when the **User registration** feature flag is off (not hidden or blocked by that flag)
 - [x] On the create-user page, the admin chooses mode: **Password account** or **Invite**, and role: **Admin** or **Customer**
+- [x] When role is **Customer**, the admin must choose a **company**; when opened from Companies with `company_id` query, that company is preselected ([US-013](US-013-admin-company-management.md))
+- [x] Customer create/invite is rejected unless the email domain is on the chosen company’s allowed domains list (no admin override)
 - [x] **Password account**: admin submits name, email, and a temporary password (with confirmation); a control generates a random temporary password; an optional checkbox forces the user to change password on first login
-- [x] **Invite**: admin submits name and email; API stores an invitation with the chosen role and sends an email containing an invite link
+- [x] **Invite**: admin submits name and email; API stores an invitation with the chosen role (and company for customers) and sends an email containing an invite link
 - [x] Opening a valid invite link shows a register-style flow (email/password or Google/Apple SSO); completing it creates the user with the **admin-chosen role** (not always customer)
 - [x] Invite acceptance works even when **User registration** is disabled; public `POST /api/register` and unsolicited SSO first-time signup remain blocked per [US-006](US-006-admin-feature-toggles.md)
 - [x] Admin create/invite APIs succeed when **User registration** is disabled; only admins can create or invite; customers and guests are rejected

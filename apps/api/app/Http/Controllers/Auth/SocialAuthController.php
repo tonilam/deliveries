@@ -31,6 +31,12 @@ class SocialAuthController extends Controller
             $request->session()->forget('invitation_token');
         }
 
+        if ($request->filled('company_id')) {
+            $request->session()->put('registration_company_id', $request->integer('company_id'));
+        } else {
+            $request->session()->forget('registration_company_id');
+        }
+
         return Socialite::driver($provider)->redirect();
     }
 
@@ -40,10 +46,15 @@ class SocialAuthController extends Controller
 
         $frontend = rtrim((string) config('app.frontend_url'), '/');
         $invitationToken = $request->session()->pull('invitation_token');
+        $companyId = $request->session()->pull('registration_company_id');
+        $companyId = is_numeric($companyId) ? (int) $companyId : null;
+
+        $socialEmail = null;
 
         try {
             $socialUser = Socialite::driver($provider)->user();
-            $user = $this->socialAuth->findOrCreate($provider, $socialUser, $invitationToken);
+            $socialEmail = $socialUser->getEmail();
+            $user = $this->socialAuth->findOrCreate($provider, $socialUser, $invitationToken, $companyId);
 
             if (! $user->is_active) {
                 return redirect()->away($frontend.'/login?error=sso_failed');
@@ -55,9 +66,21 @@ class SocialAuthController extends Controller
             return redirect()->away($frontend.'/login?error=registration_disabled');
         } catch (ValidationException $e) {
             $message = collect($e->errors())->flatten()->first() ?? 'Invitation could not be completed.';
-            $target = is_string($invitationToken) && $invitationToken !== ''
-                ? $frontend.'/invite/'.$invitationToken.'?error='.urlencode((string) $message)
-                : $frontend.'/login?error=sso_failed';
+            $registrationError = array_key_exists('company_id', $e->errors())
+                || array_key_exists('email', $e->errors());
+
+            if (is_string($invitationToken) && $invitationToken !== '') {
+                $target = $frontend.'/invite/'.$invitationToken.'?error='.urlencode((string) $message);
+            } elseif ($registrationError && is_string($socialEmail) && $socialEmail !== '') {
+                $params = http_build_query([
+                    'email' => $socialEmail,
+                    'choose_company' => array_key_exists('company_id', $e->errors()) ? '1' : '0',
+                    'error' => (string) $message,
+                ]);
+                $target = $frontend.'/register?'.$params;
+            } else {
+                $target = $frontend.'/login?error=sso_failed';
+            }
 
             return redirect()->away($target);
         } catch (\Throwable) {

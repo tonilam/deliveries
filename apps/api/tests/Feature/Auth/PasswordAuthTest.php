@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -12,6 +13,8 @@ class PasswordAuthTest extends TestCase
 
     public function test_user_can_register_and_is_authenticated(): void
     {
+        $company = Company::factory()->withDomains(['example.com'])->create();
+
         $response = $this->asSpa()->postJson('/api/register', [
             'name' => 'Ada Lovelace',
             'email' => 'ada@example.com',
@@ -20,12 +23,14 @@ class PasswordAuthTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('user.email', 'ada@example.com');
+            ->assertJsonPath('user.email', 'ada@example.com')
+            ->assertJsonPath('user.company_id', $company->id);
 
         $this->assertAuthenticated();
         $this->assertDatabaseHas('users', [
             'email' => 'ada@example.com',
             'name' => 'Ada Lovelace',
+            'company_id' => $company->id,
         ]);
     }
 
