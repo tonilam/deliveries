@@ -76,8 +76,12 @@ export class AdminCountries implements OnInit {
           this.deleting.set(false);
           this.loadCountries();
         },
-        error: () => {
-          this.error.set('Unable to delete. Please try again.');
+        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+          this.error.set(
+            err.error?.errors?.['country']?.[0] ??
+              err.error?.message ??
+              'Unable to delete. Please try again.',
+          );
           this.deleting.set(false);
         },
       });

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Company;
 use App\Models\Country;
 use App\Models\CountryState;
 use App\Models\User;
@@ -93,6 +94,23 @@ class CountryStateManagementTest extends TestCase
 
         $this->assertDatabaseMissing('countries', ['id' => $countryId]);
         $this->assertDatabaseMissing('country_states', ['id' => $otherState->id]);
+    }
+
+    public function test_cannot_delete_country_that_has_companies(): void
+    {
+        $this->loginAsAdmin();
+
+        $country = Country::factory()->create([
+            'name' => 'Australia',
+            'code' => 'AU',
+        ]);
+        Company::factory()->create(['country_id' => $country->id]);
+
+        $this->asSpa()->deleteJson("/api/admin/countries/{$country->id}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['country']);
+
+        $this->assertDatabaseHas('countries', ['id' => $country->id]);
     }
 
     public function test_country_code_and_name_must_be_unique(): void

@@ -1,8 +1,15 @@
 import { HttpClient } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { forkJoin, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { AddressRow, AddressType } from './addresses';
@@ -13,21 +20,27 @@ interface StateOption {
 }
 
 @Component({
-  selector: 'app-customer-create-address',
+  selector: 'app-customer-address-form',
   imports: [ReactiveFormsModule, RouterLink],
-  templateUrl: './create-address.html',
-  styleUrls: ['../../../shared/portal-shell.scss', './create-address.scss'],
+  templateUrl: './address-form.html',
+  styleUrls: ['../../../shared/portal-shell.scss', './address-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class CustomerCreateAddress implements OnInit {
+export class CustomerAddressForm implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
 
   protected readonly error = signal<string | null>(null);
+  protected readonly loading = signal(false);
+  protected readonly loadFailed = signal(false);
   protected readonly submitting = signal(false);
   protected readonly stateOptions = signal<StateOption[]>([]);
+  protected readonly addressId = signal<number | null>(null);
+  protected readonly isEdit = computed(() => this.addressId() !== null);
+  protected readonly title = computed(() => (this.isEdit() ? 'Edit address' : 'Add address'));
 
   protected readonly form = this.fb.nonNullable.group({
     type: this.fb.nonNullable.control<AddressType>('collection', [Validators.required]),
@@ -40,17 +53,53 @@ export class CustomerCreateAddress implements OnInit {
 
   ngOnInit(): void {
     this.form.controls.state.disable({ emitEvent: false });
-    this.http.get<{ states: StateOption[] }>('/api/addresses/state-options').subscribe({
-      next: ({ states }) => {
-        this.stateOptions.set(states);
-        if (states.length === 0) {
+
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (idParam) {
+      const id = Number(idParam);
+      if (!Number.isInteger(id) || id < 1) {
+        this.error.set('Invalid address.');
+        this.loadFailed.set(true);
+        return;
+      }
+      this.addressId.set(id);
+      this.loading.set(true);
+    }
+
+    const addressId = this.addressId();
+    forkJoin({
+      states: this.http.get<{ states: StateOption[] }>('/api/addresses/state-options'),
+      address: addressId
+        ? this.http.get<{ address: AddressRow }>(`/api/addresses/${addressId}`)
+        : of(null),
+    }).subscribe({
+      next: ({ states, address }) => {
+        this.stateOptions.set(states.states);
+        if (states.states.length === 0) {
           this.error.set('No states are configured for your company country.');
-          return;
+        } else {
+          this.form.controls.state.enable({ emitEvent: false });
         }
-        this.form.controls.state.enable({ emitEvent: false });
+
+        if (address) {
+          this.form.patchValue({
+            type: address.address.type,
+            business_name: address.address.business_name,
+            address: address.address.address,
+            zone: address.address.zone,
+            state: address.address.state,
+            postcode: address.address.postcode,
+          });
+        }
+
+        this.loading.set(false);
       },
       error: () => {
-        this.error.set('Unable to load states for your company country.');
+        this.error.set(
+          addressId ? 'Unable to load address.' : 'Unable to load states for your company country.',
+        );
+        this.loadFailed.set(addressId !== null);
+        this.loading.set(false);
       },
     });
   }
@@ -70,10 +119,15 @@ export class CustomerCreateAddress implements OnInit {
     this.error.set(null);
 
     const payload = this.form.getRawValue();
+    const addressId = this.addressId();
+    const request$ =
+      addressId === null
+        ? this.http.post<{ address: AddressRow }>('/api/addresses', payload)
+        : this.http.put<{ address: AddressRow }>(`/api/addresses/${addressId}`, payload);
 
     this.auth
       .ensureCsrf()
-      .pipe(switchMap(() => this.http.post<{ address: AddressRow }>('/api/addresses', payload)))
+      .pipe(switchMap(() => request$))
       .subscribe({
         next: () => {
           this.submitting.set(false);

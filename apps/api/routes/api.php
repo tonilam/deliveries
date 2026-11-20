@@ -35,8 +35,11 @@ use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\UpdatePasswordController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CreateAddressController;
+use App\Http\Controllers\DeleteAddressController;
 use App\Http\Controllers\FeatureFlagsController;
 use App\Http\Controllers\RegistrationCompaniesController;
+use App\Http\Controllers\ShowAddressController;
+use App\Http\Controllers\UpdateAddressController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -79,6 +82,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/addresses', AddressListController::class);
     Route::get('/addresses/state-options', AddressStateOptionsController::class);
     Route::post('/addresses', CreateAddressController::class);
+    Route::get('/addresses/{address}', ShowAddressController::class);
+    Route::put('/addresses/{address}', UpdateAddressController::class);
+    Route::delete('/addresses/{address}', DeleteAddressController::class);
 });
 
 Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->prefix('admin')->group(function () {

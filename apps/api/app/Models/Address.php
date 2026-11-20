@@ -32,4 +32,20 @@ class Address extends Model
     {
         return $this->belongsTo(Company::class);
     }
+
+    /**
+     * @return array{id: int, type: string, business_name: string, address: string, zone: string, state: string, postcode: string}
+     */
+    public function toCustomerPayload(): array
+    {
+        return [
+            'id' => $this->id,
+            'type' => $this->type->value,
+            'business_name' => $this->business_name,
+            'address' => $this->address,
+            'zone' => $this->zone,
+            'state' => $this->state,
+            'postcode' => $this->postcode,
+        ];
+    }
 }

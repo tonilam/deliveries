@@ -26,6 +26,15 @@ class AddressManagementTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_guest_cannot_show_update_or_delete_address(): void
+    {
+        $address = Address::factory()->create();
+
+        $this->asSpa()->getJson("/api/addresses/{$address->id}")->assertUnauthorized();
+        $this->asSpa()->putJson("/api/addresses/{$address->id}", $this->validPayload())->assertUnauthorized();
+        $this->asSpa()->deleteJson("/api/addresses/{$address->id}")->assertUnauthorized();
+    }
+
     public function test_admin_cannot_list_or_create_addresses(): void
     {
         $this->loginAs(User::factory()->admin()->create([
@@ -35,6 +44,19 @@ class AddressManagementTest extends TestCase
 
         $this->asSpa()->getJson('/api/addresses')->assertForbidden();
         $this->asSpa()->postJson('/api/addresses', $this->validPayload())->assertForbidden();
+    }
+
+    public function test_admin_cannot_show_update_or_delete_addresses(): void
+    {
+        $address = Address::factory()->create();
+        $this->loginAs(User::factory()->admin()->create([
+            'email' => 'admin@example.com',
+            'password' => 'Password1!',
+        ]));
+
+        $this->asSpa()->getJson("/api/addresses/{$address->id}")->assertForbidden();
+        $this->asSpa()->putJson("/api/addresses/{$address->id}", $this->validPayload())->assertForbidden();
+        $this->asSpa()->deleteJson("/api/addresses/{$address->id}")->assertForbidden();
     }
 
     public function test_customer_without_company_cannot_list_or_create_addresses(): void
@@ -47,6 +69,20 @@ class AddressManagementTest extends TestCase
 
         $this->asSpa()->getJson('/api/addresses')->assertForbidden();
         $this->asSpa()->postJson('/api/addresses', $this->validPayload())->assertForbidden();
+    }
+
+    public function test_customer_without_company_cannot_show_update_or_delete_addresses(): void
+    {
+        $address = Address::factory()->create();
+        $this->loginAs(User::factory()->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+            'company_id' => null,
+        ]));
+
+        $this->asSpa()->getJson("/api/addresses/{$address->id}")->assertForbidden();
+        $this->asSpa()->putJson("/api/addresses/{$address->id}", $this->validPayload())->assertForbidden();
+        $this->asSpa()->deleteJson("/api/addresses/{$address->id}")->assertForbidden();
     }
 
     public function test_customer_lists_only_company_addresses(): void
@@ -110,6 +146,153 @@ class AddressManagementTest extends TestCase
             'business_name' => 'Acme Logistics',
             'postcode' => '3000',
         ]);
+    }
+
+    public function test_customer_can_show_company_address(): void
+    {
+        $company = $this->companyWithStates();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $address = Address::factory()->for($company)->collection()->create([
+            'business_name' => 'Mine Pty Ltd',
+            'address' => '1 Main St',
+            'zone' => 'Sydney',
+            'state' => 'NSW',
+            'postcode' => '2000',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->getJson("/api/addresses/{$address->id}")
+            ->assertOk()
+            ->assertJsonPath('address.id', $address->id)
+            ->assertJsonPath('address.type', 'collection')
+            ->assertJsonPath('address.business_name', 'Mine Pty Ltd')
+            ->assertJsonPath('address.address', '1 Main St')
+            ->assertJsonPath('address.zone', 'Sydney')
+            ->assertJsonPath('address.state', 'NSW')
+            ->assertJsonPath('address.postcode', '2000');
+    }
+
+    public function test_customer_cannot_show_another_company_address(): void
+    {
+        $company = Company::factory()->create();
+        $other = Address::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->getJson("/api/addresses/{$other->id}")->assertNotFound();
+    }
+
+    public function test_customer_can_update_company_address(): void
+    {
+        $company = $this->companyWithStates();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $address = Address::factory()->for($company)->collection()->create([
+            'business_name' => 'Old Name',
+            'address' => '1 Main St',
+            'zone' => 'Sydney',
+            'state' => 'NSW',
+            'postcode' => '2000',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->putJson("/api/addresses/{$address->id}", [
+            ...$this->validPayload(),
+            'type' => AddressType::Delivery->value,
+        ])->assertOk()
+            ->assertJsonPath('address.id', $address->id)
+            ->assertJsonPath('address.type', 'delivery')
+            ->assertJsonPath('address.business_name', 'Acme Logistics')
+            ->assertJsonPath('address.address', '42 Warehouse Rd')
+            ->assertJsonPath('address.zone', 'Melbourne')
+            ->assertJsonPath('address.state', 'VIC')
+            ->assertJsonPath('address.postcode', '3000');
+
+        $this->assertDatabaseHas('addresses', [
+            'id' => $address->id,
+            'company_id' => $company->id,
+            'type' => 'delivery',
+            'business_name' => 'Acme Logistics',
+            'postcode' => '3000',
+        ]);
+    }
+
+    public function test_update_address_rejects_state_outside_company_country(): void
+    {
+        $company = $this->companyWithStates();
+        $otherCountry = Country::factory()->create();
+        CountryState::factory()->create([
+            'country_id' => $otherCountry->id,
+            'code' => 'AUK',
+            'name' => 'Auckland',
+        ]);
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $address = Address::factory()->for($company)->create([
+            'state' => 'NSW',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->putJson("/api/addresses/{$address->id}", [
+            ...$this->validPayload(),
+            'state' => 'AUK',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['state']);
+    }
+
+    public function test_customer_cannot_update_another_company_address(): void
+    {
+        $company = $this->companyWithStates();
+        $other = Address::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->putJson("/api/addresses/{$other->id}", $this->validPayload())->assertNotFound();
+        $this->assertDatabaseHas('addresses', [
+            'id' => $other->id,
+            'business_name' => $other->business_name,
+        ]);
+    }
+
+    public function test_customer_can_delete_company_address(): void
+    {
+        $company = Company::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $address = Address::factory()->for($company)->create();
+        $this->loginAs($customer);
+
+        $this->asSpa()->deleteJson("/api/addresses/{$address->id}")->assertNoContent();
+        $this->assertDatabaseMissing('addresses', ['id' => $address->id]);
+    }
+
+    public function test_customer_cannot_delete_another_company_address(): void
+    {
+        $company = Company::factory()->create();
+        $other = Address::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->deleteJson("/api/addresses/{$other->id}")->assertNotFound();
+        $this->assertDatabaseHas('addresses', ['id' => $other->id]);
     }
 
     public function test_create_address_rejects_state_outside_company_country(): void

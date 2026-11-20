@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
@@ -19,6 +19,12 @@ import {
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
+import { AuthService } from '../../../core/auth/auth.service';
+import {
+  AddressActionItem,
+  AddressActionsCell,
+  AddressActionsCellRow,
+} from './address-actions-cell';
 import { AddressTypeFilter } from './address-type-filter';
 import { AddressTypeFloatingFilter } from './address-type-floating-filter';
 
@@ -120,6 +126,8 @@ function postcodeAsNumber(postcode: string | undefined | null): number | null {
 })
 export class CustomerAddresses implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
   private filterModel: FilterModel = {};
   private sortField: SortableField = DEFAULT_SORT;
@@ -128,8 +136,10 @@ export class CustomerAddresses implements OnInit {
   protected readonly theme = themeQuartz;
   protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   protected readonly loading = signal(false);
+  protected readonly deleting = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly addresses = signal<AddressRow[]>([]);
+  protected readonly pendingDelete = signal<AddressActionsCellRow | null>(null);
   protected readonly page = signal(1);
   protected readonly pageSize = signal<PageSize>(25);
   protected readonly meta = signal<AddressesListMeta | null>(null);
@@ -194,6 +204,19 @@ export class CustomerAddresses implements OnInit {
       filter: 'agNumberColumnFilter',
       filterParams: serverSideNumberFilterParams,
       filterValueGetter: (params) => postcodeAsNumber(params.data?.postcode),
+    },
+    {
+      headerName: 'Actions',
+      flex: 0.8,
+      minWidth: 120,
+      sortable: false,
+      filter: false,
+      floatingFilter: false,
+      cellClass: 'addresses-grid__actions-cell',
+      cellRenderer: AddressActionsCell,
+      cellRendererParams: {
+        actionsFor: (data: AddressActionsCellRow) => this.actionsFor(data),
+      },
     },
   ];
 
@@ -283,6 +306,51 @@ export class CustomerAddresses implements OnInit {
     this.loadAddresses();
   }
 
+  protected requestDelete(row: AddressActionsCellRow): void {
+    if (this.deleting()) {
+      return;
+    }
+    this.error.set(null);
+    this.pendingDelete.set(row);
+  }
+
+  protected cancelDelete(): void {
+    if (this.deleting()) {
+      return;
+    }
+    this.pendingDelete.set(null);
+  }
+
+  protected confirmDelete(): void {
+    const pending = this.pendingDelete();
+    if (!pending || this.deleting()) {
+      return;
+    }
+
+    this.deleting.set(true);
+    this.error.set(null);
+
+    this.auth
+      .ensureCsrf()
+      .pipe(switchMap(() => this.http.delete(`/api/addresses/${pending.id}`)))
+      .subscribe({
+        next: () => {
+          const remaining = this.addresses().filter((address) => address.id !== pending.id);
+          this.addresses.set(remaining);
+          this.pendingDelete.set(null);
+          this.deleting.set(false);
+          if (remaining.length === 0 && this.page() > 1) {
+            this.page.set(this.page() - 1);
+          }
+          this.loadAddresses();
+        },
+        error: () => {
+          this.error.set('Unable to delete address. Please try again.');
+          this.deleting.set(false);
+        },
+      });
+  }
+
   protected goToPage(nextPage: number): void {
     const lastPage = this.meta()?.last_page ?? 1;
     if (nextPage < 1 || nextPage > lastPage || nextPage === this.page()) {
@@ -290,6 +358,25 @@ export class CustomerAddresses implements OnInit {
     }
     this.page.set(nextPage);
     this.loadAddresses();
+  }
+
+  private actionsFor(data: AddressActionsCellRow): AddressActionItem[] {
+    return [
+      {
+        id: 'edit',
+        label: 'Edit',
+        run: () => {
+          void this.router.navigateByUrl(`/app/addresses/${data.id}/edit`);
+        },
+      },
+      {
+        id: 'delete',
+        label: 'Delete',
+        run: () => {
+          this.requestDelete(data);
+        },
+      },
+    ];
   }
 
   private buildParams(): HttpParams {

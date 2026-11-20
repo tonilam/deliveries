@@ -63,7 +63,12 @@ export const routes: Routes = [
       {
         path: 'addresses/create',
         loadComponent: () =>
-          import('./pages/customer/addresses/create-address').then((m) => m.CustomerCreateAddress),
+          import('./pages/customer/addresses/address-form').then((m) => m.CustomerAddressForm),
+      },
+      {
+        path: 'addresses/:id/edit',
+        loadComponent: () =>
+          import('./pages/customer/addresses/address-form').then((m) => m.CustomerAddressForm),
       },
       {
         path: 'profile',

@@ -49,7 +49,7 @@ class StoreAddressRequest extends FormRequest
             if ($this->companyCountryId() === null) {
                 $validator->errors()->add(
                     'state',
-                    'Your company must have a country before addresses can be created.',
+                    'Your company must have a country before addresses can be saved.',
                 );
             }
         });

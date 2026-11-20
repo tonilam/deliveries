@@ -70,4 +70,30 @@
       </div>
     </div>
   }
+
+  @if (pendingDelete(); as pending) {
+    <div class="modal-backdrop" (click)="cancelDelete()"></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="address-delete-title">
+      <h2 id="address-delete-title">Confirm delete</h2>
+      <p>Delete address “{{ pending.business_name }}”?</p>
+      <div class="modal__actions">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="deleting()"
+          (click)="cancelDelete()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn--primary"
+          [disabled]="deleting()"
+          (click)="confirmDelete()"
+        >
+          {{ deleting() ? 'Deleting…' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+  }
 </section>

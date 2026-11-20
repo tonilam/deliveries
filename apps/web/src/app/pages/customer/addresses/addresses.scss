@@ -37,6 +37,18 @@
   width: 100%;
 }
 
+:host ::ng-deep .addresses-grid__actions-cell {
+  overflow: visible;
+}
+
+:host ::ng-deep .ag-row {
+  z-index: 0;
+}
+
+:host ::ng-deep .ag-row:has(.grid-actions__menu) {
+  z-index: 2;
+}
+
 :host ::ng-deep .addresses-grid .ag-floating-filter-body,
 :host ::ng-deep .addresses-grid .ag-floating-filter-full-body {
   width: 100%;
@@ -102,4 +114,42 @@
 .btn--ghost:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(15 23 42 / 45%);
+  z-index: 40;
+}
+
+.modal {
+  position: fixed;
+  z-index: 50;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 1.25rem 1.35rem;
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 16px 40px rgb(15 23 42 / 18%);
+}
+
+.modal h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--ui-color-navy);
+}
+
+.modal p {
+  margin: 0 0 1.25rem;
+  color: #334155;
+}
+
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
 }

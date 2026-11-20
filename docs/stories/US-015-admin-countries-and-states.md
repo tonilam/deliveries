@@ -12,7 +12,7 @@ As an admin user, I want to manage countries and their states/regions from Syste
 - [x] Admin-only APIs (`/api/admin/countries` and nested state routes); customers and guests receive 401/403
 - [x] `AustraliaCountrySeeder` seeds Australia (`AU`) and its 8 states/territories
 - [x] `NewZealandCountrySeeder` seeds New Zealand (`NZ`) and its 16 regions (separate seeder class)
-- [x] Companies reference a country ([US-011](US-011-company-entity.md)); customer address create uses that country’s states as a dropdown ([US-010](US-010-customer-address-management.md))
+- [x] Companies reference a country ([US-011](US-011-company-entity.md)); customer address create and edit use that country’s states as a dropdown ([US-010](US-010-customer-address-management.md))
 
 ## Notes
 - Extends System settings placeholder from [US-002](US-002-admin-portal-and-roles.md); Features stay on `/admin/features` ([US-006](US-006-admin-feature-toggles.md)).

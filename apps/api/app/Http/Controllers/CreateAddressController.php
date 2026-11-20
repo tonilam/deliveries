@@ -22,15 +22,7 @@ class CreateAddressController extends Controller
         ]);
 
         return response()->json([
-            'address' => $address->only([
-                'id',
-                'type',
-                'business_name',
-                'address',
-                'zone',
-                'state',
-                'postcode',
-            ]),
+            'address' => $address->toCustomerPayload(),
         ], 201);
     }
 }
