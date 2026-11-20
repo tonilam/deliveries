@@ -511,6 +511,52 @@ class AddressManagementTest extends TestCase
             ->assertJsonValidationErrors(['filter.business_name.type']);
     }
 
+    public function test_address_list_supports_search(): void
+    {
+        $company = Company::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+
+        Address::factory()->for($company)->collection()->create([
+            'business_name' => 'Alpha Yard',
+            'address' => '1 Alpha St',
+            'zone' => 'Sydney',
+            'state' => 'NSW',
+            'postcode' => '2000',
+        ]);
+        Address::factory()->for($company)->delivery()->create([
+            'business_name' => 'Beta Depot',
+            'address' => '2 Beta Rd',
+            'zone' => 'Melbourne',
+            'state' => 'VIC',
+            'postcode' => '3000',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->getJson('/api/addresses?search=Alpha')
+            ->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.business_name', 'Alpha Yard')
+            ->assertJsonPath('meta.total', 1);
+
+        $this->asSpa()->getJson('/api/addresses?search=Beta%20Rd')
+            ->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.business_name', 'Beta Depot');
+
+        $this->asSpa()->getJson('/api/addresses?search=Delivery')
+            ->assertOk()
+            ->assertJsonCount(1, 'addresses')
+            ->assertJsonPath('addresses.0.type', 'delivery');
+
+        $this->asSpa()->getJson('/api/addresses?search=')
+            ->assertOk()
+            ->assertJsonCount(2, 'addresses')
+            ->assertJsonPath('meta.total', 2);
+    }
+
     public function test_address_list_supports_server_side_sorting(): void
     {
         $company = Company::factory()->create();

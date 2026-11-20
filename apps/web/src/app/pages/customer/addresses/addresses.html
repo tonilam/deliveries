@@ -11,18 +11,37 @@
     <p class="addresses-error" role="alert">{{ error() }}</p>
   }
 
-  <ag-grid-angular
-    class="addresses-grid"
-    [theme]="theme"
-    [rowData]="addresses()"
-    [columnDefs]="columnDefs"
-    [defaultColDef]="defaultColDef"
-    [loading]="loading()"
-    [suppressMultiSort]="true"
-    domLayout="autoHeight"
-    (filterChanged)="onFilterChanged($event)"
-    (sortChanged)="onSortChanged($event)"
-  />
+  @if (compact()) {
+    <app-data-list
+      [loading]="loading()"
+      [rows]="addresses()"
+      [titleFor]="addressListTitle"
+      [columns]="listColumns"
+      [actionsFor]="actionsForList"
+      [searchValue]="searchQuery()"
+      searchPlaceholder="Search addresses…"
+      [sortOptions]="sortOptions"
+      [sortField]="sortField"
+      [sortDirection]="sortDirection"
+      (searchChange)="onListSearch($event)"
+      (sortFieldChange)="onListSortField($event)"
+      (sortDirectionChange)="onListSortDirection($event)"
+    />
+  } @else {
+    <ag-grid-angular
+      class="addresses-grid"
+      [theme]="theme"
+      [rowData]="addresses()"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [loading]="loading()"
+      [suppressMultiSort]="true"
+      domLayout="autoHeight"
+      (gridReady)="onGridReady($event)"
+      (filterChanged)="onFilterChanged($event)"
+      (sortChanged)="onSortChanged($event)"
+    />
+  }
 
   @if (meta(); as pagination) {
     <div class="pagination" aria-label="Addresses pagination">

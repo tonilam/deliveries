@@ -1,0 +1,74 @@
+<div class="data-list">
+  <div class="data-list__toolbar">
+    <label class="data-list__search">
+      <span class="visually-hidden">Search</span>
+      <input
+        type="search"
+        class="data-list__search-input"
+        [value]="searchValue()"
+        [placeholder]="searchPlaceholder()"
+        [disabled]="loading()"
+        (input)="onSearchInput($event)"
+        autocomplete="off"
+      />
+    </label>
+
+    <div class="data-list__sort">
+      <label class="data-list__sort-field">
+        <span class="data-list__sort-label">Sort by</span>
+        <select [disabled]="loading()" [value]="sortField()" (change)="onSortFieldSelect($event)">
+          @for (option of sortOptions(); track option.field) {
+            <option [value]="option.field">{{ option.label }}</option>
+          }
+        </select>
+      </label>
+      <button
+        type="button"
+        class="btn btn--ghost data-list__sort-dir"
+        [disabled]="loading()"
+        [attr.aria-label]="sortDirection() === 'asc' ? 'Sort ascending' : 'Sort descending'"
+        (click)="toggleSortDirection()"
+      >
+        {{ sortDirection() === 'asc' ? 'A→Z' : 'Z→A' }}
+      </button>
+    </div>
+  </div>
+
+  @if (loading() && rows().length === 0) {
+    <p class="data-list__status">Loading…</p>
+  } @else if (rows().length === 0) {
+    <p class="data-list__status">No results.</p>
+  } @else {
+    <ul class="data-list__items">
+      @for (row of rows(); track trackRow(row)) {
+        <li class="data-list__item">
+          <p class="data-list__title">{{ titleFor()(row) }}</p>
+          <dl class="data-list__fields">
+            @for (column of columns(); track column.field) {
+              <div class="data-list__field">
+                <dt>{{ column.label }}</dt>
+                <dd>{{ valueFor(column, row) }}</dd>
+              </div>
+            }
+          </dl>
+          @if (visibleActions(row); as rowActions) {
+            <div class="data-list__actions">
+              @for (action of rowActions; track action.id) {
+                <button
+                  type="button"
+                  class="btn"
+                  [class.btn--primary]="action.variant === 'primary'"
+                  [class.btn--ghost]="action.variant === 'ghost' || !action.variant"
+                  [class.btn--danger]="action.variant === 'danger'"
+                  (click)="runAction(action, row)"
+                >
+                  {{ action.label }}
+                </button>
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

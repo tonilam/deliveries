@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
@@ -8,6 +8,8 @@ import {
   ColDef,
   FilterChangedEvent,
   FilterModel,
+  GridApi,
+  GridReadyEvent,
   INumberFilterParams,
   ITextFilterParams,
   ModuleRegistry,
@@ -19,6 +21,13 @@ import {
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
+import { createCompactViewportSignal } from '../../../shared/compact-viewport';
+import { DataListComponent } from '../../../shared/data-list/data-list';
+import {
+  DataListAction,
+  DataListColumn,
+  DataListSortOption,
+} from '../../../shared/data-list/data-list.types';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
   AddressActionItem,
@@ -119,7 +128,14 @@ function postcodeAsNumber(postcode: string | undefined | null): number | null {
 
 @Component({
   selector: 'app-customer-addresses',
-  imports: [AgGridAngular, FormsModule, RouterLink, AddressTypeFilter, AddressTypeFloatingFilter],
+  imports: [
+    AgGridAngular,
+    DataListComponent,
+    FormsModule,
+    RouterLink,
+    AddressTypeFilter,
+    AddressTypeFloatingFilter,
+  ],
   templateUrl: './addresses.html',
   styleUrls: ['../../../shared/portal-shell.scss', './addresses.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -129,9 +145,60 @@ export class CustomerAddresses implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
+  private gridApi: GridApi<AddressRow> | null = null;
+  private suppressGridEvents = false;
+  private lastCompactView: boolean | null = null;
   private filterModel: FilterModel = {};
-  private sortField: SortableField = DEFAULT_SORT;
-  private sortDirection: SortDirection = DEFAULT_DIRECTION;
+
+  constructor() {
+    effect(() => {
+      const isCompact = this.compact();
+      if (this.lastCompactView === null) {
+        this.lastCompactView = isCompact;
+        return;
+      }
+      if (this.lastCompactView === isCompact) {
+        return;
+      }
+      this.lastCompactView = isCompact;
+      if (isCompact) {
+        this.filterModel = {};
+        this.gridApi = null;
+      } else {
+        this.searchQuery.set('');
+      }
+      this.page.set(1);
+      this.loadAddresses();
+    });
+  }
+
+  protected readonly compact = createCompactViewportSignal();
+  protected sortField: SortableField = DEFAULT_SORT;
+  protected sortDirection: SortDirection = DEFAULT_DIRECTION;
+  protected readonly searchQuery = signal('');
+
+  protected readonly addressListTitle = (row: AddressRow): string => row.business_name;
+
+  protected readonly listColumns: DataListColumn<AddressRow>[] = [
+    {
+      field: 'type',
+      label: 'Type',
+      valueFor: (row) => typeLabel(row.type),
+    },
+    { field: 'address', label: 'Address' },
+    { field: 'zone', label: 'Zone' },
+    { field: 'state', label: 'State' },
+    { field: 'postcode', label: 'Postcode' },
+  ];
+
+  protected readonly sortOptions: DataListSortOption[] = [
+    { field: 'type', label: 'Type' },
+    { field: 'business_name', label: 'Business name' },
+    { field: 'address', label: 'Address' },
+    { field: 'zone', label: 'Zone' },
+    { field: 'state', label: 'State' },
+    { field: 'postcode', label: 'Postcode' },
+  ];
 
   protected readonly theme = themeQuartz;
   protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
@@ -268,15 +335,25 @@ export class CustomerAddresses implements OnInit {
     this.loadAddresses();
   }
 
+  protected onGridReady(event: GridReadyEvent<AddressRow>): void {
+    this.gridApi = event.api;
+    this.syncGridUiFromState();
+  }
+
   protected onFilterChanged(event: FilterChangedEvent<AddressRow>): void {
-    queueMicrotask(() => {
-      this.filterModel = event.api.getFilterModel() ?? {};
-      this.page.set(1);
-      this.loadAddresses();
-    });
+    if (this.suppressGridEvents || this.compact()) {
+      return;
+    }
+    this.filterModel = event.api.getFilterModel() ?? {};
+    this.page.set(1);
+    this.loadAddresses();
   }
 
   protected onSortChanged(event: SortChangedEvent<AddressRow>): void {
+    if (this.suppressGridEvents) {
+      return;
+    }
+
     const sorted = event.api
       .getColumnState()
       .find((column) => column.sort === 'asc' || column.sort === 'desc');
@@ -295,6 +372,54 @@ export class CustomerAddresses implements OnInit {
     this.page.set(1);
     this.loadAddresses();
   }
+
+  protected onListSearch(value: string): void {
+    if (value === this.searchQuery()) {
+      return;
+    }
+    this.searchQuery.set(value);
+    this.page.set(1);
+    this.loadAddresses();
+  }
+
+  protected onListSortField(field: string): void {
+    if (!this.isSortableField(field) || field === this.sortField) {
+      return;
+    }
+    this.sortField = field;
+    this.page.set(1);
+    this.loadAddresses();
+  }
+
+  protected onListSortDirection(direction: SortDirection): void {
+    if (direction === this.sortDirection) {
+      return;
+    }
+    this.sortDirection = direction;
+    this.page.set(1);
+    this.loadAddresses();
+  }
+
+  protected actionsForList = (data: AddressRow): DataListAction<AddressRow>[] => {
+    return [
+      {
+        id: 'edit',
+        label: 'Edit',
+        variant: 'primary',
+        run: (row) => {
+          void this.router.navigateByUrl(`/app/addresses/${row.id}/edit`);
+        },
+      },
+      {
+        id: 'delete',
+        label: 'Delete',
+        variant: 'danger',
+        run: (row) => {
+          this.requestDelete(row);
+        },
+      },
+    ];
+  };
 
   protected onPageSizeChange(value: number): void {
     const next = value as PageSize;
@@ -385,6 +510,15 @@ export class CustomerAddresses implements OnInit {
       .set('per_page', String(this.pageSize()))
       .set('sort', this.sortField)
       .set('direction', this.sortDirection);
+
+    if (this.compact()) {
+      const search = this.searchQuery().trim();
+      if (search !== '') {
+        params = params.set('search', search);
+      }
+
+      return params;
+    }
 
     for (const field of FILTERABLE_FIELDS) {
       const model = this.filterModel[field];
@@ -501,6 +635,22 @@ export class CustomerAddresses implements OnInit {
 
   private isSortableField(field: string): field is SortableField {
     return (FILTERABLE_FIELDS as readonly string[]).includes(field);
+  }
+
+  private syncGridUiFromState(): void {
+    if (!this.gridApi) {
+      return;
+    }
+
+    this.suppressGridEvents = true;
+    this.gridApi.setFilterModel(Object.keys(this.filterModel).length > 0 ? this.filterModel : null);
+    this.gridApi.applyColumnState({
+      defaultState: { sort: null },
+      state: [{ colId: this.sortField, sort: this.sortDirection }],
+    });
+    queueMicrotask(() => {
+      this.suppressGridEvents = false;
+    });
   }
 
   private loadAddresses(): void {

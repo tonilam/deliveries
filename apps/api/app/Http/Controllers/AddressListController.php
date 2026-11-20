@@ -16,6 +16,7 @@ class AddressListController extends Controller
 
         $query = Address::query()->where('company_id', $user->company_id);
         $this->applyFilters($query, $request->filters());
+        $this->applySearch($query, $request->search());
         $this->applySort($query, $request->sort(), $request->direction());
 
         $perPage = $request->perPage();
@@ -38,6 +39,31 @@ class AddressListController extends Controller
                 'to' => $paginator->lastItem(),
             ],
         ]);
+    }
+
+    /**
+     * Free-text search across address list columns (compact/mobile list).
+     *
+     * @param  Builder<Address>  $query
+     */
+    private function applySearch(Builder $query, ?string $search): void
+    {
+        if ($search === null) {
+            return;
+        }
+
+        $like = '%'.$this->escapeLike($search).'%';
+        $displayExpr = "CASE type WHEN 'collection' THEN 'Collection' WHEN 'delivery' THEN 'Delivery' ELSE '' END";
+
+        $query->where(function (Builder $inner) use ($like, $displayExpr): void {
+            $inner->where('business_name', 'like', $like)
+                ->orWhere('address', 'like', $like)
+                ->orWhere('zone', 'like', $like)
+                ->orWhere('state', 'like', $like)
+                ->orWhere('postcode', 'like', $like)
+                ->orWhere('type', 'like', $like)
+                ->orWhereRaw("{$displayExpr} LIKE ?", [$like]);
+        });
     }
 
     /**

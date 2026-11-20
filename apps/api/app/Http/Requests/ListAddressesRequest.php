@@ -74,6 +74,7 @@ class ListAddressesRequest extends FormRequest
             'per_page' => ['sometimes', 'integer', Rule::in(self::ALLOWED_PER_PAGE)],
             'sort' => ['sometimes', 'string', Rule::in(self::SORTABLE_COLUMNS)],
             'direction' => ['sometimes', 'string', Rule::in(self::SORT_DIRECTIONS)],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'filter' => ['sometimes', 'array'],
         ];
 
@@ -110,6 +111,17 @@ class ListAddressesRequest extends FormRequest
         $direction = $this->validated('direction', self::DEFAULT_DIRECTION);
 
         return is_string($direction) ? $direction : self::DEFAULT_DIRECTION;
+    }
+
+    public function search(): ?string
+    {
+        $search = $this->validated('search');
+        if (! is_string($search)) {
+            return null;
+        }
+        $trimmed = trim($search);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 
     /**
