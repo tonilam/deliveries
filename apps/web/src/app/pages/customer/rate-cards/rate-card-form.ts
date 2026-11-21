@@ -14,7 +14,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import {
+  RadioCardGroupComponent,
+  RadioCardOption,
+} from '../../../shared/radio-card-group/radio-card-group';
 import { RateCardUserType } from './rate-cards';
+
+const USER_TYPE_OPTIONS: RadioCardOption[] = [
+  { value: 'customer', label: 'Customer' },
+  { value: 'provider', label: 'Provider' },
+];
 
 interface ZoneOption {
   id: number;
@@ -67,7 +76,7 @@ const ZONE_SUGGESTION_LIMIT = 200;
 
 @Component({
   selector: 'app-customer-rate-card-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent],
   templateUrl: './rate-card-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './rate-card-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -104,6 +113,8 @@ export class CustomerRateCardForm implements OnInit {
   protected readonly openZonePicker = signal<ZonePickerTarget | null>(null);
   protected readonly zonePickerSuggestions = signal<ZoneOption[]>([]);
   protected readonly activeZoneSuggestionIndex = signal(-1);
+
+  protected readonly userTypeOptions = USER_TYPE_OPTIONS;
 
   protected readonly restrictionLabel = computed(() =>
     this.form.controls.user_type.value === 'provider' ? 'Providers' : 'Customers',

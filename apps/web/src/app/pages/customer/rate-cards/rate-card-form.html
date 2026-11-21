@@ -19,17 +19,11 @@
           <input type="text" formControlName="profile_name" autocomplete="off" />
         </label>
 
-        <fieldset class="type-fieldset">
-          <legend>User type</legend>
-          <label class="radio">
-            <input type="radio" formControlName="user_type" value="customer" />
-            Customer
-          </label>
-          <label class="radio">
-            <input type="radio" formControlName="user_type" value="provider" />
-            Provider
-          </label>
-        </fieldset>
+        <app-radio-card-group
+          formControlName="user_type"
+          legend="User type"
+          [options]="userTypeOptions"
+        />
 
         <div class="company-picker">
           <span class="company-picker__label">{{ restrictionLabel() }}</span>

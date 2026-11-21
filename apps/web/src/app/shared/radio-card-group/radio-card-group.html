@@ -1,0 +1,30 @@
+<fieldset class="radio-card-group" [class.radio-card-group--disabled]="isDisabled">
+  @if (legend(); as legendText) {
+    <legend class="radio-card-group__legend">{{ legendText }}</legend>
+  }
+  <div class="radio-card-group__options" role="radiogroup" [attr.aria-label]="legend() ?? null">
+    @for (option of options(); track option.value) {
+      <label
+        class="radio-card"
+        [class.radio-card--selected]="isSelected(option.value)"
+        [class.radio-card--disabled]="isDisabled"
+      >
+        <input
+          type="radio"
+          class="radio-card__input"
+          [attr.name]="legend() ?? 'radio-card-group'"
+          [value]="option.value"
+          [checked]="isSelected(option.value)"
+          [disabled]="isDisabled"
+          (change)="select(option.value)"
+        />
+        <span class="radio-card__body">
+          <span class="radio-card__label">{{ option.label }}</span>
+          @if (option.description) {
+            <span class="radio-card__description">{{ option.description }}</span>
+          }
+        </span>
+      </label>
+    }
+  </div>
+</fieldset>
