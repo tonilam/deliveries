@@ -12,10 +12,14 @@ class RateCardCompanyOptionsController extends Controller
     {
         $query = $request->queryString();
         $ownCompanyId = $request->user()->company_id;
+        $restrictionType = $request->restrictionType();
 
         $builder = Company::query()
             ->select(['id', 'business_name'])
-            ->when($ownCompanyId !== null, fn ($q) => $q->where('id', '!=', $ownCompanyId))
+            ->when($ownCompanyId !== null, function ($q) use ($ownCompanyId, $restrictionType) {
+                $q->where('parent_company_id', $ownCompanyId)
+                    ->where('company_type', $restrictionType->value);
+            })
             ->orderBy('business_name')
             ->limit(200);
 

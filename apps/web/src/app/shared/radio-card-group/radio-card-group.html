@@ -1,8 +1,17 @@
-<fieldset class="radio-card-group" [class.radio-card-group--disabled]="isDisabled">
+<fieldset
+  class="radio-card-group"
+  [class.radio-card-group--disabled]="isDisabled"
+  [class.radio-card-group--inline]="inline()"
+>
   @if (legend(); as legendText) {
     <legend class="radio-card-group__legend">{{ legendText }}</legend>
   }
-  <div class="radio-card-group__options" role="radiogroup" [attr.aria-label]="legend() ?? null">
+  <div
+    class="radio-card-group__options"
+    [class.radio-card-group__options--inline]="inline()"
+    role="radiogroup"
+    [attr.aria-label]="legend() ?? null"
+  >
     @for (option of options(); track option.value) {
       <label
         class="radio-card"

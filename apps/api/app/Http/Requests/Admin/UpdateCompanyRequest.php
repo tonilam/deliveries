@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\CompanyType;
 use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,6 +35,7 @@ class UpdateCompanyRequest extends FormRequest
 
         return [
             'section' => ['sometimes', Rule::in(['details'])],
+            'company_type' => ['required', 'string', Rule::enum(CompanyType::class)],
             'country_id' => ['required', 'integer', 'exists:countries,id'],
             'reg_number' => ['required', 'string', 'max:255'],
             'reg_type' => ['required', 'string', 'max:255'],

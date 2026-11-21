@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\CompanyType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCompanyRequest;
 use App\Models\Company;
 use App\Services\CompanyDomainService;
+use App\Services\CompanyTypeService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +17,7 @@ class CreateCompanyController extends Controller
 {
     public function __construct(
         private readonly CompanyDomainService $domains,
+        private readonly CompanyTypeService $companyTypes,
     ) {}
 
     public function __invoke(StoreCompanyRequest $request): JsonResponse
@@ -25,10 +28,15 @@ class CreateCompanyController extends Controller
 
         $this->domains->assertCompanyIdentityUnique($regNumber, $businessName, $domains);
 
+        $type = CompanyType::from($request->string('company_type')->toString());
+        $this->companyTypes->assertAdminCompanyType(new Company(['parent_company_id' => null]), $type);
+
         try {
-            $company = DB::transaction(function () use ($request, $domains, $regNumber, $businessName): Company {
+            $company = DB::transaction(function () use ($request, $domains, $regNumber, $businessName, $type): Company {
                 $company = Company::query()->create([
                     'country_id' => $request->integer('country_id'),
+                    'company_type' => $type->value,
+                    'parent_company_id' => null,
                     'reg_number' => $regNumber,
                     'reg_type' => $request->string('reg_type')->toString(),
                     'business_name' => $businessName,

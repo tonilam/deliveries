@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CompanyType;
 use App\Enums\RateCardUserType;
 use App\Models\Company;
 use App\Models\Country;
@@ -385,8 +386,7 @@ class RateCardManagementTest extends TestCase
     public function test_company_options_excludes_own_company(): void
     {
         $company = $this->companyWithZones();
-        $other = Company::factory()->create([
-            'country_id' => $company->country_id,
+        $other = Company::factory()->forNetworkOf($company, CompanyType::Provider)->create([
             'business_name' => 'Alpha Logistics',
         ]);
         $customer = User::factory()->forCompany($company)->create([
@@ -396,7 +396,7 @@ class RateCardManagementTest extends TestCase
 
         $this->loginAs($customer);
 
-        $this->asSpa()->getJson('/api/rate-cards/company-options?q=Al')
+        $this->asSpa()->getJson('/api/rate-cards/company-options?q=Al&user_type=provider')
             ->assertOk()
             ->assertJsonCount(1, 'companies')
             ->assertJsonPath('companies.0.id', $other->id);

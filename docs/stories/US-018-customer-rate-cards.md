@@ -12,7 +12,8 @@ As a customer user, I want to manage my company’s rate cards, so that lane pri
 - [x] Card fields: **profile name** (required, unique per owning company), **user type** (`customer` | `provider`) via reusable **radio card** control (unselected cards dimmed; selected card highlighted with brand `#f05a28`), optional **companies** multi-select (other `companies` rows; excludes own company; empty = applies to all), **minimum price** (≥ 0), **active** (default on), **zone rates** (≥ 1 row: collection zone, delivery zone, base rate ≥ 0, fuel surcharge % ≥ 0; unique collection+delivery pair per card)
 - [x] When user type is **Customer**, company restrictions are **Customers**; when **Provider**, restrictions are **Providers**; saving replaces the restriction list; switching type on save clears the previous type’s restrictions
 - [x] **Inactive** cards remain on the list and can be reactivated; no delete
-- [x] `GET/POST /api/rate-cards`, `GET/PUT /api/rate-cards/{rateCard}`, `GET /api/rate-cards/company-options?q=` — authenticated **customer** with a company only; admins/guests **401/403**; other companies’ cards **404**
+- [x] Rate card **company** pickers and saved `company_ids` only include network children whose `company_type` matches the card’s user type ([US-019](US-019-customer-network.md))
+- [x] `GET/POST /api/rate-cards`, `GET/PUT /api/rate-cards/{rateCard}`, `GET /api/rate-cards/company-options?q=&user_type=` — authenticated **customer** with a company only; admins/guests **401/403**; other companies’ cards **404**
 - [x] Zones on zone rows must be **active** zones in the company’s country (same rule as [US-010](US-010-customer-address-management.md) `zone_id`)
 - [x] Minimum-price rule for future rating: if **rate × qty** is below **minimum price**, **minimum price** wins (stored only in this story; no quote API)
 

@@ -6,6 +6,10 @@
   max-width: 100%;
 }
 
+.radio-card-group--inline {
+  width: 100%;
+}
+
 .radio-card-group--disabled {
   opacity: 0.85;
 }
@@ -24,6 +28,27 @@
   gap: 0.75rem;
   width: fit-content;
   max-width: 100%;
+}
+
+.radio-card-group__options--inline {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+  gap: 0.5rem;
+}
+
+.radio-card-group__options--inline .radio-card {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+}
+
+.radio-card-group__options--inline .radio-card__body {
+  justify-items: center;
+}
+
+.radio-card-group__options--inline .radio-card__description {
+  display: none;
 }
 
 .radio-card {

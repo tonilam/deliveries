@@ -41,6 +41,7 @@ class CompanyManagementTest extends TestCase
             ->assertJsonPath('meta.total', 0);
 
         $create = $this->asSpa()->postJson('/api/admin/companies', [
+            'company_type' => 'broker',
             'country_id' => $country->id,
             'reg_number' => '51824753556',
             'reg_type' => 'ABN',
@@ -56,6 +57,7 @@ class CompanyManagementTest extends TestCase
             ->assertJsonPath('company.allowed_domains', ['acme.test'])
             ->assertJsonPath('company.country_id', $country->id)
             ->assertJsonPath('company.country.code', 'AU')
+            ->assertJsonPath('company.company_type', 'broker')
             ->assertJsonPath('company.has_addresses', false)
             ->assertJsonPath('company.invoicee_name', '')
             ->assertJsonPath('company.gst_rate', 0.1)
@@ -65,6 +67,7 @@ class CompanyManagementTest extends TestCase
 
         $this->asSpa()->putJson('/api/admin/companies/'.$id, [
             'section' => 'details',
+            'company_type' => 'broker',
             'country_id' => $country->id,
             'reg_number' => '51824753556',
             'reg_type' => 'ABN',
@@ -96,6 +99,7 @@ class CompanyManagementTest extends TestCase
 
         $this->asSpa()->putJson('/api/admin/companies/'.$company->id, [
             'section' => 'details',
+            'company_type' => 'broker',
             'country_id' => $newZealand->id,
             'reg_number' => $company->reg_number,
             'reg_type' => $company->reg_type,
@@ -121,6 +125,7 @@ class CompanyManagementTest extends TestCase
 
         $this->asSpa()->putJson('/api/admin/companies/'.$company->id, [
             'section' => 'details',
+            'company_type' => 'broker',
             'country_id' => $newZealand->id,
             'reg_number' => $company->reg_number,
             'reg_type' => $company->reg_type,
@@ -370,6 +375,7 @@ class CompanyManagementTest extends TestCase
 
         $this->asSpa()->putJson('/api/admin/companies/'.$company->id, [
             'section' => 'details',
+            'company_type' => 'broker',
             'country_id' => $company->country_id,
             'reg_number' => $company->reg_number,
             'reg_type' => $company->reg_type,
@@ -392,6 +398,7 @@ class CompanyManagementTest extends TestCase
         $country = Country::factory()->create();
 
         $this->asSpa()->postJson('/api/admin/companies', [
+            'company_type' => 'broker',
             'country_id' => $country->id,
             'reg_number' => '111',
             'reg_type' => 'ABN',
@@ -414,6 +421,7 @@ class CompanyManagementTest extends TestCase
         $country = Country::factory()->create();
 
         $this->asSpa()->postJson('/api/admin/companies', [
+            'company_type' => 'broker',
             'country_id' => $country->id,
             'reg_number' => '518 247 535 56',
             'reg_type' => 'ABN',
@@ -426,6 +434,7 @@ class CompanyManagementTest extends TestCase
             ->assertJsonValidationErrors(['reg_number']);
 
         $this->asSpa()->postJson('/api/admin/companies', [
+            'company_type' => 'broker',
             'country_id' => $country->id,
             'reg_number' => '99999999999',
             'reg_type' => 'ABN',

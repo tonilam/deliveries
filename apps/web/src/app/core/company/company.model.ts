@@ -1,3 +1,5 @@
+export type CompanyType = 'customer' | 'provider' | 'broker';
+
 export interface CompanyCountry {
   id: number;
   name: string;
@@ -7,6 +9,10 @@ export interface CompanyCountry {
 export interface Company {
   id: number;
   country_id: number;
+  company_type: CompanyType;
+  company_type_label: string;
+  parent_company_id: number | null;
+  parent_business_name: string | null;
   country: CompanyCountry | null;
   has_addresses: boolean;
   reg_number: string;
@@ -24,6 +30,7 @@ export interface Company {
 }
 
 export type CompanyDetailsPayload = {
+  company_type: CompanyType;
   country_id: number;
   reg_number: string;
   reg_type: string;

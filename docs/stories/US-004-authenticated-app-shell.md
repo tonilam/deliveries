@@ -5,7 +5,7 @@ As a signed-in user, I want a consistent left main menu and a top bar with my av
 
 ## Acceptance criteria
 - [x] After login, authenticated pages use a shared shell: left main menu + right content area with a top bar
-- [x] Left menu shows role-appropriate links (customer: Dashboard, Deliveries, Addresses, Rate cards; admin: Home, System settings, User management)
+- [x] Left menu shows role-appropriate links (customer: Dashboard, Deliveries, Addresses, **Network**, Rate cards; admin: Home, System settings, User management)
 - [x] Top bar shows a user avatar on the right; clicking it opens a dropdown with **My Profile** and **Sign Out**
 - [x] **My Profile** opens the profile page ([US-005](US-005-user-profile-and-password.md))
 - [x] **Sign Out** ends the session and returns the user to login

@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Enums\CompanyType;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'country_id',
+    'company_type',
+    'parent_company_id',
     'reg_number',
     'reg_type',
     'business_name',
@@ -33,6 +37,7 @@ class Company extends Model
     protected function casts(): array
     {
         return [
+            'company_type' => CompanyType::class,
             'allowed_domains' => 'array',
             'gst_rate' => 'float',
         ];
@@ -44,6 +49,30 @@ class Company extends Model
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
+    }
+
+    /**
+     * @return BelongsTo<Company, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Company::class, 'parent_company_id');
+    }
+
+    /**
+     * @return HasMany<Company, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Company::class, 'parent_company_id');
+    }
+
+    /**
+     * @return BelongsToMany<RateCard, $this>
+     */
+    public function rateCardLinks(): BelongsToMany
+    {
+        return $this->belongsToMany(RateCard::class, 'rate_card_companies');
     }
 
     /**
@@ -83,15 +112,26 @@ class Company extends Model
      */
     public function toAdminPayload(): array
     {
-        $this->loadMissing(['country' => static fn ($query) => $query->select('id', 'name', 'code')]);
+        $this->loadMissing([
+            'country' => static fn ($query) => $query->select('id', 'name', 'code'),
+            'parent' => static fn ($query) => $query->select('id', 'business_name'),
+        ]);
 
         if (! array_key_exists('addresses_count', $this->getAttributes()) && ! isset($this->addresses_count)) {
             $this->loadCount('addresses');
         }
 
+        $type = $this->company_type instanceof CompanyType
+            ? $this->company_type
+            : CompanyType::tryFrom((string) ($this->company_type ?? '')) ?? CompanyType::Broker;
+
         return [
             'id' => $this->id,
             'country_id' => $this->country_id,
+            'company_type' => $type->value,
+            'company_type_label' => $type->label(),
+            'parent_company_id' => $this->parent_company_id,
+            'parent_business_name' => $this->parent?->business_name,
             'country' => $this->country === null ? null : [
                 'id' => $this->country->id,
                 'name' => $this->country->name,

@@ -5,7 +5,7 @@ As an admin user, I want to manage companies (list, create, edit) and attach cus
 
 ## Acceptance criteria
 - [x] Admin portal has a **Companies** page (`/admin/companies`) linked from admin nav
-- [x] Companies are listed in an AG Grid table with columns: **Business name**, **Reg number**, **Email**, **Allowed domains**; on compact viewports (**720px** or narrower) in a **data list** (business name as title, other columns as labeled lines, **Edit** and **Add customer** actions) with **search** and **sort by**
+- [x] Companies are listed in an AG Grid table with columns: **Business name**, **Company type**, **Parent**, **Reg number**, **Email**, **Allowed domains**; on compact viewports (**720px** or narrower) in a **data list** (business name as title, other columns as labeled lines, **Edit** and **Add customer** actions) with **search** and **sort by**
 - [x] The companies list is **server-paginated**: default page size **25**; page size options **10**, **25**, **50**, **100**, **200**; UI shows range + total and lets the admin change page and page size; the grid grows to show all rows on the current page (no fixed viewport height / inner scroll)
 - [x] Column filters stay available in the AG Grid UI for **Business name**, **Reg number**, **Email**, and **Allowed domains**; filtering is applied **server-side** (with pagination totals reflecting the filtered set)
 - [x] Column sorting is available in the AG Grid UI for **Business name**, **Reg number**, **Email**, and **Allowed domains**; sorting is applied **server-side** (single column; default **Business name** ascending)

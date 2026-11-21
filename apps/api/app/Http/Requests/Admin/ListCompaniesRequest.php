@@ -19,6 +19,8 @@ class ListCompaniesRequest extends FormRequest
         'reg_number',
         'email',
         'allowed_domains',
+        'company_type',
+        'parent_business_name',
     ];
 
     /** @var list<string> */
@@ -27,6 +29,8 @@ class ListCompaniesRequest extends FormRequest
         'reg_number',
         'email',
         'allowed_domains',
+        'company_type',
+        'parent_business_name',
     ];
 
     public const DEFAULT_SORT = 'business_name';

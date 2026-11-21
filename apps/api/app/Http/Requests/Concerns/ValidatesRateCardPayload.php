@@ -16,6 +16,15 @@ trait ValidatesRateCardPayload
     {
         $companyId = $this->user()?->company_id;
         $countryId = $this->companyCountryId();
+        $restrictionType = $this->input('user_type');
+        $networkCompanyExists = Rule::exists('companies', 'id');
+        if ($companyId !== null && is_string($restrictionType) && in_array($restrictionType, ['customer', 'provider'], true)) {
+            $networkCompanyExists = $networkCompanyExists->where(
+                static fn ($query) => $query
+                    ->where('parent_company_id', $companyId)
+                    ->where('company_type', $restrictionType),
+            );
+        }
 
         $profileUnique = Rule::unique('rate_cards', 'profile_name');
         if ($companyId !== null) {
@@ -34,7 +43,7 @@ trait ValidatesRateCardPayload
             'company_ids.*' => [
                 'integer',
                 'distinct',
-                Rule::exists('companies', 'id'),
+                $networkCompanyExists,
                 Rule::notIn(array_filter([$companyId])),
             ],
             'zone_rates' => ['required', 'array', 'min:1'],

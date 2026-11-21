@@ -24,7 +24,10 @@ class CompanyListController extends Controller
         $page = min(max(1, (int) $request->input('page', 1)), $lastPage);
 
         $paginator = $query
-            ->with(['country' => static fn ($q) => $q->select('id', 'name', 'code')])
+            ->with([
+                'country' => static fn ($q) => $q->select('id', 'name', 'code'),
+                'parent' => static fn ($q) => $q->select('id', 'business_name'),
+            ])
             ->withCount('addresses')
             ->paginate($perPage, ['*'], 'page', $page)
             ->withQueryString();
@@ -62,6 +65,11 @@ class CompanyListController extends Controller
             $inner->where('business_name', 'like', $like)
                 ->orWhere('reg_number', 'like', $like)
                 ->orWhere('email', 'like', $like)
+                ->orWhere('company_type', 'like', $like)
+                ->orWhereHas(
+                    'parent',
+                    fn (Builder $parent) => $parent->where('business_name', 'like', $like),
+                )
                 ->orWhereHas(
                     'allowedDomainRows',
                     fn (Builder $domain) => $domain->where('domain', 'like', $like),
@@ -74,6 +82,18 @@ class CompanyListController extends Controller
      */
     private function applySort(Builder $query, string $sort, string $direction): void
     {
+        if ($sort === 'parent_business_name') {
+            $parentSubquery = Company::query()
+                ->from('companies as parent_companies')
+                ->select('parent_companies.business_name')
+                ->whereColumn('parent_companies.id', 'companies.parent_company_id')
+                ->limit(1);
+
+            $query->orderBy($parentSubquery, $direction)->orderBy('companies.id');
+
+            return;
+        }
+
         if ($sort === 'allowed_domains') {
             $domainSubquery = CompanyAllowedDomain::query()
                 ->select('domain')
@@ -101,6 +121,12 @@ class CompanyListController extends Controller
 
             if ($column === 'allowed_domains') {
                 $this->applyAllowedDomainsFilter($query, $type, $value);
+
+                continue;
+            }
+
+            if ($column === 'parent_business_name') {
+                $this->applyParentBusinessNameFilter($query, $type, $value);
 
                 continue;
             }
@@ -203,6 +229,45 @@ class CompanyListController extends Controller
             ),
             default => null,
         };
+    }
+
+    /**
+     * @param  Builder<Company>  $query
+     */
+    private function applyParentBusinessNameFilter(Builder $query, string $type, ?string $value): void
+    {
+        if ($type === 'blank') {
+            $query->whereNull('parent_company_id');
+
+            return;
+        }
+
+        if ($type === 'notBlank') {
+            $query->whereNotNull('parent_company_id');
+
+            return;
+        }
+
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        $like = $this->escapeLike($value);
+
+        $query->whereHas('parent', function (Builder $parent) use ($type, $value, $like): void {
+            match ($type) {
+                'equals' => $parent->where('business_name', $value),
+                'notEqual' => $parent->where('business_name', '!=', $value),
+                'contains' => $parent->where('business_name', 'like', '%'.$like.'%'),
+                'notContains' => $parent->where(function (Builder $inner) use ($like): void {
+                    $inner->whereNull('business_name')
+                        ->orWhere('business_name', 'not like', '%'.$like.'%');
+                }),
+                'startsWith' => $parent->where('business_name', 'like', $like.'%'),
+                'endsWith' => $parent->where('business_name', 'like', '%'.$like),
+                default => null,
+            };
+        });
     }
 
     private function escapeLike(string $value): string

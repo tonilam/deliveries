@@ -18,8 +18,34 @@ import {
   normalizeDomains,
   normalizeRegNumber,
 } from '../../../core/company/company-normalize';
-import { Company, CompanyDetailsPayload } from '../../../core/company/company.model';
+import { Company, CompanyDetailsPayload, CompanyType } from '../../../core/company/company.model';
 import { Country } from '../../../core/country/country.model';
+import {
+  RadioCardGroupComponent,
+  RadioCardOption,
+} from '../../../shared/radio-card-group/radio-card-group';
+
+const ROOT_COMPANY_TYPE_OPTIONS: RadioCardOption[] = [
+  {
+    value: 'customer',
+    label: 'Customer',
+    description: 'Buys from providers; network is providers only.',
+  },
+  {
+    value: 'provider',
+    label: 'Provider',
+    description: 'Supplies customers; network is customers only.',
+  },
+  {
+    value: 'broker',
+    label: 'Broker',
+    description: 'Manages both customers and providers in the network.',
+  },
+];
+
+const LINKED_COMPANY_TYPE_OPTIONS: RadioCardOption[] = ROOT_COMPANY_TYPE_OPTIONS.filter(
+  (option) => option.value !== 'broker',
+);
 
 type FieldKey = 'business_name' | 'reg_number' | 'allowed_domains';
 type FieldStatus = 'pending' | 'checking' | 'ok' | 'conflict' | 'error';
@@ -45,7 +71,7 @@ const DEFAULT_GST_PERCENT = 10;
 
 @Component({
   selector: 'app-admin-company-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent],
   templateUrl: './company-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './company-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -69,7 +95,12 @@ export class AdminCompanyForm implements OnInit {
   protected readonly pendingPayload = signal<CompanyDetailsPayload | null>(null);
   protected readonly countries = signal<Country[]>([]);
   protected readonly hasAddresses = signal(false);
+  protected readonly parentBusinessName = signal<string | null>(null);
   protected readonly countryLocked = computed(() => this.isEdit() && this.hasAddresses());
+  protected readonly isLinkedCompany = computed(() => this.parentBusinessName() !== null);
+  protected readonly companyTypeRadioOptions = computed((): RadioCardOption[] =>
+    this.isLinkedCompany() ? LINKED_COMPANY_TYPE_OPTIONS : ROOT_COMPANY_TYPE_OPTIONS,
+  );
   private checkGeneration = 0;
   protected readonly companyId = signal<number | null>(null);
   protected readonly activeTab = signal<EditTab>('details');
@@ -103,6 +134,7 @@ export class AdminCompanyForm implements OnInit {
   });
 
   protected readonly detailsForm = this.fb.nonNullable.group({
+    company_type: this.fb.nonNullable.control<CompanyType>('broker', [Validators.required]),
     country_id: this.fb.nonNullable.control<number | null>(null, [Validators.required]),
     reg_number: ['', [Validators.required, Validators.maxLength(255)]],
     reg_type: ['ABN', [Validators.required, Validators.maxLength(255)]],
@@ -264,6 +296,7 @@ export class AdminCompanyForm implements OnInit {
     const id = this.companyId();
     const detailsBody = {
       section: 'details' as const,
+      company_type: payload.company_type,
       country_id: payload.country_id,
       reg_number: payload.reg_number,
       reg_type: payload.reg_type,
@@ -332,7 +365,9 @@ export class AdminCompanyForm implements OnInit {
 
   private patchDetails(company: Company): void {
     this.hasAddresses.set(company.has_addresses);
+    this.parentBusinessName.set(company.parent_business_name);
     this.detailsForm.patchValue({
+      company_type: company.company_type,
       country_id: company.country_id,
       reg_number: company.reg_number,
       reg_type: company.reg_type,
@@ -383,6 +418,7 @@ export class AdminCompanyForm implements OnInit {
     }
 
     return {
+      company_type: raw.company_type,
       country_id: countryId,
       reg_number: normalizeRegNumber(raw.reg_number),
       reg_type: raw.reg_type.trim(),

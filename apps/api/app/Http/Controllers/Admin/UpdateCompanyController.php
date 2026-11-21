@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\CompanyType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UpdateCompanyRequest;
 use App\Models\Company;
 use App\Services\CompanyDomainService;
+use App\Services\CompanyTypeService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +17,7 @@ class UpdateCompanyController extends Controller
 {
     public function __construct(
         private readonly CompanyDomainService $domains,
+        private readonly CompanyTypeService $companyTypes,
     ) {}
 
     public function __invoke(UpdateCompanyRequest $request, Company $company): JsonResponse
@@ -59,10 +62,17 @@ class UpdateCompanyController extends Controller
 
         $this->domains->assertCompanyIdentityUnique($regNumber, $businessName, $domains, $company->id);
 
+        $type = CompanyType::from($request->string('company_type')->toString());
+        $this->companyTypes->assertAdminCompanyType($company, $type);
+        if ($company->parent_company_id === null) {
+            $this->companyTypes->assertAdminRootTypeChange($company, $type);
+        }
+
         try {
-            $company = DB::transaction(function () use ($request, $company, $domains, $regNumber, $businessName, $countryId): Company {
+            $company = DB::transaction(function () use ($request, $company, $domains, $regNumber, $businessName, $countryId, $type): Company {
                 $company->fill([
                     'country_id' => $countryId,
+                    'company_type' => $type->value,
                     'reg_number' => $regNumber,
                     'reg_type' => $request->string('reg_type')->toString(),
                     'business_name' => $businessName,

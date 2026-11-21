@@ -1,0 +1,16 @@
+# Admin company type
+
+## Story
+As an admin user, I want to set each company’s type (Customer, Provider, or Broker), so that the product knows whether they only buy, only supply, or broker both sides of the network.
+
+## Acceptance criteria
+- [x] `companies.company_type` is **customer**, **provider**, or **broker** (existing rows default **broker**)
+- [x] Root companies (`parent_company_id` null): admin sets **Company type** on create and edit (Details tab)
+- [x] Linked companies (`parent_company_id` set): type is **customer** or **provider** only and must match the parent ([US-011](US-011-company-entity.md)); **Parent** business name is read-only on edit
+- [x] Parent **Customer** may only have **provider** children; parent **Provider** may only have **customer** children; parent **Broker** may have either
+- [x] Admin cannot change a root company’s type while it still has children of a disallowed type for the new type
+- [x] Admin companies list shows **Company type** and **Parent** (parent business name; blank for roots); searchable, sortable, filterable server-side like other columns
+
+## Notes
+- Customer-managed links: [US-019](US-019-customer-network.md).
+- Admin create still creates root companies only; customers attach children via Network.

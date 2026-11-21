@@ -1,0 +1,149 @@
+<section class="portal portal--wide">
+  <div class="users-header">
+    <div>
+      <h1>Network</h1>
+      <p class="lede">Manage customer and provider companies linked to your business.</p>
+    </div>
+    <a [routerLink]="['/app/network', segment(), 'create']" class="btn btn--primary"
+      >Create company</a
+    >
+  </div>
+
+  @if (showCustomersTab() || showProvidersTab()) {
+    <div class="tabs" role="tablist" aria-label="Network sections">
+      @if (showCustomersTab()) {
+        <button
+          type="button"
+          role="tab"
+          class="tabs__tab"
+          [attr.aria-selected]="segment() === 'customers'"
+          [class.tabs__tab--active]="segment() === 'customers'"
+          (click)="selectTab('customers')"
+        >
+          Customers
+        </button>
+      }
+      @if (showProvidersTab()) {
+        <button
+          type="button"
+          role="tab"
+          class="tabs__tab"
+          [attr.aria-selected]="segment() === 'providers'"
+          [class.tabs__tab--active]="segment() === 'providers'"
+          (click)="selectTab('providers')"
+        >
+          Providers
+        </button>
+      }
+    </div>
+  }
+
+  @if (error()) {
+    <p class="users-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (compact()) {
+    <app-data-list
+      [loading]="loading()"
+      [rows]="companies()"
+      [titleFor]="companyListTitle"
+      [columns]="listColumns"
+      [actionsFor]="actionsForList"
+      [searchValue]="searchQuery()"
+      searchPlaceholder="Search companies…"
+      [sortOptions]="sortOptions"
+      [sortField]="sortField"
+      [sortDirection]="sortDirection"
+      (searchChange)="onListSearch($event)"
+      (sortFieldChange)="onListSortField($event)"
+      (sortDirectionChange)="onListSortDirection($event)"
+    />
+  } @else {
+    <ag-grid-angular
+      class="users-grid"
+      [theme]="theme"
+      [rowData]="companies()"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [loading]="loading()"
+      [suppressMultiSort]="true"
+      domLayout="autoHeight"
+      (gridReady)="onGridReady($event)"
+      (filterChanged)="onFilterChanged($event)"
+      (sortChanged)="onSortChanged($event)"
+    />
+  }
+
+  @if (meta(); as pagination) {
+    <div class="pagination" aria-label="Network pagination">
+      <p class="pagination__summary">
+        @if (pagination.total === 0) {
+          No companies
+        } @else {
+          Showing {{ pagination.from }}–{{ pagination.to }} of {{ pagination.total }}
+        }
+      </p>
+
+      <label class="pagination__size">
+        <span>Rows per page</span>
+        <select
+          [ngModel]="pageSize()"
+          (ngModelChange)="onPageSizeChange($event)"
+          [disabled]="loading()"
+        >
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="pagination__nav">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page <= 1"
+          (click)="goToPage(pagination.current_page - 1)"
+        >
+          Previous
+        </button>
+        <span class="pagination__page">
+          Page {{ pagination.current_page }} of {{ pagination.last_page }}
+        </span>
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page >= pagination.last_page"
+          (click)="goToPage(pagination.current_page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (deleteTarget(); as target) {
+    <div class="modal-backdrop" (click)="cancelDelete()"></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="network-delete-title">
+      <h2 id="network-delete-title">Delete {{ target.business_name }}?</h2>
+      <p>This cannot be undone. The company must have no users, addresses, or rate cards.</p>
+      <div class="modal__actions">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="deleting()"
+          (click)="cancelDelete()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn--primary"
+          [disabled]="deleting()"
+          (click)="confirmDelete()"
+        >
+          {{ deleting() ? 'Deleting…' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+  }
+</section>

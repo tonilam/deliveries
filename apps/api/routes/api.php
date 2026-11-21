@@ -55,16 +55,23 @@ use App\Http\Controllers\Auth\ShowInvitationController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\UpdatePasswordController;
 use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\CheckNetworkCompanyUniquenessController;
+use App\Http\Controllers\CountryOptionsController;
 use App\Http\Controllers\CreateAddressController;
+use App\Http\Controllers\CreateNetworkCompanyController;
 use App\Http\Controllers\CreateRateCardController;
 use App\Http\Controllers\DeleteAddressController;
+use App\Http\Controllers\DeleteNetworkCompanyController;
 use App\Http\Controllers\FeatureFlagsController;
+use App\Http\Controllers\NetworkCompanyListController;
 use App\Http\Controllers\RateCardCompanyOptionsController;
 use App\Http\Controllers\RateCardListController;
 use App\Http\Controllers\RegistrationCompaniesController;
 use App\Http\Controllers\ShowAddressController;
+use App\Http\Controllers\ShowNetworkCompanyController;
 use App\Http\Controllers\ShowRateCardController;
 use App\Http\Controllers\UpdateAddressController;
+use App\Http\Controllers\UpdateNetworkCompanyController;
 use App\Http\Controllers\UpdateRateCardController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -105,6 +112,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/logout', LogoutController::class);
     Route::post('/impersonation/leave', LeaveImpersonationController::class);
 
+    Route::get('/countries', CountryOptionsController::class);
     Route::get('/addresses', AddressListController::class);
     Route::get('/addresses/state-options', AddressStateOptionsController::class);
     Route::get('/addresses/zone-options', AddressZoneOptionsController::class);
@@ -118,6 +126,13 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/rate-cards', CreateRateCardController::class);
     Route::get('/rate-cards/{rateCard}', ShowRateCardController::class);
     Route::put('/rate-cards/{rateCard}', UpdateRateCardController::class);
+
+    Route::get('/network/companies', NetworkCompanyListController::class);
+    Route::post('/network/companies', CreateNetworkCompanyController::class);
+    Route::post('/network/companies/check-uniqueness', CheckNetworkCompanyUniquenessController::class);
+    Route::get('/network/companies/{company}', ShowNetworkCompanyController::class);
+    Route::put('/network/companies/{company}', UpdateNetworkCompanyController::class);
+    Route::delete('/network/companies/{company}', DeleteNetworkCompanyController::class);
 });
 
 Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->prefix('admin')->group(function () {

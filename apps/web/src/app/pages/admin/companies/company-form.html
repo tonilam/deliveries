@@ -59,12 +59,23 @@
         role="tabpanel"
         [attr.aria-labelledby]="isEdit() ? 'tab-details' : null"
       >
+        @if (isLinkedCompany()) {
+          <p class="field-hint">Parent company: {{ parentBusinessName() }}</p>
+        }
+
         <label>
           <span class="label-text"
             >Business name <span class="required" aria-hidden="true">*</span></span
           >
           <input type="text" formControlName="business_name" />
         </label>
+
+        <app-radio-card-group
+          formControlName="company_type"
+          legend="Company type *"
+          [options]="companyTypeRadioOptions()"
+          inline
+        />
 
         <label>
           <span class="label-text">Country <span class="required" aria-hidden="true">*</span></span>

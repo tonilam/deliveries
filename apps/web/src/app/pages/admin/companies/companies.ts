@@ -37,7 +37,14 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
-const FILTERABLE_FIELDS = ['business_name', 'reg_number', 'email', 'allowed_domains'] as const;
+const FILTERABLE_FIELDS = [
+  'business_name',
+  'reg_number',
+  'email',
+  'allowed_domains',
+  'company_type',
+  'parent_business_name',
+] as const;
 const SORTABLE_FIELDS = FILTERABLE_FIELDS;
 type SortableField = (typeof SORTABLE_FIELDS)[number];
 type SortDirection = 'asc' | 'desc';
@@ -117,6 +124,12 @@ export class AdminCompanies implements OnInit {
   protected readonly companyListTitle = (row: Company): string => row.business_name;
 
   protected readonly listColumns: DataListColumn<Company>[] = [
+    { field: 'company_type_label', label: 'Company type' },
+    {
+      field: 'parent_business_name',
+      label: 'Parent',
+      valueFor: (row) => row.parent_business_name ?? '',
+    },
     { field: 'reg_number', label: 'Reg number' },
     { field: 'email', label: 'Email' },
     {
@@ -128,6 +141,8 @@ export class AdminCompanies implements OnInit {
 
   protected readonly sortOptions: DataListSortOption[] = [
     { field: 'business_name', label: 'Business name' },
+    { field: 'company_type', label: 'Company type' },
+    { field: 'parent_business_name', label: 'Parent' },
     { field: 'reg_number', label: 'Reg number' },
     { field: 'email', label: 'Email' },
     { field: 'allowed_domains', label: 'Allowed domains' },
@@ -149,6 +164,27 @@ export class AdminCompanies implements OnInit {
       flex: 1.2,
       minWidth: 180,
       sort: DEFAULT_DIRECTION,
+      comparator: serverSideSortComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: serverSideTextFilterParams,
+    },
+    {
+      field: 'company_type_label',
+      headerName: 'Company type',
+      colId: 'company_type',
+      flex: 0.8,
+      minWidth: 120,
+      comparator: serverSideSortComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: serverSideTextFilterParams,
+      valueGetter: (params) => params.data?.company_type_label ?? params.data?.company_type,
+      filterValueGetter: (params) => params.data?.company_type_label ?? params.data?.company_type,
+    },
+    {
+      field: 'parent_business_name',
+      headerName: 'Parent',
+      flex: 1,
+      minWidth: 140,
       comparator: serverSideSortComparator,
       filter: 'agTextColumnFilter',
       filterParams: serverSideTextFilterParams,

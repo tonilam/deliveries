@@ -1,4 +1,5 @@
 import {
+  booleanAttribute,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -32,6 +33,8 @@ export class RadioCardGroupComponent implements ControlValueAccessor {
 
   readonly legend = input<string | null>(null);
   readonly options = input.required<RadioCardOption[]>();
+  /** Lay options out in a single row (equal-width cards; descriptions hidden). */
+  readonly inline = input(false, { transform: booleanAttribute });
 
   protected selectedValue: string | null = null;
   protected isDisabled = false;

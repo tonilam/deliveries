@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\CompanyType;
 use App\Models\Company;
 use App\Models\CompanyAllowedDomain;
 use App\Models\Country;
@@ -24,6 +25,8 @@ class CompanyFactory extends Factory
 
         return [
             'country_id' => Country::factory(),
+            'company_type' => CompanyType::Broker,
+            'parent_company_id' => null,
             'reg_number' => preg_replace('/\s+/', '', $regNumber) ?? $regNumber,
             'reg_type' => 'ABN',
             'business_name' => $businessName,
@@ -66,6 +69,15 @@ class CompanyFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'allowed_domains' => $domains,
+        ]);
+    }
+
+    public function forNetworkOf(Company $parent, CompanyType $type): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'parent_company_id' => $parent->id,
+            'company_type' => $type,
+            'country_id' => $parent->country_id,
         ]);
     }
 }

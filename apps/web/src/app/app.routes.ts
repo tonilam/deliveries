@@ -71,6 +71,26 @@ export const routes: Routes = [
           import('./pages/customer/addresses/address-form').then((m) => m.CustomerAddressForm),
       },
       {
+        path: 'network',
+        pathMatch: 'full',
+        redirectTo: 'network/providers',
+      },
+      {
+        path: 'network/:segment',
+        loadComponent: () =>
+          import('./pages/customer/network/network').then((m) => m.CustomerNetwork),
+      },
+      {
+        path: 'network/:segment/create',
+        loadComponent: () =>
+          import('./pages/customer/network/network-company-form').then((m) => m.NetworkCompanyForm),
+      },
+      {
+        path: 'network/:segment/:id/edit',
+        loadComponent: () =>
+          import('./pages/customer/network/network-company-form').then((m) => m.NetworkCompanyForm),
+      },
+      {
         path: 'rate-cards',
         loadComponent: () =>
           import('./pages/customer/rate-cards/rate-cards').then((m) => m.CustomerRateCards),

@@ -665,7 +665,8 @@ export class CustomerRateCardForm implements OnInit {
     }
 
     this.companiesLoading.set(true);
-    const params = new HttpParams().set('q', query);
+    const userType = this.form.controls.user_type.value;
+    const params = new HttpParams().set('q', query).set('user_type', userType);
 
     this.http
       .get<{ companies: CompanyOption[] }>('/api/rate-cards/company-options', { params })

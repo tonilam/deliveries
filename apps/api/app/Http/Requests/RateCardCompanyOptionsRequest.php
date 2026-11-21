@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\RateCardUserType;
 use App\Http\Requests\Concerns\AuthorizesCompanyRateCard;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class RateCardCompanyOptionsRequest extends FormRequest
 {
@@ -21,7 +23,17 @@ class RateCardCompanyOptionsRequest extends FormRequest
     {
         return [
             'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'user_type' => ['required', 'string', Rule::enum(RateCardUserType::class)],
         ];
+    }
+
+    public function restrictionType(): RateCardUserType
+    {
+        $raw = $this->validated('user_type');
+
+        return $raw instanceof RateCardUserType
+            ? $raw
+            : RateCardUserType::from(is_string($raw) ? $raw : RateCardUserType::Customer->value);
     }
 
     public function queryString(): ?string
