@@ -66,6 +66,8 @@ class UpdateCompanyController extends Controller
         $this->companyTypes->assertAdminCompanyType($company, $type);
         if ($company->parent_company_id === null) {
             $this->companyTypes->assertAdminRootTypeChange($company, $type);
+        } else {
+            $this->companyTypes->assertAdminLinkedTypeChange($company, $type);
         }
 
         try {

@@ -539,6 +539,47 @@ class CompanyManagementTest extends TestCase
             ->assertJsonPath('company.blocked_root_company_types', ['customer', 'provider']);
     }
 
+    public function test_linked_provider_cannot_change_type_to_customer(): void
+    {
+        $this->loginAsAdmin();
+        $parent = Company::factory()->create([
+            'company_type' => CompanyType::Broker,
+            'business_name' => 'Acme Parent',
+        ]);
+        $child = Company::factory()->forNetworkOf($parent, CompanyType::Provider)->create();
+
+        $this->asSpa()->putJson('/api/admin/companies/'.$child->id, $this->detailsPayload($child, [
+            'company_type' => 'customer',
+        ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['company_type'])
+            ->assertJsonPath(
+                'errors.company_type.0',
+                'Cannot change company type while linked as a Provider of Acme Parent.',
+            );
+
+        $this->asSpa()->getJson('/api/admin/companies/'.$child->id)
+            ->assertOk()
+            ->assertJsonPath('company.blocked_root_company_types', ['customer']);
+    }
+
+    public function test_linked_customer_cannot_change_type_to_provider(): void
+    {
+        $this->loginAsAdmin();
+        $parent = Company::factory()->create(['company_type' => CompanyType::Broker]);
+        $child = Company::factory()->forNetworkOf($parent, CompanyType::Customer)->create();
+
+        $this->asSpa()->putJson('/api/admin/companies/'.$child->id, $this->detailsPayload($child, [
+            'company_type' => 'provider',
+        ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['company_type']);
+
+        $this->asSpa()->getJson('/api/admin/companies/'.$child->id)
+            ->assertOk()
+            ->assertJsonPath('company.blocked_root_company_types', ['provider']);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>

@@ -70,8 +70,13 @@
         role="tabpanel"
         [attr.aria-labelledby]="isEdit() ? 'tab-details' : null"
       >
-        @if (isLinkedCompany()) {
-          <p class="field-hint">Parent company: {{ parentBusinessName() }}</p>
+        @if (isLinkedCompany() && linkedCompanyRole(); as role) {
+          <p class="field-hint">
+            This is a {{ role }} of
+            <a [routerLink]="['/admin/companies', parentCompanyId(), 'edit']">{{
+              parentBusinessName()
+            }}</a>.
+          </p>
         }
 
         <label>
@@ -87,7 +92,7 @@
           [options]="companyTypeRadioOptions()"
           inline
         />
-        @if (blockedRootCompanyTypes().length > 0) {
+        @if (!isLinkedCompany() && blockedRootCompanyTypes().length > 0) {
           <span class="field-hint"
             >Some types are unavailable because of companies linked on the Network tab.</span
           >

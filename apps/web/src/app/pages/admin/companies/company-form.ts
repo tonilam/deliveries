@@ -2,15 +2,17 @@ import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
   HostListener,
   OnInit,
   computed,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
+import { ActivatedRoute, ParamMap, Router, RouterLink } from '@angular/router';
+import { combineLatest, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
@@ -85,6 +87,7 @@ export class AdminCompanyForm implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
   private readonly toastr = inject(ToastrService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
@@ -97,11 +100,13 @@ export class AdminCompanyForm implements OnInit {
   protected readonly pendingPayload = signal<CompanyDetailsPayload | null>(null);
   protected readonly countries = signal<Country[]>([]);
   protected readonly hasAddresses = signal(false);
+  protected readonly parentCompanyId = signal<number | null>(null);
   protected readonly parentBusinessName = signal<string | null>(null);
+  protected readonly linkedCompanyRole = signal<'customer' | 'provider' | null>(null);
   protected readonly rootCompanyType = signal<CompanyType>('broker');
   protected readonly blockedRootCompanyTypes = signal<CompanyType[]>([]);
   protected readonly countryLocked = computed(() => this.isEdit() && this.hasAddresses());
-  protected readonly isLinkedCompany = computed(() => this.parentBusinessName() !== null);
+  protected readonly isLinkedCompany = computed(() => this.parentCompanyId() !== null);
   protected readonly showNetworkTab = computed(() => this.isEdit() && !this.isLinkedCompany());
   protected readonly detailsDirty = signal(false);
   protected readonly companyTypeRadioOptions = computed((): RadioCardOption[] => {
@@ -174,7 +179,11 @@ export class AdminCompanyForm implements OnInit {
     this.http.get<{ countries: Country[] }>('/api/admin/countries').subscribe({
       next: ({ countries }) => {
         this.countries.set(countries);
-        this.loadCompanyIfEditing();
+        combineLatest([this.route.paramMap, this.route.queryParamMap])
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe(([params, query]) => {
+            this.syncRoute(params, query);
+          });
       },
       error: () => {
         this.error.set('Unable to load countries.');
@@ -183,9 +192,19 @@ export class AdminCompanyForm implements OnInit {
     });
   }
 
-  private loadCompanyIfEditing(): void {
-    const idParam = this.route.snapshot.paramMap.get('id');
+  private syncRoute(params: ParamMap, query: ParamMap): void {
+    if (this.confirmOpen() && !this.submitting()) {
+      this.cancelConfirm();
+    }
+
+    const idParam = params.get('id');
     if (!idParam) {
+      this.companyId.set(null);
+      this.parentCompanyId.set(null);
+      this.parentBusinessName.set(null);
+      this.linkedCompanyRole.set(null);
+      this.blockedRootCompanyTypes.set([]);
+      this.activeTab.set('details');
       this.loading.set(false);
       return;
     }
@@ -196,20 +215,31 @@ export class AdminCompanyForm implements OnInit {
       return;
     }
 
-    this.companyId.set(id);
-    const tab = this.route.snapshot.queryParamMap.get('tab');
+    const tab = query.get('tab');
     if (tab === 'finance') {
       this.activeTab.set('finance');
     } else if (tab === 'network') {
       this.activeTab.set('network');
+    } else {
+      this.activeTab.set('details');
     }
+
+    this.error.set(null);
+    this.loading.set(true);
+    this.companyId.set(id);
 
     this.http.get<{ company: Company }>(`/api/admin/companies/${id}`).subscribe({
       next: ({ company }) => {
+        if (this.companyId() !== id) {
+          return;
+        }
         this.patchCompany(company);
         this.loading.set(false);
       },
       error: () => {
+        if (this.companyId() !== id) {
+          return;
+        }
         this.error.set('Unable to load company.');
         this.loading.set(false);
       },
@@ -390,7 +420,14 @@ export class AdminCompanyForm implements OnInit {
 
   private patchDetails(company: Company): void {
     this.hasAddresses.set(company.has_addresses);
+    this.parentCompanyId.set(company.parent_company_id);
     this.parentBusinessName.set(company.parent_business_name);
+    this.linkedCompanyRole.set(
+      company.parent_company_id !== null &&
+        (company.company_type === 'customer' || company.company_type === 'provider')
+        ? company.company_type
+        : null,
+    );
     this.blockedRootCompanyTypes.set(company.blocked_root_company_types ?? []);
     if (company.parent_company_id === null) {
       this.rootCompanyType.set(company.company_type);
@@ -556,6 +593,7 @@ export class AdminCompanyForm implements OnInit {
     const errors = err.error?.errors;
     return (
       errors?.['country_id']?.[0] ??
+      errors?.['company_type']?.[0] ??
       errors?.['allowed_domains']?.[0] ??
       errors?.['business_name']?.[0] ??
       errors?.['reg_number']?.[0] ??

@@ -10,6 +10,7 @@ As an admin user, I want to set each company’s type (Customer, Provider, or Br
 - [x] Parent **Customer** may only have **provider** children; parent **Provider** may only have **customer** children; parent **Broker** may have either
 - [x] Admin cannot change a root company’s type while it still has children of a disallowed type for the new type (e.g. a **Broker** with linked **customer** companies cannot become **Customer**; a **Broker** with linked **provider** companies cannot become **Provider**)
 - [x] A linked company (`parent_company_id` set) cannot be saved as **Broker** (API and edit UI)
+- [x] A linked company cannot change **Company type** between **customer** and **provider** while it remains linked to a parent (API rejects the save; edit UI disables the other type and shows “This is a {customer|provider} of {parent business name}” with the parent name linking to that company’s admin edit page)
 - [x] Admin companies list shows **Company type** and **Parent** (parent business name; blank for roots); searchable, sortable, filterable server-side like other columns
 
 ## Notes

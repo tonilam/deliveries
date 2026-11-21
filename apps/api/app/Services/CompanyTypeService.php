@@ -50,7 +50,13 @@ class CompanyTypeService
     public function blockedAdminRootCompanyTypes(Company $company): array
     {
         if ($company->parent_company_id !== null) {
-            return [];
+            $currentType = $this->resolveType($company);
+
+            return match ($currentType) {
+                CompanyType::Customer => [CompanyType::Provider->value],
+                CompanyType::Provider => [CompanyType::Customer->value],
+                default => [],
+            };
         }
 
         $currentType = $this->resolveType($company);
@@ -67,6 +73,36 @@ class CompanyTypeService
         }
 
         return $blocked;
+    }
+
+    public function assertAdminLinkedTypeChange(Company $company, CompanyType $newType): void
+    {
+        if ($company->parent_company_id === null) {
+            return;
+        }
+
+        $currentType = $this->resolveType($company);
+        if ($currentType === $newType) {
+            return;
+        }
+
+        if (
+            in_array($currentType, CompanyType::linkedOptions(), true)
+            && in_array($newType, CompanyType::linkedOptions(), true)
+        ) {
+            throw ValidationException::withMessages([
+                'company_type' => [$this->linkedTypeChangeBlockedMessage($company)],
+            ]);
+        }
+    }
+
+    private function linkedTypeChangeBlockedMessage(Company $company): string
+    {
+        $parent = $company->parent ?? Company::query()->find($company->parent_company_id);
+        $parentName = $parent?->business_name ?? 'the parent company';
+        $role = $this->resolveType($company)->label();
+
+        return 'Cannot change company type while linked as a '.$role.' of '.$parentName.'.';
     }
 
     public function assertAdminRootTypeChange(Company $company, CompanyType $newType): void
