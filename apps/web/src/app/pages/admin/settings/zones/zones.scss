@@ -139,6 +139,13 @@
   margin-bottom: 0.75rem;
 }
 
+.form-stack label.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+
 .form-stack input[type='text'],
 .form-stack select {
   font: inherit;
