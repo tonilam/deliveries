@@ -81,12 +81,10 @@ class RateCardManagementTest extends TestCase
     public function test_list_includes_linked_company_names(): void
     {
         $company = $this->companyWithZones();
-        $partnerA = Company::factory()->create([
-            'country_id' => $company->country_id,
+        $partnerA = Company::factory()->forNetworkOf($company, CompanyType::Customer)->create([
             'business_name' => 'Alpha Haulage',
         ]);
-        $partnerB = Company::factory()->create([
-            'country_id' => $company->country_id,
+        $partnerB = Company::factory()->forNetworkOf($company, CompanyType::Customer)->create([
             'business_name' => 'Beta Freight',
         ]);
         $customer = User::factory()->forCompany($company)->create([
@@ -122,7 +120,7 @@ class RateCardManagementTest extends TestCase
     public function test_create_rate_card_with_zones_and_companies(): void
     {
         $company = $this->companyWithZones();
-        $partner = Company::factory()->create(['country_id' => $company->country_id]);
+        $partner = Company::factory()->forNetworkOf($company, CompanyType::Customer)->create();
         $customer = User::factory()->forCompany($company)->create([
             'email' => 'customer@example.com',
             'password' => 'Password1!',
@@ -289,7 +287,7 @@ class RateCardManagementTest extends TestCase
     public function test_switching_user_type_clears_company_restrictions(): void
     {
         $company = $this->companyWithZones();
-        $partner = Company::factory()->create(['country_id' => $company->country_id]);
+        $partner = Company::factory()->forNetworkOf($company, CompanyType::Customer)->create();
         $customer = User::factory()->forCompany($company)->create([
             'email' => 'customer@example.com',
             'password' => 'Password1!',
