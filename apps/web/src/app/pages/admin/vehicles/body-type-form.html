@@ -1,0 +1,177 @@
+<section class="portal portal--wide">
+  <p class="form-back">
+    @if (categoryId(); as cid) {
+      <a routerLink="/admin/vehicles">← Vehicles</a>
+    }
+  </p>
+
+  <h1>{{ title() }}</h1>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p>Loading…</p>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
+      <label>
+        <span>Name</span>
+        <input type="text" formControlName="name" />
+      </label>
+      <label>
+        <span>Code</span>
+        <input type="text" formControlName="code" spellcheck="false" />
+      </label>
+      <label>
+        <span>Capacity</span>
+        <input type="number" formControlName="capacity" step="0.001" min="0" />
+      </label>
+      <label>
+        <span>Capacity unit</span>
+        <select formControlName="capacity_unit">
+          @for (unit of capacityUnits; track unit.value) {
+            <option [value]="unit.value">{{ unit.label }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Pallet spaces</span>
+        <input type="number" formControlName="pallet_spaces" min="0" />
+      </label>
+      <label>
+        <span>Cubic metres</span>
+        <input type="number" formControlName="cubic_metres" step="0.01" min="0" />
+      </label>
+      <label>
+        <span>Payload (kg)</span>
+        <input type="number" formControlName="payload_kg" min="0" />
+      </label>
+      <label class="span-2">
+        <span>Description</span>
+        <textarea formControlName="description" rows="3"></textarea>
+      </label>
+    </form>
+
+    @if (options().length) {
+      <section class="option-values">
+        <h2>Option values</h2>
+        <p class="lede">Public options may be shown to customers in a future release.</p>
+        @for (opt of options(); track opt.id) {
+          <div class="option-value-row">
+            <span class="option-value-row__label">
+              {{ opt.label }}
+              <small>({{ opt.visibility }})</small>
+              @if (opt.required) {
+                <em>required</em>
+              }
+            </span>
+            @if (optionValueControls()[opt.key]; as control) {
+              @if (opt.data_type === 'boolean') {
+                <label class="checkbox">
+                  <input type="checkbox" [formControl]="control" />
+                  <span>Enabled</span>
+                </label>
+              } @else {
+                <input type="text" [formControl]="control" />
+              }
+            }
+          </div>
+        }
+      </section>
+    }
+
+    @if (isEdit()) {
+      <section class="option-definitions">
+        <h2>Option definitions</h2>
+        <button type="button" class="btn btn--ghost" (click)="openNewOption()">Add option</button>
+        @if (options().length === 0) {
+          <p>No options defined.</p>
+        } @else {
+          <table class="options-table">
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Label</th>
+                <th>Type</th>
+                <th>Visibility</th>
+                <th>Required</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (opt of options(); track opt.id) {
+                <tr>
+                  <td>{{ opt.key }}</td>
+                  <td>{{ opt.label }}</td>
+                  <td>{{ opt.data_type }}</td>
+                  <td>{{ opt.visibility }}</td>
+                  <td>{{ opt.required ? 'Yes' : 'No' }}</td>
+                  <td class="options-table__actions">
+                    <button type="button" class="link-button" (click)="openEditOption(opt)">
+                      Edit
+                    </button>
+                    <button type="button" class="link-button" (click)="deleteOption(opt)">
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </section>
+    } @else {
+      <p class="lede">Save the body type first, then you can add option definitions.</p>
+    }
+
+    <div class="form-actions">
+      <button type="button" class="btn btn--primary" [disabled]="submitting()" (click)="submit()">
+        {{ submitting() ? 'Saving…' : 'Save body type' }}
+      </button>
+    </div>
+  }
+</section>
+
+@if (optionFormOpen()) {
+  <div class="modal-backdrop" (click)="cancelOptionForm()"></div>
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2>{{ editingOptionId() ? 'Edit option' : 'Add option' }}</h2>
+    <form [formGroup]="optionForm" (ngSubmit)="saveOptionDefinition()" class="form-stack">
+      <label>
+        <span>Key</span>
+        <input type="text" formControlName="key" />
+      </label>
+      <label>
+        <span>Label</span>
+        <input type="text" formControlName="label" />
+      </label>
+      <label>
+        <span>Data type</span>
+        <select formControlName="data_type">
+          <option value="boolean">Boolean</option>
+          <option value="varchar">Text</option>
+        </select>
+      </label>
+      <label>
+        <span>Visibility</span>
+        <select formControlName="visibility">
+          <option value="public">Public (customer-visible later)</option>
+          <option value="system">System (admin only)</option>
+        </select>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" formControlName="required" />
+        <span>Required on body type</span>
+      </label>
+      <label>
+        <span>Sort order</span>
+        <input type="number" formControlName="sort_order" min="0" />
+      </label>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" (click)="cancelOptionForm()">Cancel</button>
+        <button type="submit" class="btn btn--primary">Save option</button>
+      </div>
+    </form>
+  </div>
+}

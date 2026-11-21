@@ -1,0 +1,12 @@
+<div class="grid-actions">
+  @for (action of actions(); track action.id) {
+    <button
+      type="button"
+      class="btn btn--ghost"
+      [class.btn--danger]="action.danger"
+      (click)="runAction(action, $event)"
+    >
+      {{ action.label }}
+    </button>
+  }
+</div>

@@ -1,0 +1,7 @@
+// Host styles for full-page routes outside app-shell (login, register, etc.)
+:host {
+  display: block;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}

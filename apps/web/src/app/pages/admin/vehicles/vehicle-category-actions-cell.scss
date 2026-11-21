@@ -1,0 +1,11 @@
+:host {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.grid-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}

@@ -1,0 +1,108 @@
+<section class="portal portal--wide">
+  <div class="users-header">
+    <div>
+      <p class="form-back">
+        <a routerLink="/admin/vehicles">← Vehicles</a>
+      </p>
+      <h1>Body types — {{ category()?.name ?? '…' }}</h1>
+      <p class="lede">Manage body types and capacities for this category.</p>
+    </div>
+    @if (categoryId(); as cid) {
+      <a
+        routerLink="/admin/vehicles/categories/{{ cid }}/body-types/create"
+        class="btn btn--primary"
+      >
+        Add body type
+      </a>
+    }
+  </div>
+
+  @if (error()) {
+    <p class="users-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (compact()) {
+    <app-data-list
+      [loading]="loading()"
+      [rows]="rows()"
+      [titleFor]="listTitle"
+      [columns]="listColumns"
+      [actionsFor]="actionsForList"
+      [searchValue]="searchQuery()"
+      searchPlaceholder="Search body types…"
+      [sortOptions]="sortOptions"
+      [sortField]="sortField"
+      [sortDirection]="sortDirection"
+      (searchChange)="onListSearch($event)"
+      (sortFieldChange)="onListSortField($event)"
+      (sortDirectionChange)="onListSortDirection($event)"
+    />
+  } @else {
+    <ag-grid-angular
+      class="users-grid"
+      [theme]="theme"
+      [rowData]="rows()"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [loading]="loading()"
+      [suppressMultiSort]="true"
+      domLayout="autoHeight"
+      [rowHeight]="64"
+      (gridReady)="onGridReady($event)"
+      (filterChanged)="onFilterChanged($event)"
+      (sortChanged)="onSortChanged($event)"
+    />
+  }
+
+  @if (meta(); as pagination) {
+    <div class="pagination" aria-label="Body types pagination">
+      <p class="pagination__summary">
+        Showing {{ pagination.from ?? 0 }}–{{ pagination.to ?? 0 }} of {{ pagination.total }}
+      </p>
+      <label class="pagination__size">
+        <span>Rows per page</span>
+        <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+      <nav class="pagination__nav">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          (click)="goToPage(pagination.current_page - 1)"
+        >
+          Previous
+        </button>
+        <span>Page {{ pagination.current_page }} of {{ pagination.last_page }}</span>
+        <button
+          type="button"
+          class="btn btn--ghost"
+          (click)="goToPage(pagination.current_page + 1)"
+        >
+          Next
+        </button>
+      </nav>
+    </div>
+  }
+</section>
+
+@if (pendingDelete(); as row) {
+  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2>Delete body type</h2>
+    <p>Delete “{{ row.name }}” and its option definitions?</p>
+    <div class="modal__actions">
+      <button type="button" class="btn btn--ghost" (click)="cancelDelete()">Cancel</button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        [disabled]="deleting()"
+        (click)="confirmDelete()"
+      >
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+    </div>
+  </div>
+}

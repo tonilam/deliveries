@@ -44,6 +44,7 @@ export class AppShell {
           { label: 'System settings', path: '/admin/settings' },
           { label: 'Features', path: '/admin/features' },
           { label: 'Companies', path: '/admin/companies' },
+          { label: 'Vehicles', path: '/admin/vehicles' },
           { label: 'User management', path: '/admin/users' },
         ]
       : [

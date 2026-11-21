@@ -1,0 +1,79 @@
+/*
+  Truckit Button (md) — aligns with Storybook Components/Button until ui-button is installed.
+  https://component.truckitmetro.com/storybook/?path=/docs/components-button--docs
+*/
+
+.btn {
+  box-sizing: border-box;
+  font-family: var(--ui-font-family);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  padding: 0.625rem 1rem;
+  min-height: 2.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.btn--primary {
+  color: #fff;
+  background-color: var(--ui-color-brand);
+  border-color: var(--ui-color-brand);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: #e04f22;
+  border-color: #e04f22;
+}
+
+.btn--ghost {
+  color: var(--ui-color-navy);
+  background-color: #fff;
+  border-color: #cbd5e1;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.btn--ghost.btn--danger,
+.btn--danger.btn--ghost {
+  color: var(--ui-color-error);
+  border-color: #fecaca;
+}
+
+.btn--ghost.btn--danger:hover:not(:disabled),
+.btn--danger.btn--ghost:hover:not(:disabled) {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--ui-color-brand);
+  outline-offset: 2px;
+}
+
+a.btn:visited {
+  color: inherit;
+}
+
+a.btn--primary:visited {
+  color: #fff;
+}

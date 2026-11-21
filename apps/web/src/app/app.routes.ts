@@ -132,6 +132,32 @@ export const routes: Routes = [
           import('./pages/admin/companies/companies').then((m) => m.AdminCompanies),
       },
       {
+        path: 'vehicles',
+        loadComponent: () => import('./pages/admin/vehicles/vehicles').then((m) => m.AdminVehicles),
+      },
+      {
+        path: 'vehicles/categories/create',
+        loadComponent: () =>
+          import('./pages/admin/vehicles/vehicle-category-form').then(
+            (m) => m.AdminVehicleCategoryForm,
+          ),
+      },
+      {
+        path: 'vehicles/categories/:categoryId/body-types',
+        loadComponent: () =>
+          import('./pages/admin/vehicles/body-types').then((m) => m.AdminVehicleBodyTypes),
+      },
+      {
+        path: 'vehicles/categories/:categoryId/body-types/create',
+        loadComponent: () =>
+          import('./pages/admin/vehicles/body-type-form').then((m) => m.AdminVehicleBodyTypeForm),
+      },
+      {
+        path: 'vehicles/categories/:categoryId/body-types/:id/edit',
+        loadComponent: () =>
+          import('./pages/admin/vehicles/body-type-form').then((m) => m.AdminVehicleBodyTypeForm),
+      },
+      {
         path: 'companies/create',
         loadComponent: () =>
           import('./pages/admin/companies/company-form').then((m) => m.AdminCompanyForm),

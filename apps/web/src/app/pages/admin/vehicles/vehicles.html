@@ -1,0 +1,155 @@
+<section class="portal portal--wide">
+  <div class="users-header">
+    <div>
+      <h1>Vehicles</h1>
+      <p class="lede">Categories and body types in one catalogue view.</p>
+    </div>
+    <a routerLink="/admin/vehicles/categories/create" class="btn btn--primary">Add category</a>
+  </div>
+
+  @if (error()) {
+    <p class="users-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="vehicles-status">Loading catalogue…</p>
+  } @else if (categories().length === 0) {
+    <p class="vehicles-status">No categories yet.</p>
+  } @else {
+    <div class="category-filters" aria-label="Show categories">
+      <label class="category-filters__all checkbox">
+        <input
+          type="checkbox"
+          [checked]="allCategoriesChecked()"
+          (change)="toggleAllCategories($any($event.target).checked)"
+        />
+        <span>All categories</span>
+      </label>
+      @for (category of categories(); track category.id) {
+        <label class="checkbox">
+          <input
+            type="checkbox"
+            [checked]="isCategoryVisible(category.id)"
+            (change)="toggleCategory(category.id, $any($event.target).checked)"
+          />
+          <span>{{ category.name }}</span>
+        </label>
+      }
+    </div>
+
+    @if (visibleCategories().length === 0) {
+      <p class="vehicles-status">No categories selected. Turn on a category above.</p>
+    }
+
+    <ul class="category-sections">
+      @for (category of visibleCategories(); track category.id) {
+        <li class="category-section">
+          <div class="category-section__header">
+            <div>
+              <h2>{{ category.name }}</h2>
+              <p class="category-section__code">
+                {{ category.code }} · sort {{ category.sort_order }}
+              </p>
+            </div>
+            <div class="category-section__actions">
+              <button type="button" class="btn btn--ghost" (click)="openEditCategory(category)">
+                Edit category
+              </button>
+              <button
+                type="button"
+                class="btn btn--ghost btn--danger"
+                [disabled]="deleting()"
+                (click)="requestDeleteCategory(category)"
+              >
+                Delete
+              </button>
+              <a
+                class="btn btn--primary"
+                [routerLink]="['/admin/vehicles/categories', category.id, 'body-types', 'create']"
+              >
+                Add body type
+              </a>
+            </div>
+          </div>
+
+          @if ((category.body_types ?? []).length === 0) {
+            <p class="vehicles-status">No body types in this category.</p>
+          } @else {
+            <ag-grid-angular
+              class="body-types-grid"
+              [theme]="theme"
+              [rowData]="bodyTypesForGrid(category)"
+              [columnDefs]="bodyTypeColumnsByCategory().get(category.id) ?? []"
+              [defaultColDef]="bodyTypeDefaultsByCategory().get(category.id)"
+              [pagination]="true"
+              [paginationPageSize]="bodyTypePageSize"
+              [paginationPageSizeSelector]="bodyTypePageSizeSelector"
+              domLayout="autoHeight"
+              [rowHeight]="bodyTypeRowHeight"
+              [suppressCellFocus]="true"
+            />
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>
+
+@if (categoryEditOpen()) {
+  <div class="modal-backdrop" (click)="cancelEditCategory()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="category-edit-title">
+    <h2 id="category-edit-title">Edit category</h2>
+    @if (categoryEditError(); as editErr) {
+      <p class="form-error" role="alert">{{ editErr }}</p>
+    }
+    <form [formGroup]="categoryForm" (ngSubmit)="saveEditCategory()" class="form-stack">
+      <label>
+        <span>Name</span>
+        <input type="text" formControlName="name" autocomplete="off" />
+      </label>
+      <label>
+        <span>Code</span>
+        <input type="text" formControlName="code" autocomplete="off" spellcheck="false" />
+        <small>Lowercase letters, numbers, and underscores only.</small>
+      </label>
+      <label>
+        <span>Sort order</span>
+        <input type="number" formControlName="sort_order" min="0" />
+      </label>
+      <div class="modal__actions">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="savingCategory()"
+          (click)="cancelEditCategory()"
+        >
+          Cancel
+        </button>
+        <button type="submit" class="btn btn--primary" [disabled]="savingCategory()">
+          {{ savingCategory() ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (pendingDelete(); as pending) {
+  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-delete-title">
+    <h2 id="vehicle-delete-title">Confirm delete</h2>
+    <p>{{ deleteMessage(pending) }}</p>
+    <div class="modal__actions">
+      <button type="button" class="btn btn--ghost" [disabled]="deleting()" (click)="cancelDelete()">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        [disabled]="deleting()"
+        (click)="confirmDelete()"
+      >
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+    </div>
+  </div>
+}

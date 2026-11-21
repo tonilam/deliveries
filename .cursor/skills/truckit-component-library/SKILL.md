@@ -63,6 +63,8 @@ body {
 
 **Peer note:** library `0.0.1` targets Angular `^22.1.0`. Align the app before forcing install.
 
+**Until the package is installed:** use global `.btn` / `.btn--primary` / `.btn--ghost` / `.btn--danger` from [`ui-buttons.scss`](../../apps/web/src/app/shared/ui-buttons.scss) (imported in `styles.scss`). Do not define one-off `.btn` rules on feature pages.
+
 ## Usage rules
 
 1. **Reuse first** — map UI needs to Storybook components; do not recreate buttons, inputs, cards, tables, etc.

@@ -1,0 +1,35 @@
+<section class="portal">
+  <p class="form-back">
+    <a routerLink="/admin/vehicles">← Vehicles</a>
+  </p>
+
+  <h1>Add category</h1>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="form-stack">
+    <label>
+      <span>Name</span>
+      <input type="text" formControlName="name" autocomplete="off" />
+    </label>
+
+    <label>
+      <span>Code</span>
+      <input type="text" formControlName="code" autocomplete="off" spellcheck="false" />
+      <small>Lowercase letters, numbers, and underscores only.</small>
+    </label>
+
+    <label>
+      <span>Sort order</span>
+      <input type="number" formControlName="sort_order" min="0" />
+    </label>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+        {{ submitting() ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  </form>
+</section>
