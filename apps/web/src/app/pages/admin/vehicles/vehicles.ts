@@ -13,6 +13,7 @@ import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
   ColDef,
+  GetRowIdParams,
   ITextFilterParams,
   ModuleRegistry,
   themeQuartz,
@@ -82,6 +83,25 @@ export class AdminVehicles implements OnInit {
   protected readonly bodyTypePageSize = 10;
   protected readonly bodyTypeRowHeight = 64;
   protected readonly bodyTypePageSizeSelector = [10, 25, 50];
+  private readonly emptyBodyTypeColumns: ColDef<VehicleBodyTypeGridRow>[] = [];
+  private readonly emptyBodyTypeRows: VehicleBodyTypeGridRow[] = [];
+  protected readonly bodyTypeRowId = (params: GetRowIdParams<VehicleBodyTypeGridRow>): string =>
+    String(params.data.id);
+
+  /** Stable row arrays. A new array on every check makes AG Grid destroy and recreate every row. */
+  private readonly rowsByCategory = computed(() => {
+    const rows = new Map<number, VehicleBodyTypeGridRow[]>();
+    for (const category of this.categories()) {
+      rows.set(
+        category.id,
+        (category.body_types ?? []).map((bodyType) => ({
+          ...bodyType,
+          vehicle_category_id: category.id,
+        })),
+      );
+    }
+    return rows;
+  });
 
   /** Each grid must own its column objects. AG Grid mutates them in place. */
   protected readonly bodyTypeColumnsByCategory = computed(() => {
@@ -202,11 +222,12 @@ export class AdminVehicles implements OnInit {
     return this.categoryVisible()[categoryId] !== false;
   }
 
+  protected bodyTypeColumnsFor(categoryId: number): ColDef<VehicleBodyTypeGridRow>[] {
+    return this.bodyTypeColumnsByCategory().get(categoryId) ?? this.emptyBodyTypeColumns;
+  }
+
   protected bodyTypesForGrid(category: VehicleCategory): VehicleBodyTypeGridRow[] {
-    return (category.body_types ?? []).map((bodyType) => ({
-      ...bodyType,
-      vehicle_category_id: category.id,
-    }));
+    return this.rowsByCategory().get(category.id) ?? this.emptyBodyTypeRows;
   }
 
   protected openEditCategory(category: VehicleCategory): void {
