@@ -19,17 +19,7 @@
     <p>Loading…</p>
   } @else if (!loadFailed()) {
     <form [formGroup]="form" (ngSubmit)="submit()" class="create-form">
-      <fieldset class="type-fieldset">
-        <legend>Type</legend>
-        <label class="radio">
-          <input type="radio" formControlName="type" value="collection" />
-          Collection
-        </label>
-        <label class="radio">
-          <input type="radio" formControlName="type" value="delivery" />
-          Delivery
-        </label>
-      </fieldset>
+      <app-radio-card-group formControlName="type" legend="Type" [options]="typeOptions" />
 
       <label>
         Business name

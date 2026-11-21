@@ -12,7 +12,16 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import {
+  RadioCardGroupComponent,
+  RadioCardOption,
+} from '../../../shared/radio-card-group/radio-card-group';
 import { AddressRow, AddressType } from './addresses';
+
+const TYPE_OPTIONS: RadioCardOption[] = [
+  { value: 'collection', label: 'Collection' },
+  { value: 'delivery', label: 'Delivery' },
+];
 
 interface StateOption {
   code: string;
@@ -30,7 +39,7 @@ const ZONE_SUGGESTION_LIMIT = 200;
 
 @Component({
   selector: 'app-customer-address-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent],
   templateUrl: './address-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './address-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,6 +66,7 @@ export class CustomerAddressForm implements OnInit {
   protected readonly addressId = signal<number | null>(null);
   protected readonly isEdit = computed(() => this.addressId() !== null);
   protected readonly title = computed(() => (this.isEdit() ? 'Edit address' : 'Add address'));
+  protected readonly typeOptions = TYPE_OPTIONS;
   protected readonly activeZoneSuggestionId = computed(() => {
     const index = this.activeZoneSuggestionIndex();
     const zone = this.zoneSuggestions()[index];

@@ -126,27 +126,6 @@
   font-weight: 600;
 }
 
-.type-fieldset {
-  border: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 0.5rem;
-}
-
-.type-fieldset legend {
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.radio {
-  display: flex !important;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 500 !important;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;
