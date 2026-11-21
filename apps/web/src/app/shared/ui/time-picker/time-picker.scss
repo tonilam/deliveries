@@ -1,0 +1,89 @@
+@use '../picker-field.shared.scss';
+
+.tp-panel {
+  width: 280px;
+}
+
+.tp-fields {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ui-spacing-2);
+}
+
+.tp-field {
+  display: grid;
+  gap: var(--ui-spacing-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.tp-field__label {
+  font-family: var(--ui-font-family);
+  font-size: 11px;
+  font-weight: var(--ui-font-weight-bold);
+  color: var(--ui-color-text-muted);
+  text-transform: uppercase;
+}
+
+.tp-input {
+  width: 100%;
+  height: var(--ui-input-height);
+  padding: 0 var(--ui-spacing-3);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-default);
+  background: var(--ui-color-surface);
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size-body-md);
+  color: var(--ui-color-text-primary);
+  transition:
+    border-color var(--ui-motion-duration) var(--ui-motion-easing),
+    box-shadow var(--ui-motion-duration) var(--ui-motion-easing);
+}
+
+.tp-input:hover:not(:disabled) {
+  border-color: var(--ui-color-border-light);
+}
+
+.tp-input:focus {
+  outline: none;
+  border-color: var(--ui-color-focus-ring);
+  box-shadow: 0 0 0 3px #f05a281a;
+}
+
+.tp-input:disabled {
+  background: var(--ui-color-neutral-100);
+  cursor: not-allowed;
+}
+
+.tp-sep {
+  padding-bottom: calc(var(--ui-input-height) / 2 - 0.5rem);
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size-body-md);
+  font-weight: var(--ui-font-weight-bold);
+  color: var(--ui-color-text-muted);
+}
+
+.tp-apply {
+  display: block;
+  width: 100%;
+  margin-top: var(--ui-spacing-3);
+  height: var(--ui-input-height);
+  border: none;
+  border-radius: var(--ui-radius-default);
+  background: var(--ui-color-action-primary);
+  color: var(--ui-color-text-inverse);
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size-body-sm);
+  font-weight: var(--ui-font-weight-semibold);
+  cursor: pointer;
+  transition: opacity var(--ui-motion-duration) var(--ui-motion-easing);
+}
+
+.tp-apply:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.tp-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

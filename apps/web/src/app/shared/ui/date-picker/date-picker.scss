@@ -1,0 +1,113 @@
+@use '../picker-field.shared.scss';
+
+.dp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ui-spacing-2);
+}
+
+.dp-month {
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size-body-md);
+  font-weight: var(--ui-font-weight-bold);
+  color: var(--ui-color-text-primary);
+}
+
+.dp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--ui-radius-default);
+  background: transparent;
+  color: var(--ui-color-text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--ui-motion-duration) var(--ui-motion-easing),
+    color var(--ui-motion-duration) var(--ui-motion-easing);
+}
+
+.dp-nav:hover {
+  background: var(--ui-color-surface-alt);
+  color: var(--ui-color-text-primary);
+}
+
+.dp-nav:focus-visible {
+  outline: 2px solid var(--ui-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.dp-nav svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentcolor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: var(--ui-spacing-1);
+}
+
+.dp-weekday {
+  text-align: center;
+  font-family: var(--ui-font-family);
+  font-size: 11px;
+  font-weight: var(--ui-font-weight-bold);
+  color: var(--ui-color-text-muted);
+  text-transform: uppercase;
+}
+
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.dp-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: none;
+  border-radius: var(--ui-radius-default);
+  background: transparent;
+  font-family: var(--ui-font-family);
+  font-size: var(--ui-font-size-body-sm);
+  color: var(--ui-color-text-primary);
+  cursor: pointer;
+  transition:
+    background-color var(--ui-motion-duration) var(--ui-motion-easing),
+    color var(--ui-motion-duration) var(--ui-motion-easing);
+}
+
+.dp-day:hover:not(.dp-day--selected) {
+  background: var(--ui-color-surface-alt);
+}
+
+.dp-day:focus-visible {
+  outline: 2px solid var(--ui-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.dp-day--outside {
+  color: var(--ui-color-text-muted-light);
+}
+
+.dp-day--today:not(.dp-day--selected) {
+  font-weight: var(--ui-font-weight-bold);
+  color: var(--ui-color-action-primary);
+}
+
+.dp-day--selected {
+  background: var(--ui-color-action-primary);
+  color: var(--ui-color-text-inverse);
+  font-weight: var(--ui-font-weight-semibold);
+}

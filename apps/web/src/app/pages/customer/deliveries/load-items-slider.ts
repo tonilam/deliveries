@@ -23,6 +23,12 @@ import {
   ItemRow,
   weightInputToTonnes,
 } from './item-format';
+import { LoadScheduleFields } from './load-schedule-fields';
+import {
+  defaultLoadSchedule,
+  loadScheduleControls,
+  loadScheduleOrderValidator,
+} from './load-schedule';
 import { LoadRow, OwnerCompanyType } from './load.types';
 
 const SEARCH_MIN_CHARS = 2;
@@ -74,7 +80,7 @@ interface GoodTypeOption {
 
 @Component({
   selector: 'app-load-items-slider',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, LoadScheduleFields],
   templateUrl: './load-items-slider.html',
   styleUrl: './load-items-slider.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -122,17 +128,25 @@ export class LoadItemsSlider {
     child_load_id: this.fb.control<number | null>(null, [Validators.required]),
   });
 
-  protected readonly moveAddDropForm = this.fb.nonNullable.group({
-    delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
-  });
+  protected readonly moveAddDropForm = this.fb.group(
+    {
+      delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
+      ...loadScheduleControls(this.fb),
+    },
+    { validators: loadScheduleOrderValidator() },
+  );
 
-  protected readonly moveXDockForm = this.fb.nonNullable.group({
-    xdock_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    secondary_provider_company_id: this.fb.control<number | null>(null, [Validators.required]),
-    pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
-  });
+  protected readonly moveXDockForm = this.fb.group(
+    {
+      xdock_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      secondary_provider_company_id: this.fb.control<number | null>(null, [Validators.required]),
+      pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
+      ...loadScheduleControls(this.fb),
+    },
+    { validators: loadScheduleOrderValidator() },
+  );
 
   protected readonly createItemOpen = signal(false);
   protected readonly savingItem = signal(false);
@@ -314,6 +328,10 @@ export class LoadItemsSlider {
         type: 'add_drop',
         delivery_address_id: raw.delivery_address_id!,
         pallet_count: raw.pallet_count,
+        pickup_date: String(raw.pickup_date ?? ''),
+        pickup_time: String(raw.pickup_time ?? ''),
+        dropoff_date: String(raw.dropoff_date ?? ''),
+        dropoff_time: String(raw.dropoff_time ?? ''),
       };
     } else {
       this.moveXDockForm.markAllAsTouched();
@@ -327,6 +345,10 @@ export class LoadItemsSlider {
         delivery_address_id: raw.delivery_address_id!,
         secondary_provider_company_id: raw.secondary_provider_company_id!,
         pallet_count: raw.pallet_count,
+        pickup_date: String(raw.pickup_date ?? ''),
+        pickup_time: String(raw.pickup_time ?? ''),
+        dropoff_date: String(raw.dropoff_date ?? ''),
+        dropoff_time: String(raw.dropoff_time ?? ''),
       };
     }
 
@@ -538,12 +560,18 @@ export class LoadItemsSlider {
 
   private resetMoveForms(): void {
     this.moveExistingForm.reset({ child_load_id: null });
-    this.moveAddDropForm.reset({ delivery_address_id: null, pallet_count: 1 });
+    const schedule = defaultLoadSchedule();
+    this.moveAddDropForm.reset({
+      delivery_address_id: null,
+      pallet_count: 1,
+      ...schedule,
+    });
     this.moveXDockForm.reset({
       xdock_address_id: null,
       delivery_address_id: null,
       secondary_provider_company_id: null,
       pallet_count: 1,
+      ...schedule,
     });
     this.partyPicker.set(emptyPicker());
     this.addressPickers.set({

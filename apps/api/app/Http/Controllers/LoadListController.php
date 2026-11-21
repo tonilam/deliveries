@@ -95,7 +95,11 @@ class LoadListController extends Controller
                 ->orWhere('load_collection.address', 'like', $like)
                 ->orWhere('load_delivery.business_name', 'like', $like)
                 ->orWhere('load_delivery.address', 'like', $like)
-                ->orWhere('loads.pallet_count', 'like', $like);
+                ->orWhere('loads.pallet_count', 'like', $like)
+                ->orWhere('loads.pickup_date', 'like', $like)
+                ->orWhere('loads.pickup_time', 'like', $like)
+                ->orWhere('loads.dropoff_date', 'like', $like)
+                ->orWhere('loads.dropoff_time', 'like', $like);
         });
     }
 
@@ -112,6 +116,38 @@ class LoadListController extends Controller
                     .'INNER JOIN loads AS child_loads ON child_loads.id = items.load_id '
                     .'WHERE child_loads.parent_load_id = loads.id), 0)) '.$sqlDirection
                 )
+                ->orderBy('loads.id');
+
+            return;
+        }
+
+        if ($sort === 'pickup_date') {
+            $query->orderBy('loads.pickup_date', $direction)
+                ->orderBy('loads.pickup_time', $direction)
+                ->orderBy('loads.id');
+
+            return;
+        }
+
+        if ($sort === 'pickup_time') {
+            $query->orderBy('loads.pickup_time', $direction)
+                ->orderBy('loads.pickup_date', $direction)
+                ->orderBy('loads.id');
+
+            return;
+        }
+
+        if ($sort === 'dropoff_date') {
+            $query->orderBy('loads.dropoff_date', $direction)
+                ->orderBy('loads.dropoff_time', $direction)
+                ->orderBy('loads.id');
+
+            return;
+        }
+
+        if ($sort === 'dropoff_time') {
+            $query->orderBy('loads.dropoff_time', $direction)
+                ->orderBy('loads.dropoff_date', $direction)
                 ->orderBy('loads.id');
 
             return;
@@ -163,11 +199,21 @@ class LoadListController extends Controller
             'provider' => 'load_provider.business_name',
             'collection' => 'load_collection.business_name',
             'delivery' => 'load_delivery.business_name',
+            'pickup_date' => 'loads.pickup_date',
+            'pickup_time' => 'loads.pickup_time',
+            'dropoff_date' => 'loads.dropoff_date',
+            'dropoff_time' => 'loads.dropoff_time',
             'pallet_count' => 'loads.pallet_count',
             default => null,
         };
 
         if ($dbColumn === null) {
+            return;
+        }
+
+        if (in_array($column, ['pickup_date', 'dropoff_date'], true) && $this->usesDateComparison($type)) {
+            $this->applyDateFilter($query, $dbColumn, $type, $value, $filterTo);
+
             return;
         }
 
@@ -214,6 +260,68 @@ class LoadListController extends Controller
     /**
      * @param  Builder<Load>  $query
      */
+    private function applyDateFilter(
+        Builder $query,
+        string $dbColumn,
+        string $type,
+        ?string $value,
+        ?string $filterTo,
+    ): void {
+        if ($type === 'inRange') {
+            $from = $this->normalizeFilterDate($value);
+            $to = $this->normalizeFilterDate($filterTo);
+            if ($from === null || $to === null) {
+                return;
+            }
+
+            $query->where($dbColumn, '>=', $from)
+                ->where($dbColumn, '<=', $to);
+
+            return;
+        }
+
+        $bound = $this->normalizeFilterDate($value);
+        if ($bound === null) {
+            return;
+        }
+
+        match ($type) {
+            'equals' => $query->where($dbColumn, '=', $bound),
+            'notEqual' => $query->where($dbColumn, '!=', $bound),
+            'greaterThan' => $query->where($dbColumn, '>', $bound),
+            'greaterThanOrEqual' => $query->where($dbColumn, '>=', $bound),
+            'lessThan' => $query->where($dbColumn, '<', $bound),
+            'lessThanOrEqual' => $query->where($dbColumn, '<=', $bound),
+            default => null,
+        };
+    }
+
+    private function normalizeFilterDate(?string $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (strlen($value) < 10 || ! preg_match('/^\d{4}-\d{2}-\d{2}/', $value)) {
+            return null;
+        }
+
+        return substr($value, 0, 10);
+    }
+
+    private function usesDateComparison(string $type): bool
+    {
+        return in_array($type, [
+            'equals',
+            'notEqual',
+            'greaterThan',
+            'lessThan',
+            'greaterThanOrEqual',
+            'lessThanOrEqual',
+            'inRange',
+        ], true);
+    }
+
     private function applyNumericFilter(
         Builder $query,
         string $dbColumn,

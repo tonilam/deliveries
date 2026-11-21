@@ -20,6 +20,10 @@ class ListLoadsRequest extends FormRequest
         'provider',
         'collection',
         'delivery',
+        'pickup_date',
+        'pickup_time',
+        'dropoff_date',
+        'dropoff_time',
         'pallet_count',
     ];
 
@@ -30,6 +34,10 @@ class ListLoadsRequest extends FormRequest
         'provider',
         'collection',
         'delivery',
+        'pickup_date',
+        'pickup_time',
+        'dropoff_date',
+        'dropoff_time',
         'pallet_count',
         'item_count',
     ];
@@ -85,7 +93,7 @@ class ListLoadsRequest extends FormRequest
                 Rule::in(self::FILTER_TYPES),
             ];
             $rules["filter.{$column}.filter"] = ['nullable', 'string', 'max:255'];
-            if (in_array($column, ['id', 'pallet_count'], true)) {
+            if (in_array($column, ['id', 'pallet_count', 'pickup_date', 'dropoff_date'], true)) {
                 $rules["filter.{$column}.filterTo"] = ['nullable', 'string', 'max:255'];
             }
         }
@@ -150,7 +158,7 @@ class ListLoadsRequest extends FormRequest
                 'type' => $type,
                 'filter' => is_string($value) ? $value : null,
             ];
-            if (in_array($column, ['id', 'pallet_count'], true) && is_string($filterTo)) {
+            if (in_array($column, ['id', 'pallet_count', 'pickup_date', 'dropoff_date'], true) && is_string($filterTo)) {
                 $filters[$column]['filterTo'] = $filterTo;
             }
         }

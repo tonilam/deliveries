@@ -19,11 +19,19 @@ class UpdateLoadController extends Controller
                 'collection_address_id' => $request->integer('collection_address_id'),
                 'delivery_address_id' => $request->integer('delivery_address_id'),
                 'pallet_count' => $request->integer('pallet_count'),
+                'pickup_date' => $request->string('pickup_date')->toString(),
+                'pickup_time' => $request->string('pickup_time')->toString(),
+                'dropoff_date' => $request->string('dropoff_date')->toString(),
+                'dropoff_time' => $request->string('dropoff_time')->toString(),
             ]);
         } elseif ($load->type === LoadType::AddDrop) {
             $load->fill([
                 'delivery_address_id' => $request->integer('delivery_address_id'),
                 'pallet_count' => $request->integer('pallet_count'),
+                'pickup_date' => $request->string('pickup_date')->toString(),
+                'pickup_time' => $request->string('pickup_time')->toString(),
+                'dropoff_date' => $request->string('dropoff_date')->toString(),
+                'dropoff_time' => $request->string('dropoff_time')->toString(),
             ]);
         } else {
             $load->fill([
@@ -31,6 +39,10 @@ class UpdateLoadController extends Controller
                 'xdock_address_id' => $request->integer('xdock_address_id'),
                 'secondary_provider_company_id' => $request->integer('secondary_provider_company_id'),
                 'pallet_count' => $request->integer('pallet_count'),
+                'pickup_date' => $request->string('pickup_date')->toString(),
+                'pickup_time' => $request->string('pickup_time')->toString(),
+                'dropoff_date' => $request->string('dropoff_date')->toString(),
+                'dropoff_time' => $request->string('dropoff_time')->toString(),
             ]);
         }
 

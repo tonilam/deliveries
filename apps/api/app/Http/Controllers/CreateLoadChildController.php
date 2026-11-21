@@ -28,6 +28,10 @@ class CreateLoadChildController extends Controller
                 ? $request->integer('xdock_address_id')
                 : null,
             'pallet_count' => $request->integer('pallet_count'),
+            'pickup_date' => $request->string('pickup_date')->toString(),
+            'pickup_time' => $request->string('pickup_time')->toString(),
+            'dropoff_date' => $request->string('dropoff_date')->toString(),
+            'dropoff_time' => $request->string('dropoff_time')->toString(),
         ]);
 
         return response()->json([

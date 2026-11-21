@@ -15,6 +15,8 @@ import { catchError, debounceTime, of, Subject, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
+import { LoadScheduleFields } from './load-schedule-fields';
+import { loadScheduleControls, loadScheduleOrderValidator } from './load-schedule';
 import { LoadRow } from './load.types';
 
 const SEARCH_MIN_CHARS = 2;
@@ -52,7 +54,7 @@ const emptyPicker = (): PickerState => ({
 
 @Component({
   selector: 'app-load-xdock-edit-modal',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, LoadScheduleFields],
   templateUrl: './load-xdock-edit-modal.html',
   styleUrl: './load-xdock-edit-modal.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -81,12 +83,16 @@ export class LoadXDockEditModal {
     x_dock_xdock: emptyPicker(),
   });
 
-  protected readonly form = this.fb.nonNullable.group({
-    xdock_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    secondary_provider_company_id: this.fb.control<number | null>(null, [Validators.required]),
-    pallet_count: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0)]),
-  });
+  protected readonly form = this.fb.group(
+    {
+      xdock_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      secondary_provider_company_id: this.fb.control<number | null>(null, [Validators.required]),
+      pallet_count: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0)]),
+      ...loadScheduleControls(this.fb),
+    },
+    { validators: loadScheduleOrderValidator() },
+  );
 
   constructor() {
     effect(() => {
@@ -96,6 +102,10 @@ export class LoadXDockEditModal {
         delivery_address_id: row.delivery_address_id,
         secondary_provider_company_id: row.secondary_provider_company_id,
         pallet_count: row.pallet_count,
+        pickup_date: row.pickup_date,
+        pickup_time: row.pickup_time,
+        dropoff_date: row.dropoff_date,
+        dropoff_time: row.dropoff_time,
       });
       this.addressPickers.set({
         x_dock_delivery: {
@@ -210,6 +220,10 @@ export class LoadXDockEditModal {
       xdock_address_id: raw.xdock_address_id!,
       secondary_provider_company_id: raw.secondary_provider_company_id!,
       pallet_count: raw.pallet_count,
+      pickup_date: String(raw.pickup_date ?? ''),
+      pickup_time: String(raw.pickup_time ?? ''),
+      dropoff_date: String(raw.dropoff_date ?? ''),
+      dropoff_time: String(raw.dropoff_time ?? ''),
     };
 
     const loadId = this.load().id;

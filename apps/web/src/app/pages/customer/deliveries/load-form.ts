@@ -9,12 +9,14 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, forkJoin, of, Subject, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
+import { LoadScheduleFields } from './load-schedule-fields';
+import { loadScheduleControls, loadScheduleOrderValidator } from './load-schedule';
 import { LoadXDockEditModal } from './load-xdock-edit-modal';
 import { LoadRow, LoadType, OwnerCompanyType } from './load.types';
 
@@ -56,7 +58,7 @@ const emptyPicker = (): PickerState => ({
 
 @Component({
   selector: 'app-customer-load-form',
-  imports: [ReactiveFormsModule, RouterLink, LoadXDockEditModal],
+  imports: [ReactiveFormsModule, RouterLink, LoadScheduleFields, LoadXDockEditModal],
   templateUrl: './load-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './load-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -130,32 +132,48 @@ export class CustomerLoadForm implements OnInit {
     return 'Edit load';
   });
 
-  protected readonly directForm = this.fb.nonNullable.group({
-    customer_company_id: this.fb.control<number | null>(null),
-    provider_company_id: this.fb.control<number | null>(null),
-    collection_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
-  });
+  protected readonly directForm = this.fb.group(
+    {
+      customer_company_id: this.fb.control<number | null>(null),
+      provider_company_id: this.fb.control<number | null>(null),
+      collection_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
+      ...loadScheduleControls(this.fb),
+    },
+    { validators: loadScheduleOrderValidator() },
+  );
 
-  protected readonly childEditForm = this.fb.nonNullable.group({
-    delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    xdock_address_id: this.fb.control<number | null>(null),
-    secondary_provider_company_id: this.fb.control<number | null>(null),
-    pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
-  });
+  protected readonly childEditForm = this.fb.group(
+    {
+      delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      xdock_address_id: this.fb.control<number | null>(null),
+      secondary_provider_company_id: this.fb.control<number | null>(null),
+      pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
+      ...loadScheduleControls(this.fb),
+    },
+    { validators: loadScheduleOrderValidator() },
+  );
 
-  protected readonly addDropForm = this.fb.nonNullable.group({
-    delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
-  });
+  protected readonly addDropForm = this.fb.group(
+    {
+      delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
+      ...loadScheduleControls(this.fb),
+    },
+    { validators: loadScheduleOrderValidator() },
+  );
 
-  protected readonly xDockForm = this.fb.nonNullable.group({
-    delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    xdock_address_id: this.fb.control<number | null>(null, [Validators.required]),
-    secondary_provider_company_id: this.fb.control<number | null>(null, [Validators.required]),
-    pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
-  });
+  protected readonly xDockForm = this.fb.group(
+    {
+      delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      xdock_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      secondary_provider_company_id: this.fb.control<number | null>(null, [Validators.required]),
+      pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
+      ...loadScheduleControls(this.fb),
+    },
+    { validators: loadScheduleOrderValidator() },
+  );
 
   ngOnInit(): void {
     this.setupSearchStreams();
@@ -209,6 +227,10 @@ export class CustomerLoadForm implements OnInit {
               collection_address_id: row.collection_address_id,
               delivery_address_id: row.delivery_address_id,
               pallet_count: row.pallet_count,
+              pickup_date: row.pickup_date,
+              pickup_time: row.pickup_time,
+              dropoff_date: row.dropoff_date,
+              dropoff_time: row.dropoff_time,
             });
             this.setPartyLabel('customer', row.customer);
             this.setPartyLabel('provider', row.provider);
@@ -220,6 +242,10 @@ export class CustomerLoadForm implements OnInit {
               xdock_address_id: row.xdock_address_id,
               secondary_provider_company_id: row.secondary_provider_company_id,
               pallet_count: row.pallet_count,
+              pickup_date: row.pickup_date,
+              pickup_time: row.pickup_time,
+              dropoff_date: row.dropoff_date,
+              dropoff_time: row.dropoff_time,
             });
             this.setAddressLabel('delivery', row.delivery);
             this.setAddressLabel('xdock', row.xdock);
@@ -392,17 +418,27 @@ export class CustomerLoadForm implements OnInit {
     this.submitChild('x_dock');
   }
 
-  private childEditPayload(): Record<string, number | null> {
+  private childEditPayload(): Record<string, number | string | null> {
     const raw = this.childEditForm.getRawValue();
-    const payload: Record<string, number | null> = {
+    const payload: Record<string, number | string | null> = {
       delivery_address_id: raw.delivery_address_id,
       pallet_count: raw.pallet_count,
+      ...this.schedulePayload(this.childEditForm),
     };
     if (this.loadType() === 'x_dock') {
       payload['xdock_address_id'] = raw.xdock_address_id;
       payload['secondary_provider_company_id'] = raw.secondary_provider_company_id;
     }
     return payload;
+  }
+
+  private schedulePayload(form: FormGroup): Record<string, string> {
+    return {
+      pickup_date: String(form.get('pickup_date')?.value ?? ''),
+      pickup_time: String(form.get('pickup_time')?.value ?? ''),
+      dropoff_date: String(form.get('dropoff_date')?.value ?? ''),
+      dropoff_time: String(form.get('dropoff_time')?.value ?? ''),
+    };
   }
 
   private submitChild(type: 'add_drop' | 'x_dock'): void {
@@ -420,12 +456,14 @@ export class CustomerLoadForm implements OnInit {
     this.childSubmitting.set(true);
     this.error.set(null);
 
+    const childForm = type === 'add_drop' ? this.addDropForm : this.xDockForm;
     const payload =
       type === 'add_drop'
         ? {
             type,
             delivery_address_id: this.addDropForm.controls.delivery_address_id.value,
             pallet_count: this.addDropForm.controls.pallet_count.value,
+            ...this.schedulePayload(childForm),
           }
         : {
             type,
@@ -434,6 +472,7 @@ export class CustomerLoadForm implements OnInit {
             xdock_address_id: this.xDockForm.controls.xdock_address_id.value,
             secondary_provider_company_id:
               this.xDockForm.controls.secondary_provider_company_id.value,
+            ...this.schedulePayload(childForm),
           };
 
     this.auth

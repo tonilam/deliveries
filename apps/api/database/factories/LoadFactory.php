@@ -31,6 +31,10 @@ class LoadFactory extends Factory
             'delivery_address_id' => Address::factory()->delivery(),
             'xdock_address_id' => null,
             'pallet_count' => fake()->numberBetween(0, 26),
+            'pickup_date' => now()->addDay()->toDateString(),
+            'pickup_time' => '08:00',
+            'dropoff_date' => now()->addDays(2)->toDateString(),
+            'dropoff_time' => '17:00',
         ];
     }
 

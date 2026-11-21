@@ -33,7 +33,7 @@ class LoadManagementTest extends TestCase
         [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();
         $load = $this->createDirectLoad($owner, $collection, $delivery);
         $childDelivery = Address::factory()->for($owner)->delivery()->create();
-        $child = Load::query()->create([
+        $child = Load::query()->create(array_merge([
             'company_id' => $owner->id,
             'parent_load_id' => $load->id,
             'type' => LoadType::AddDrop,
@@ -42,7 +42,7 @@ class LoadManagementTest extends TestCase
             'collection_address_id' => $collection->id,
             'delivery_address_id' => $childDelivery->id,
             'pallet_count' => 1,
-        ]);
+        ], $this->scheduleAttributes()));
 
         Item::factory()->for($owner)->create(['load_id' => $load->id]);
         Item::factory()->for($owner)->create(['load_id' => $child->id]);
@@ -78,19 +78,40 @@ class LoadManagementTest extends TestCase
             ->assertJsonCount(15, 'companies');
     }
 
+    public function test_dropoff_before_pickup_returns_422(): void
+    {
+        [$owner, $customer, $provider, $collection, $delivery, $user] = $this->brokerFixture();
+
+        $this->loginAs($user);
+
+        $this->asSpa()->postJson('/api/loads', array_merge([
+            'customer_company_id' => $customer->id,
+            'provider_company_id' => $provider->id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $delivery->id,
+            'pallet_count' => 1,
+            'pickup_date' => '2026-12-10',
+            'pickup_time' => '14:00',
+            'dropoff_date' => '2026-12-10',
+            'dropoff_time' => '10:00',
+        ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['dropoff_date']);
+    }
+
     public function test_broker_creates_direct_load_with_network_parties(): void
     {
         [$owner, $customer, $provider, $collection, $delivery, $user] = $this->brokerFixture();
 
         $this->loginAs($user);
 
-        $response = $this->asSpa()->postJson('/api/loads', [
+        $response = $this->asSpa()->postJson('/api/loads', array_merge([
             'customer_company_id' => $customer->id,
             'provider_company_id' => $provider->id,
             'collection_address_id' => $collection->id,
             'delivery_address_id' => $delivery->id,
             'pallet_count' => 4,
-        ]);
+        ], $this->schedulePayload()));
 
         $response->assertCreated()
             ->assertJsonPath('load.type', 'direct')
@@ -126,7 +147,7 @@ class LoadManagementTest extends TestCase
         $this->loginAs($user);
 
         $load = $this->createDirectLoad($owner, $collection, $delivery);
-        $child = Load::query()->create([
+        $child = Load::query()->create(array_merge([
             'company_id' => $owner->id,
             'parent_load_id' => $load->id,
             'type' => LoadType::AddDrop,
@@ -135,7 +156,7 @@ class LoadManagementTest extends TestCase
             'collection_address_id' => $collection->id,
             'delivery_address_id' => Address::factory()->for($owner)->delivery()->create()->id,
             'pallet_count' => 1,
-        ]);
+        ], $this->scheduleAttributes()));
 
         $parentItem = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $load->id]);
         $childItem = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $child->id]);
@@ -154,7 +175,7 @@ class LoadManagementTest extends TestCase
 
         $load = $this->createDirectLoad($owner, $collection, $delivery);
         $childDelivery = Address::factory()->for($owner)->delivery()->create();
-        $child = Load::query()->create([
+        $child = Load::query()->create(array_merge([
             'company_id' => $owner->id,
             'parent_load_id' => $load->id,
             'type' => LoadType::AddDrop,
@@ -163,7 +184,7 @@ class LoadManagementTest extends TestCase
             'collection_address_id' => $collection->id,
             'delivery_address_id' => $childDelivery->id,
             'pallet_count' => 1,
-        ]);
+        ], $this->scheduleAttributes()));
 
         $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $load->id]);
 
@@ -186,11 +207,11 @@ class LoadManagementTest extends TestCase
         $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $load->id]);
         $childDelivery = Address::factory()->for($owner)->delivery()->create();
 
-        $response = $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+        $response = $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", array_merge([
             'type' => 'add_drop',
             'delivery_address_id' => $childDelivery->id,
             'pallet_count' => 2,
-        ]);
+        ], $this->schedulePayload()));
 
         $response
             ->assertOk()
@@ -214,13 +235,13 @@ class LoadManagementTest extends TestCase
         $xdock = Address::factory()->for($owner)->delivery()->create();
         $childDelivery = Address::factory()->for($owner)->delivery()->create();
 
-        $response = $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+        $response = $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", array_merge([
             'type' => 'x_dock',
             'xdock_address_id' => $xdock->id,
             'delivery_address_id' => $childDelivery->id,
             'secondary_provider_company_id' => $secondary->id,
             'pallet_count' => 1,
-        ]);
+        ], $this->schedulePayload()));
 
         $response
             ->assertOk()
@@ -240,11 +261,11 @@ class LoadManagementTest extends TestCase
         $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN']);
         $childDelivery = Address::factory()->for($owner)->delivery()->create();
 
-        $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+        $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", array_merge([
             'type' => 'add_drop',
             'delivery_address_id' => $childDelivery->id,
             'pallet_count' => 1,
-        ])->assertForbidden();
+        ], $this->schedulePayload()))->assertForbidden();
     }
 
     public function test_provider_owner_cannot_move_item_to_new_x_dock_child(): void
@@ -258,7 +279,7 @@ class LoadManagementTest extends TestCase
             'password' => 'Password1!',
         ]);
 
-        $load = Load::query()->create([
+        $load = Load::query()->create(array_merge([
             'company_id' => $owner->id,
             'type' => LoadType::Direct,
             'customer_company_id' => $customer->id,
@@ -266,19 +287,19 @@ class LoadManagementTest extends TestCase
             'collection_address_id' => $collection->id,
             'delivery_address_id' => $delivery->id,
             'pallet_count' => 2,
-        ]);
+        ], $this->scheduleAttributes()));
 
         $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $load->id]);
 
         $this->loginAs($user);
 
-        $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+        $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", array_merge([
             'type' => 'x_dock',
             'xdock_address_id' => Address::factory()->for($owner)->delivery()->create()->id,
             'delivery_address_id' => Address::factory()->for($owner)->delivery()->create()->id,
             'secondary_provider_company_id' => 1,
             'pallet_count' => 1,
-        ])
+        ], $this->schedulePayload()))
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['type']);
     }
@@ -294,7 +315,7 @@ class LoadManagementTest extends TestCase
             'password' => 'Password1!',
         ]);
 
-        $load = Load::query()->create([
+        $load = Load::query()->create(array_merge([
             'company_id' => $owner->id,
             'type' => LoadType::Direct,
             'customer_company_id' => $customer->id,
@@ -302,17 +323,17 @@ class LoadManagementTest extends TestCase
             'collection_address_id' => $collection->id,
             'delivery_address_id' => $delivery->id,
             'pallet_count' => 2,
-        ]);
+        ], $this->scheduleAttributes()));
 
         $this->loginAs($user);
 
-        $this->asSpa()->postJson("/api/loads/{$load->id}/children", [
+        $this->asSpa()->postJson("/api/loads/{$load->id}/children", array_merge([
             'type' => 'x_dock',
             'xdock_address_id' => Address::factory()->for($owner)->delivery()->create()->id,
             'delivery_address_id' => Address::factory()->for($owner)->delivery()->create()->id,
             'secondary_provider_company_id' => 1,
             'pallet_count' => 1,
-        ])
+        ], $this->schedulePayload()))
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['type']);
     }
@@ -335,6 +356,27 @@ class LoadManagementTest extends TestCase
         return [$owner, $customer, $provider, $collection, $delivery, $user];
     }
 
+    /**
+     * @return array<string, string>
+     */
+    private function schedulePayload(): array
+    {
+        return [
+            'pickup_date' => '2026-11-22',
+            'pickup_time' => '08:00',
+            'dropoff_date' => '2026-11-23',
+            'dropoff_time' => '17:00',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function scheduleAttributes(): array
+    {
+        return $this->schedulePayload();
+    }
+
     private function createDirectLoad(Company $owner, Address $collection, Address $delivery): Load
     {
         $customer = Company::query()
@@ -346,7 +388,7 @@ class LoadManagementTest extends TestCase
             ->where('company_type', CompanyType::Provider)
             ->firstOrFail();
 
-        return Load::query()->create([
+        return Load::query()->create(array_merge([
             'company_id' => $owner->id,
             'type' => LoadType::Direct,
             'customer_company_id' => $customer->id,
@@ -354,7 +396,7 @@ class LoadManagementTest extends TestCase
             'collection_address_id' => $collection->id,
             'delivery_address_id' => $delivery->id,
             'pallet_count' => 2,
-        ]);
+        ], $this->scheduleAttributes()));
     }
 
     private function loginAs(User $user): void

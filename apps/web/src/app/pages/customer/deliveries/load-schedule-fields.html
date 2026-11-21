@@ -1,0 +1,22 @@
+<div class="load-schedule" [formGroup]="form()">
+  <div class="load-schedule__row">
+    <ui-date-picker formControlName="pickup_date" label="Pickup date" placeholder="Select a date" />
+    <ui-time-picker formControlName="pickup_time" label="Pickup time" placeholder="Select a time" />
+  </div>
+  <div class="load-schedule__row">
+    <ui-date-picker
+      formControlName="dropoff_date"
+      label="Drop-off date"
+      placeholder="Select a date"
+    />
+    <ui-time-picker
+      formControlName="dropoff_time"
+      label="Drop-off time"
+      placeholder="Select a time"
+    />
+  </div>
+
+  @if (form().hasError('scheduleOrder') && form().touched) {
+    <p class="load-schedule__error" role="alert">Drop-off must be on or after pickup.</p>
+  }
+</div>

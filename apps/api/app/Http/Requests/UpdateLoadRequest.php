@@ -26,16 +26,19 @@ class UpdateLoadRequest extends FormRequest
     {
         $load = $this->route('load');
         if ($load instanceof Load && $load->type !== LoadType::Direct) {
-            return [
-                'delivery_address_id' => $this->childLoadFieldRules($load->type)['delivery_address_id'],
-                'pallet_count' => ['required', 'integer', 'min:0'],
-                'xdock_address_id' => $load->type === LoadType::XDock
-                    ? $this->childLoadFieldRules(LoadType::XDock)['xdock_address_id']
-                    : ['prohibited'],
-                'secondary_provider_company_id' => $load->type === LoadType::XDock
-                    ? $this->childLoadFieldRules(LoadType::XDock)['secondary_provider_company_id']
-                    : ['prohibited'],
-            ];
+            return array_merge(
+                [
+                    'delivery_address_id' => $this->childLoadFieldRules($load->type)['delivery_address_id'],
+                    'pallet_count' => ['required', 'integer', 'min:0'],
+                    'xdock_address_id' => $load->type === LoadType::XDock
+                        ? $this->childLoadFieldRules(LoadType::XDock)['xdock_address_id']
+                        : ['prohibited'],
+                    'secondary_provider_company_id' => $load->type === LoadType::XDock
+                        ? $this->childLoadFieldRules(LoadType::XDock)['secondary_provider_company_id']
+                        : ['prohibited'],
+                ],
+                $this->scheduleFieldRules(),
+            );
         }
 
         return $this->directLoadFieldRules();

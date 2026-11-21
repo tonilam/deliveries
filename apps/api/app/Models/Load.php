@@ -21,6 +21,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'delivery_address_id',
     'xdock_address_id',
     'pallet_count',
+    'pickup_date',
+    'pickup_time',
+    'dropoff_date',
+    'dropoff_time',
 ])]
 class Load extends Model
 {
@@ -32,6 +36,8 @@ class Load extends Model
         return [
             'type' => LoadType::class,
             'pallet_count' => 'integer',
+            'pickup_date' => 'date:Y-m-d',
+            'dropoff_date' => 'date:Y-m-d',
         ];
     }
 
@@ -162,12 +168,16 @@ class Load extends Model
             'secondary_provider_company_id' => $this->secondary_provider_company_id,
             'secondary_provider' => $this->secondaryProviderCompany?->business_name,
             'collection_address_id' => $this->collection_address_id,
-            'collection' => $this->formatAddressLabel($this->collectionAddress),
+            ...$this->addressPayloadFields('collection', $this->collectionAddress),
             'delivery_address_id' => $this->delivery_address_id,
-            'delivery' => $this->formatAddressLabel($this->deliveryAddress),
+            ...$this->addressPayloadFields('delivery', $this->deliveryAddress),
             'xdock_address_id' => $this->xdock_address_id,
-            'xdock' => $this->formatAddressLabel($this->xdockAddress),
+            ...$this->addressPayloadFields('xdock', $this->xdockAddress),
             'pallet_count' => $this->pallet_count,
+            'pickup_date' => $this->pickup_date?->format('Y-m-d'),
+            'pickup_time' => $this->formatScheduleTime($this->pickup_time),
+            'dropoff_date' => $this->dropoff_date?->format('Y-m-d'),
+            'dropoff_time' => $this->formatScheduleTime($this->dropoff_time),
             'item_count' => (int) ($this->items_count ?? $this->items()->count()),
         ];
 
@@ -191,12 +201,45 @@ class Load extends Model
         return $payload;
     }
 
-    private function formatAddressLabel(?Address $address): ?string
+    /**
+     * @return array{
+     *     collection?: ?string,
+     *     collection_business_name?: ?string,
+     *     collection_address_line?: ?string,
+     *     delivery?: ?string,
+     *     delivery_business_name?: ?string,
+     *     delivery_address_line?: ?string,
+     *     xdock?: ?string,
+     *     xdock_business_name?: ?string,
+     *     xdock_address_line?: ?string
+     * }
+     */
+    private function addressPayloadFields(string $prefix, ?Address $address): array
     {
         if ($address === null) {
-            return null;
+            return [
+                $prefix => null,
+                "{$prefix}_business_name" => null,
+                "{$prefix}_address_line" => null,
+            ];
         }
 
-        return trim($address->business_name.' — '.$address->address);
+        $businessName = $address->business_name;
+        $addressLine = $address->address;
+
+        return [
+            $prefix => trim($businessName.' — '.$addressLine),
+            "{$prefix}_business_name" => $businessName,
+            "{$prefix}_address_line" => $addressLine,
+        ];
+    }
+
+    private function formatScheduleTime(mixed $time): string
+    {
+        if (! is_string($time) || $time === '') {
+            return '';
+        }
+
+        return strlen($time) >= 5 ? substr($time, 0, 5) : $time;
     }
 }

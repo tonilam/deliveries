@@ -12,8 +12,10 @@ import { AgGridAngular } from 'ag-grid-angular';
 import { ICellRendererAngularComp } from 'ag-grid-angular';
 import {
   ColDef,
+  ColumnResizedEvent,
   FirstDataRenderedEvent,
   GridApi,
+  GridOptions,
   GridReadyEvent,
   ICellRendererParams,
   IsFullWidthRowParams,
@@ -21,6 +23,8 @@ import {
   themeQuartz,
 } from 'ag-grid-community';
 
+import { loadAddressFilterText } from './load-address';
+import { LoadAddressCell } from './load-address-cell';
 import { LoadActionItem, LoadActionsCell } from './load-actions-cell';
 import { LoadChildExpandCell } from './load-expand-cell';
 import { LoadItemsFullWidth } from './load-items-full-width';
@@ -42,7 +46,13 @@ type Params = ICellRendererParams<LoadGridRow> & LoadChildrenFullWidthParams;
 
 @Component({
   selector: 'app-load-children-full-width',
-  imports: [AgGridAngular, LoadChildExpandCell, LoadActionsCell, LoadItemsFullWidth],
+  imports: [
+    AgGridAngular,
+    LoadAddressCell,
+    LoadChildExpandCell,
+    LoadActionsCell,
+    LoadItemsFullWidth,
+  ],
   template: `
     <div class="load-children-panel" #panel>
       <p class="load-children-panel__title">Add Drop &amp; X Dock loads</p>
@@ -59,8 +69,10 @@ type Params = ICellRendererParams<LoadGridRow> & LoadChildrenFullWidthParams;
         [getRowId]="getRowId"
         [getRowHeight]="getRowHeight"
         [embedFullWidthRows]="true"
+        [gridOptions]="gridOptions"
         (gridReady)="onChildGridReady($event)"
         (firstDataRendered)="onChildFirstDataRendered()"
+        (columnResized)="onChildColumnResized()"
       />
     </div>
   `,
@@ -69,6 +81,9 @@ type Params = ICellRendererParams<LoadGridRow> & LoadChildrenFullWidthParams;
       padding: 0.75rem 1rem 1rem 2.5rem;
       background: #f8fafc;
       border-bottom: 1px solid #e2e8f0;
+      min-width: 0;
+      max-width: 100%;
+      overflow-x: clip;
     }
     .load-children-panel__title {
       margin: 0 0 0.5rem;
@@ -79,16 +94,32 @@ type Params = ICellRendererParams<LoadGridRow> & LoadChildrenFullWidthParams;
     .load-children-grid {
       display: block;
       width: 100%;
+      min-width: 0;
+    }
+
+    :host ::ng-deep .load-children-grid .ag-root-wrapper {
+      min-width: 0;
     }
 
     :host ::ng-deep .load-children-grid .ag-body-viewport,
     :host ::ng-deep .load-children-grid .ag-center-cols-viewport {
       overflow-y: visible !important;
+      overflow-x: hidden !important;
       max-height: none !important;
     }
 
     :host ::ng-deep .load-children-grid .ag-body-vertical-scroll {
       display: none !important;
+    }
+
+    :host ::ng-deep ag-grid-angular.load-children-grid .ag-cell,
+    :host ::ng-deep ag-grid-angular.load-children-grid .ag-cell-wrapper,
+    :host ::ng-deep ag-grid-angular.load-children-grid .ag-cell-value {
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden !important;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -164,6 +195,18 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
     sortable: false,
     resizable: true,
     filter: false,
+    wrapText: false,
+    autoHeight: false,
+    cellStyle: {
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap',
+    },
+  };
+
+  protected readonly gridOptions: GridOptions<LoadChildGridRow> = {
+    suppressHorizontalScroll: false,
+    alwaysShowHorizontalScroll: false,
   };
 
   agInit(params: Params): void {
@@ -200,6 +243,10 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
 
   protected onChildFirstDataRendered(_event?: FirstDataRenderedEvent<LoadChildGridRow>): void {
     this.syncDetailHeight();
+  }
+
+  protected onChildColumnResized(_event?: ColumnResizedEvent): void {
+    queueMicrotask(() => this.syncDetailHeight());
   }
 
   private applyParams(params: Params): void {
@@ -283,14 +330,58 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
         headerName: 'X dock',
         flex: 1,
         minWidth: 140,
-        valueGetter: (p) => (isLoadChildItemDetailRow(p.data!) ? '' : (p.data?.xdock ?? '')),
+        cellRenderer: LoadAddressCell,
+        cellRendererParams: { kind: 'xdock' },
+        cellClass: 'deliveries-grid__address-cell',
+        wrapText: true,
+        autoHeight: true,
+        filterValueGetter: (p) =>
+          isLoadChildItemDetailRow(p.data!) ? '' : loadAddressFilterText(p.data!, 'xdock'),
+        valueGetter: (p) =>
+          isLoadChildItemDetailRow(p.data!) ? '' : loadAddressFilterText(p.data!, 'xdock'),
       },
       {
         field: 'delivery',
         headerName: 'Delivery',
         flex: 1.2,
         minWidth: 160,
-        valueGetter: (p) => (isLoadChildItemDetailRow(p.data!) ? '' : (p.data?.delivery ?? '')),
+        cellRenderer: LoadAddressCell,
+        cellRendererParams: { kind: 'delivery' },
+        cellClass: 'deliveries-grid__address-cell',
+        wrapText: true,
+        autoHeight: true,
+        filterValueGetter: (p) =>
+          isLoadChildItemDetailRow(p.data!) ? '' : loadAddressFilterText(p.data!, 'delivery'),
+        valueGetter: (p) =>
+          isLoadChildItemDetailRow(p.data!) ? '' : loadAddressFilterText(p.data!, 'delivery'),
+      },
+      {
+        field: 'pickup_date',
+        headerName: 'Pickup date',
+        flex: 0.9,
+        minWidth: 100,
+        valueGetter: (p) => (isLoadChildItemDetailRow(p.data!) ? '' : (p.data?.pickup_date ?? '')),
+      },
+      {
+        field: 'pickup_time',
+        headerName: 'Pickup time',
+        flex: 0.75,
+        minWidth: 92,
+        valueGetter: (p) => (isLoadChildItemDetailRow(p.data!) ? '' : (p.data?.pickup_time ?? '')),
+      },
+      {
+        field: 'dropoff_date',
+        headerName: 'Drop-off date',
+        flex: 0.9,
+        minWidth: 100,
+        valueGetter: (p) => (isLoadChildItemDetailRow(p.data!) ? '' : (p.data?.dropoff_date ?? '')),
+      },
+      {
+        field: 'dropoff_time',
+        headerName: 'Drop-off time',
+        flex: 0.75,
+        minWidth: 92,
+        valueGetter: (p) => (isLoadChildItemDetailRow(p.data!) ? '' : (p.data?.dropoff_time ?? '')),
       },
       {
         field: 'secondary_provider',
@@ -303,18 +394,25 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
       {
         field: 'pallet_count',
         headerName: 'Pallets',
-        width: 90,
+        flex: 0.55,
+        minWidth: 72,
+        maxWidth: 110,
         valueGetter: (p) => (isLoadChildItemDetailRow(p.data!) ? null : p.data?.pallet_count),
       },
       {
         field: 'item_count',
         headerName: 'Items',
-        width: 80,
+        flex: 0.5,
+        minWidth: 68,
+        maxWidth: 100,
         valueGetter: (p) => (isLoadChildItemDetailRow(p.data!) ? null : p.data?.item_count),
       },
       {
         headerName: 'Actions',
-        width: 100,
+        flex: 0.65,
+        minWidth: 100,
+        maxWidth: 120,
+        cellClass: 'deliveries-grid__actions-cell',
         cellRenderer: LoadActionsCell,
         cellRendererParams: {
           actionsFor: (data: LoadChildGridRow) =>

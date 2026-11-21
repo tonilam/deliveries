@@ -52,6 +52,8 @@
             }
           </div>
 
+          <app-load-schedule-fields [form]="childEditForm" />
+
           <label>
             Pallet count
             <input
@@ -209,6 +211,8 @@
                 }
               </div>
 
+              <app-load-schedule-fields [form]="directForm" />
+
               <label>
                 Pallet count
                 <input
@@ -306,6 +310,7 @@
                         </ul>
                       }
                     </div>
+                    <app-load-schedule-fields [form]="addDropForm" />
                     <label>
                       Pallet count
                       <input
@@ -432,6 +437,7 @@
                           </ul>
                         }
                       </div>
+                      <app-load-schedule-fields [form]="xDockForm" />
                       <label>
                         Pallet count
                         <input

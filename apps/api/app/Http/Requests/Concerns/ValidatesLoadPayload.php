@@ -16,6 +16,19 @@ trait ValidatesLoadPayload
     /**
      * @return array<string, mixed>
      */
+    protected function scheduleFieldRules(): array
+    {
+        return [
+            'pickup_date' => ['required', 'date', 'date_format:Y-m-d'],
+            'pickup_time' => ['required', 'date_format:H:i'],
+            'dropoff_date' => ['required', 'date', 'date_format:Y-m-d'],
+            'dropoff_time' => ['required', 'date_format:H:i'],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     protected function directLoadFieldRules(): array
     {
         $companyId = $this->user()?->company_id;
@@ -73,22 +86,25 @@ trait ValidatesLoadPayload
             static fn ($query) => $query->where('company_id', $companyId),
         );
 
-        return [
-            'customer_company_id' => $customerRule,
-            'provider_company_id' => $providerRule,
-            'collection_address_id' => [
-                'required',
-                'integer',
-                $addressExists,
+        return array_merge(
+            [
+                'customer_company_id' => $customerRule,
+                'provider_company_id' => $providerRule,
+                'collection_address_id' => [
+                    'required',
+                    'integer',
+                    $addressExists,
+                ],
+                'delivery_address_id' => [
+                    'required',
+                    'integer',
+                    $addressExists,
+                    'different:collection_address_id',
+                ],
+                'pallet_count' => ['required', 'integer', 'min:0'],
             ],
-            'delivery_address_id' => [
-                'required',
-                'integer',
-                $addressExists,
-                'different:collection_address_id',
-            ],
-            'pallet_count' => ['required', 'integer', 'min:0'],
-        ];
+            $this->scheduleFieldRules(),
+        );
     }
 
     /**
@@ -101,17 +117,20 @@ trait ValidatesLoadPayload
             static fn ($query) => $query->where('company_id', $companyId),
         );
 
-        $rules = [
-            'type' => ['required', 'string', Rule::enum(LoadType::class), Rule::in(
-                array_map(static fn (LoadType $t) => $t->value, LoadType::childTypes()),
-            )],
-            'delivery_address_id' => [
-                'required',
-                'integer',
-                $addressExists,
+        $rules = array_merge(
+            [
+                'type' => ['required', 'string', Rule::enum(LoadType::class), Rule::in(
+                    array_map(static fn (LoadType $t) => $t->value, LoadType::childTypes()),
+                )],
+                'delivery_address_id' => [
+                    'required',
+                    'integer',
+                    $addressExists,
+                ],
+                'pallet_count' => ['required', 'integer', 'min:0'],
             ],
-            'pallet_count' => ['required', 'integer', 'min:0'],
-        ];
+            $this->scheduleFieldRules(),
+        );
 
         if ($childType === LoadType::XDock) {
             $owner = $companyId !== null ? Company::query()->find($companyId) : null;
@@ -169,6 +188,8 @@ trait ValidatesLoadPayload
             if ($existing !== null && $existing->type !== LoadType::Direct) {
                 $validator->errors()->add('type', 'Only direct loads use this endpoint.');
             }
+
+            $this->assertScheduleOrder($validator);
         });
     }
 
@@ -218,6 +239,8 @@ trait ValidatesLoadPayload
                     $validator->errors()->add('xdock_address_id', 'X dock address must differ from the final delivery address.');
                 }
             }
+
+            $this->assertScheduleOrder($validator);
         });
     }
 
@@ -251,7 +274,35 @@ trait ValidatesLoadPayload
                     $validator->errors()->add('xdock_address_id', 'X dock address must differ from the final delivery address.');
                 }
             }
+
+            $this->assertScheduleOrder($validator);
         });
+    }
+
+    private function assertScheduleOrder(Validator $validator): void
+    {
+        $pickupDate = $this->input('pickup_date');
+        $pickupTime = $this->input('pickup_time');
+        $dropoffDate = $this->input('dropoff_date');
+        $dropoffTime = $this->input('dropoff_time');
+
+        if (
+            ! is_string($pickupDate) || ! is_string($pickupTime)
+            || ! is_string($dropoffDate) || ! is_string($dropoffTime)
+        ) {
+            return;
+        }
+
+        $pickup = strtotime($pickupDate.' '.$pickupTime.':00');
+        $dropoff = strtotime($dropoffDate.' '.$dropoffTime.':00');
+
+        if ($pickup === false || $dropoff === false) {
+            return;
+        }
+
+        if ($dropoff < $pickup) {
+            $validator->errors()->add('dropoff_date', 'Drop-off must be on or after pickup.');
+        }
     }
 
     private function assertAddressType(

@@ -14,11 +14,21 @@ export interface LoadRow {
   secondary_provider: string | null;
   collection_address_id: number;
   collection: string | null;
+  collection_business_name: string | null;
+  collection_address_line: string | null;
   delivery_address_id: number | null;
   delivery: string | null;
+  delivery_business_name: string | null;
+  delivery_address_line: string | null;
   xdock_address_id: number | null;
   xdock: string | null;
+  xdock_business_name: string | null;
+  xdock_address_line: string | null;
   pallet_count: number;
+  pickup_date: string;
+  pickup_time: string;
+  dropoff_date: string;
+  dropoff_time: string;
   item_count: number;
   children?: LoadRow[];
 }

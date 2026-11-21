@@ -24,7 +24,9 @@ import {
   ModuleRegistry,
   NumberFilterModel,
   RowHeightParams,
+  DateFilterModel,
   GridOptions,
+  IDateFilterParams,
   SortChangedEvent,
   TextFilterModel,
   themeQuartz,
@@ -40,6 +42,8 @@ import {
   DataListColumn,
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
+import { loadAddressFilterText, loadAddressListText } from './load-address';
+import { LoadAddressCell } from './load-address-cell';
 import { LoadActionItem, LoadActionsCell } from './load-actions-cell';
 import { LoadDetailFullWidth } from './load-detail-full-width';
 import { LoadExpandCell } from './load-expand-cell';
@@ -70,6 +74,10 @@ const FILTERABLE_FIELDS = [
   'provider',
   'collection',
   'delivery',
+  'pickup_date',
+  'pickup_time',
+  'dropoff_date',
+  'dropoff_time',
   'pallet_count',
 ] as const;
 type SortableField = (typeof FILTERABLE_FIELDS)[number] | 'item_count';
@@ -116,6 +124,27 @@ const serverSideNumberFilterParams: INumberFilterParams = {
   ],
 };
 
+const DATE_FILTER_FIELDS = ['pickup_date', 'dropoff_date'] as const;
+type DateFilterField = (typeof DATE_FILTER_FIELDS)[number];
+
+const serverSideDateFilterParams: IDateFilterParams = {
+  debounceMs: 300,
+  maxNumConditions: 1,
+  browserDatePicker: true,
+  filterOptions: [
+    'equals',
+    'notEqual',
+    'greaterThan',
+    'lessThan',
+    'greaterThanOrEqual',
+    'lessThanOrEqual',
+    'inRange',
+    'blank',
+    'notBlank',
+  ],
+  comparator: () => 0,
+};
+
 @Component({
   selector: 'app-customer-deliveries',
   imports: [
@@ -126,6 +155,7 @@ const serverSideNumberFilterParams: INumberFilterParams = {
     LoadActionsCell,
     LoadDetailFullWidth,
     LoadExpandCell,
+    LoadAddressCell,
     LoadItemCountCell,
     LoadItemsSlider,
     LoadXDockEditModal,
@@ -229,8 +259,20 @@ export class CustomerDeliveries implements OnInit {
     { field: 'id', label: 'Load ID', valueFor: (row) => String(row.id) },
     { field: 'customer', label: 'Customer', valueFor: (row) => row.customer },
     { field: 'provider', label: 'Provider', valueFor: (row) => row.provider },
-    { field: 'collection', label: 'Collection', valueFor: (row) => row.collection ?? '—' },
-    { field: 'delivery', label: 'Delivery', valueFor: (row) => row.delivery ?? '—' },
+    {
+      field: 'collection',
+      label: 'Collection',
+      valueFor: (row) => loadAddressListText(row, 'collection'),
+    },
+    {
+      field: 'delivery',
+      label: 'Delivery',
+      valueFor: (row) => loadAddressListText(row, 'delivery'),
+    },
+    { field: 'pickup_date', label: 'Pickup date', valueFor: (row) => row.pickup_date },
+    { field: 'pickup_time', label: 'Pickup time', valueFor: (row) => row.pickup_time },
+    { field: 'dropoff_date', label: 'Drop-off date', valueFor: (row) => row.dropoff_date },
+    { field: 'dropoff_time', label: 'Drop-off time', valueFor: (row) => row.dropoff_time },
     { field: 'pallet_count', label: 'Pallets', valueFor: (row) => String(row.pallet_count) },
     {
       field: 'item_count',
@@ -248,6 +290,10 @@ export class CustomerDeliveries implements OnInit {
     { field: 'provider', label: 'Provider' },
     { field: 'collection', label: 'Collection' },
     { field: 'delivery', label: 'Delivery' },
+    { field: 'pickup_date', label: 'Pickup date' },
+    { field: 'pickup_time', label: 'Pickup time' },
+    { field: 'dropoff_date', label: 'Drop-off date' },
+    { field: 'dropoff_time', label: 'Drop-off time' },
     { field: 'pallet_count', label: 'Pallets' },
     { field: 'item_count', label: 'Items' },
   ];
@@ -325,8 +371,25 @@ export class CustomerDeliveries implements OnInit {
       comparator: serverSideSortComparator,
       filter: 'agTextColumnFilter',
       filterParams: serverSideTextFilterParams,
-      valueGetter: (params) =>
-        isLoadDetailRow(params.data!) ? '' : (params.data?.collection ?? '—'),
+      cellRenderer: LoadAddressCell,
+      cellRendererParams: { kind: 'collection' },
+      cellClass: 'deliveries-grid__address-cell',
+      wrapText: true,
+      autoHeight: true,
+      filterValueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return loadAddressFilterText(data, 'collection');
+      },
+      valueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return loadAddressFilterText(data, 'collection');
+      },
     },
     {
       field: 'delivery',
@@ -336,8 +399,89 @@ export class CustomerDeliveries implements OnInit {
       comparator: serverSideSortComparator,
       filter: 'agTextColumnFilter',
       filterParams: serverSideTextFilterParams,
-      valueGetter: (params) =>
-        isLoadDetailRow(params.data!) ? '' : (params.data?.delivery ?? '—'),
+      cellRenderer: LoadAddressCell,
+      cellRendererParams: { kind: 'delivery' },
+      cellClass: 'deliveries-grid__address-cell',
+      wrapText: true,
+      autoHeight: true,
+      filterValueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return loadAddressFilterText(data, 'delivery');
+      },
+      valueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return loadAddressFilterText(data, 'delivery');
+      },
+    },
+    {
+      field: 'pickup_date',
+      headerName: 'Pickup date',
+      width: 120,
+      minWidth: 108,
+      comparator: serverSideSortComparator,
+      filter: 'agDateColumnFilter',
+      filterParams: serverSideDateFilterParams,
+      valueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return data.pickup_date;
+      },
+    },
+    {
+      field: 'pickup_time',
+      headerName: 'Pickup time',
+      width: 108,
+      minWidth: 96,
+      comparator: serverSideSortComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: serverSideTextFilterParams,
+      valueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return data.pickup_time;
+      },
+    },
+    {
+      field: 'dropoff_date',
+      headerName: 'Drop-off date',
+      width: 120,
+      minWidth: 108,
+      comparator: serverSideSortComparator,
+      filter: 'agDateColumnFilter',
+      filterParams: serverSideDateFilterParams,
+      valueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return data.dropoff_date;
+      },
+    },
+    {
+      field: 'dropoff_time',
+      headerName: 'Drop-off time',
+      width: 118,
+      minWidth: 104,
+      comparator: serverSideSortComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: serverSideTextFilterParams,
+      valueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return data.dropoff_time;
+      },
     },
     {
       field: 'pallet_count',
@@ -778,6 +922,11 @@ export class CustomerDeliveries implements OnInit {
         continue;
       }
 
+      if (this.isDateFilterField(field)) {
+        params = this.appendDateFilterParams(params, model, field);
+        continue;
+      }
+
       if (!this.isTextFilterModel(model) || !model.type) {
         continue;
       }
@@ -791,6 +940,47 @@ export class CustomerDeliveries implements OnInit {
       params = params.set(`filter[${field}][type]`, model.type);
       if (!isBlankType) {
         params = params.set(`filter[${field}][filter]`, filterText);
+      }
+    }
+
+    return params;
+  }
+
+  private isDateFilterField(field: string): field is DateFilterField {
+    return (DATE_FILTER_FIELDS as readonly string[]).includes(field);
+  }
+
+  private normalizeFilterDate(value: string | null | undefined): string | null {
+    if (value == null || value === '') {
+      return null;
+    }
+    return value.length >= 10 ? value.slice(0, 10) : null;
+  }
+
+  private appendDateFilterParams(
+    params: HttpParams,
+    model: FilterModel[string],
+    field: DateFilterField,
+  ): HttpParams {
+    if (!this.isDateFilterModel(model) || !model.type) {
+      return params;
+    }
+
+    if (model.type === 'blank' || model.type === 'notBlank') {
+      return params.set(`filter[${field}][type]`, model.type);
+    }
+
+    const from = this.normalizeFilterDate(model.dateFrom);
+    if (from === null) {
+      return params;
+    }
+
+    params = params.set(`filter[${field}][type]`, model.type).set(`filter[${field}][filter]`, from);
+
+    if (model.type === 'inRange') {
+      const to = this.normalizeFilterDate(model.dateTo);
+      if (to !== null) {
+        params = params.set(`filter[${field}][filterTo]`, to);
       }
     }
 
@@ -832,6 +1022,16 @@ export class CustomerDeliveries implements OnInit {
     return filterType === 'text' || filterType == null;
   }
 
+  private isDateFilterModel(
+    model: FilterModel[string] | null | undefined,
+  ): model is DateFilterModel {
+    if (!model || typeof model !== 'object' || !('type' in model)) {
+      return false;
+    }
+    const filterType = 'filterType' in model ? model.filterType : 'date';
+    return filterType === 'date';
+  }
+
   private isNumberFilterModel(
     model: FilterModel[string] | null | undefined,
   ): model is NumberFilterModel {
@@ -850,6 +1050,10 @@ export class CustomerDeliveries implements OnInit {
         'provider',
         'collection',
         'delivery',
+        'pickup_date',
+        'pickup_time',
+        'dropoff_date',
+        'dropoff_time',
         'pallet_count',
         'item_count',
       ] as const
