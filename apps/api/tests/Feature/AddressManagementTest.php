@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Country;
 use App\Models\CountryState;
 use App\Models\User;
+use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -97,7 +98,7 @@ class AddressManagementTest extends TestCase
         Address::factory()->for($company)->collection()->create([
             'business_name' => 'Mine Pty Ltd',
             'address' => '1 Main St',
-            'zone' => 'Sydney',
+            'zone_id' => $this->zoneFor($company, 'Sydney')->id,
             'state' => 'NSW',
             'postcode' => '2000',
         ]);
@@ -128,7 +129,7 @@ class AddressManagementTest extends TestCase
         $this->loginAs($customer);
 
         $response = $this->asSpa()->postJson('/api/addresses', [
-            ...$this->validPayload(),
+            ...$this->validPayload($company),
             'type' => AddressType::Delivery->value,
         ]);
 
@@ -158,7 +159,7 @@ class AddressManagementTest extends TestCase
         $address = Address::factory()->for($company)->collection()->create([
             'business_name' => 'Mine Pty Ltd',
             'address' => '1 Main St',
-            'zone' => 'Sydney',
+            'zone_id' => $this->zoneFor($company, 'Sydney')->id,
             'state' => 'NSW',
             'postcode' => '2000',
         ]);
@@ -198,14 +199,14 @@ class AddressManagementTest extends TestCase
         $address = Address::factory()->for($company)->collection()->create([
             'business_name' => 'Old Name',
             'address' => '1 Main St',
-            'zone' => 'Sydney',
+            'zone_id' => $this->zoneFor($company, 'Sydney')->id,
             'state' => 'NSW',
             'postcode' => '2000',
         ]);
         $this->loginAs($customer);
 
         $this->asSpa()->putJson("/api/addresses/{$address->id}", [
-            ...$this->validPayload(),
+            ...$this->validPayload($company),
             'type' => AddressType::Delivery->value,
         ])->assertOk()
             ->assertJsonPath('address.id', $address->id)
@@ -244,7 +245,7 @@ class AddressManagementTest extends TestCase
         $this->loginAs($customer);
 
         $this->asSpa()->putJson("/api/addresses/{$address->id}", [
-            ...$this->validPayload(),
+            ...$this->validPayload($company),
             'state' => 'AUK',
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['state']);
@@ -260,7 +261,7 @@ class AddressManagementTest extends TestCase
         ]);
         $this->loginAs($customer);
 
-        $this->asSpa()->putJson("/api/addresses/{$other->id}", $this->validPayload())->assertNotFound();
+        $this->asSpa()->putJson("/api/addresses/{$other->id}", $this->validPayload($company))->assertNotFound();
         $this->assertDatabaseHas('addresses', [
             'id' => $other->id,
             'business_name' => $other->business_name,
@@ -311,10 +312,28 @@ class AddressManagementTest extends TestCase
         $this->loginAs($customer);
 
         $this->asSpa()->postJson('/api/addresses', [
-            ...$this->validPayload(),
+            ...$this->validPayload($company),
             'state' => 'AUK',
         ])->assertUnprocessable()
             ->assertJsonValidationErrors(['state']);
+    }
+
+    public function test_create_address_rejects_zone_outside_company_country(): void
+    {
+        $company = $this->companyWithStates();
+        $otherCountry = Country::factory()->create();
+        $foreignZone = Zone::factory()->create(['country_id' => $otherCountry->id]);
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->postJson('/api/addresses', [
+            ...$this->validPayload($company),
+            'zone_id' => $foreignZone->id,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['zone_id']);
     }
 
     public function test_customer_can_list_state_options_for_company_country(): void
@@ -347,6 +366,34 @@ class AddressManagementTest extends TestCase
         $this->asSpa()->getJson('/api/addresses/state-options')->assertForbidden();
     }
 
+    public function test_customer_can_list_zone_options_for_company_country(): void
+    {
+        $company = $this->companyWithStates();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+        $this->loginAs($customer);
+
+        $this->asSpa()->getJson('/api/addresses/zone-options')
+            ->assertOk()
+            ->assertJsonCount(2, 'zones')
+            ->assertJsonPath('zones.0.name', 'Melbourne')
+            ->assertJsonPath('zones.1.name', 'Sydney');
+    }
+
+    public function test_admin_and_guest_cannot_list_zone_options(): void
+    {
+        $this->asSpa()->getJson('/api/addresses/zone-options')->assertUnauthorized();
+
+        $this->loginAs(User::factory()->admin()->create([
+            'email' => 'admin@example.com',
+            'password' => 'Password1!',
+        ]));
+
+        $this->asSpa()->getJson('/api/addresses/zone-options')->assertForbidden();
+    }
+
     public function test_create_address_validates_required_fields_and_type(): void
     {
         $this->loginAs(User::factory()->forCompany()->create([
@@ -361,7 +408,7 @@ class AddressManagementTest extends TestCase
                 'type',
                 'business_name',
                 'address',
-                'zone',
+                'zone_id',
                 'state',
                 'postcode',
             ]);
@@ -418,14 +465,14 @@ class AddressManagementTest extends TestCase
         Address::factory()->for($company)->collection()->create([
             'business_name' => 'Alpha Yard',
             'address' => '1 Alpha St',
-            'zone' => 'Sydney',
+            'zone_id' => $this->zoneFor($company, 'Sydney')->id,
             'state' => 'NSW',
             'postcode' => '2000',
         ]);
         Address::factory()->for($company)->delivery()->create([
             'business_name' => 'Beta Depot',
             'address' => '2 Beta Rd',
-            'zone' => 'Melbourne',
+            'zone_id' => $this->zoneFor($company, 'Melbourne')->id,
             'state' => 'VIC',
             'postcode' => '3000',
         ]);
@@ -522,14 +569,14 @@ class AddressManagementTest extends TestCase
         Address::factory()->for($company)->collection()->create([
             'business_name' => 'Alpha Yard',
             'address' => '1 Alpha St',
-            'zone' => 'Sydney',
+            'zone_id' => $this->zoneFor($company, 'Sydney')->id,
             'state' => 'NSW',
             'postcode' => '2000',
         ]);
         Address::factory()->for($company)->delivery()->create([
             'business_name' => 'Beta Depot',
             'address' => '2 Beta Rd',
-            'zone' => 'Melbourne',
+            'zone_id' => $this->zoneFor($company, 'Melbourne')->id,
             'state' => 'VIC',
             'postcode' => '3000',
         ]);
@@ -567,19 +614,19 @@ class AddressManagementTest extends TestCase
 
         Address::factory()->for($company)->create([
             'business_name' => 'Zulu Yard',
-            'zone' => 'Zeta',
+            'zone_id' => $this->zoneFor($company, 'Zeta')->id,
             'state' => 'WA',
             'postcode' => '6000',
         ]);
         Address::factory()->for($company)->create([
             'business_name' => 'Alpha Yard',
-            'zone' => 'Alpha',
+            'zone_id' => $this->zoneFor($company, 'Alpha')->id,
             'state' => 'NSW',
             'postcode' => '2000',
         ]);
         Address::factory()->for($company)->create([
             'business_name' => 'Mike Yard',
-            'zone' => 'Mike',
+            'zone_id' => $this->zoneFor($company, 'Mike')->id,
             'state' => 'VIC',
             'postcode' => '3000',
         ]);
@@ -625,13 +672,27 @@ class AddressManagementTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function validPayload(): array
+    /**
+     * @return array<string, mixed>
+     */
+    private function validPayload(?Company $company = null): array
     {
+        $company ??= Company::factory()->create();
+
+        $zoneId = Zone::query()
+            ->where('country_id', $company->country_id)
+            ->where('name', 'Melbourne')
+            ->value('id');
+
+        if ($zoneId === null) {
+            $zoneId = $this->zoneFor($company, 'Melbourne', 'MEL')->id;
+        }
+
         return [
             'type' => AddressType::Collection->value,
             'business_name' => 'Acme Logistics',
             'address' => '42 Warehouse Rd',
-            'zone' => 'Melbourne',
+            'zone_id' => $zoneId,
             'state' => 'VIC',
             'postcode' => '3000',
         ];
@@ -651,8 +712,22 @@ class AddressManagementTest extends TestCase
             'name' => 'Victoria',
         ]);
 
-        return Company::factory()->create([
+        $company = Company::factory()->create([
             'country_id' => $country->id,
+        ]);
+
+        $this->zoneFor($company, 'Sydney', 'SYD');
+        $this->zoneFor($company, 'Melbourne', 'MEL');
+
+        return $company;
+    }
+
+    private function zoneFor(Company $company, string $name, ?string $code = null): Zone
+    {
+        return Zone::factory()->create([
+            'country_id' => $company->country_id,
+            'name' => $name,
+            'code' => $code ?? strtoupper(substr($name, 0, 3)),
         ]);
     }
 

@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Address;
 use App\Models\Company;
+use App\Models\Zone;
 use Illuminate\Database\Seeder;
 
 class AddressSeeder extends Seeder
@@ -40,15 +41,39 @@ class AddressSeeder extends Seeder
             return;
         }
 
-        if (! Company::query()->whereKey($companyId)->exists()) {
+        $company = Company::query()->find($companyId);
+        if ($company === null) {
             $this->command?->error("Company {$companyId} does not exist.");
 
             return;
         }
 
-        Address::factory()
-            ->count($count)
-            ->create(['company_id' => $companyId]);
+        if ($company->country_id === null) {
+            $this->command?->error("Company {$companyId} has no country; cannot assign zones.");
+
+            return;
+        }
+
+        $zoneIds = Zone::query()
+            ->where('country_id', $company->country_id)
+            ->where('is_active', true)
+            ->pluck('id')
+            ->all();
+
+        if ($zoneIds === []) {
+            $this->command?->error(
+                'No active zones for this company\'s country. Run AustraliaZoneSeeder / NewZealandZoneSeeder or create zones first.',
+            );
+
+            return;
+        }
+
+        for ($i = 0; $i < $count; $i++) {
+            Address::factory()->create([
+                'company_id' => $companyId,
+                'zone_id' => $zoneIds[array_rand($zoneIds)],
+            ]);
+        }
 
         $this->command?->info("Seeded {$count} ".($count === 1 ? 'address' : 'addresses')." for company {$companyId}.");
     }

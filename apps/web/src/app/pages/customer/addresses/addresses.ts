@@ -46,6 +46,7 @@ export interface AddressRow {
   type: AddressType;
   business_name: string;
   address: string;
+  zone_id: number;
   zone: string;
   state: string;
   postcode: string;

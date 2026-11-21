@@ -14,6 +14,6 @@ As an admin user, I want to manage freight zones (cities and urban areas) from S
 - [x] Deleting a country that still has zones is blocked (extends [US-015](US-015-admin-countries-and-states.md))
 
 ## Notes
-- Customer address `zone` remains free text ([US-010](US-010-customer-address-management.md)); FK/dropdown is a later story
+- Customer addresses reference zones via `zone_id` ([US-010](US-010-customer-address-management.md)); `GET /api/addresses/zone-options` supplies active zones for the company country
 - Run seeders separately: `php artisan db:seed --class=AustraliaZoneSeeder`, `php artisan db:seed --class=NewZealandZoneSeeder`
 - Picker contract: create/edit forms that choose a zone must use `/api/admin/zones/options`, not the paginated list

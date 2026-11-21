@@ -41,10 +41,57 @@
         <input type="text" formControlName="address" autocomplete="street-address" />
       </label>
 
-      <label>
-        Zone
-        <input type="text" formControlName="zone" autocomplete="address-level2" />
-      </label>
+      <div class="zone-picker">
+        <label>
+          Zone
+          <input
+            type="text"
+            [value]="zoneQuery()"
+            (input)="onZoneQueryInput($event)"
+            (focus)="onZoneFocus()"
+            (blur)="onZoneBlur()"
+            (keydown)="onZoneKeydown($event)"
+            [disabled]="!zoneCatalogReady()"
+            [attr.aria-expanded]="zoneMenuOpen()"
+            [attr.aria-activedescendant]="activeZoneSuggestionId()"
+            aria-autocomplete="list"
+            aria-controls="zone-suggestions"
+            role="combobox"
+            autocomplete="off"
+            placeholder="Type at least 2 characters"
+          />
+        </label>
+
+        @if (zoneMenuOpen() && zoneSuggestions().length > 0) {
+          <ul id="zone-suggestions" class="zone-picker__list" role="listbox">
+            @for (zone of zoneSuggestions(); track zone.id; let i = $index) {
+              <li
+                role="option"
+                [attr.id]="'zone-option-' + zone.id"
+                [attr.aria-selected]="activeZoneSuggestionIndex() === i"
+              >
+                <button
+                  type="button"
+                  class="zone-picker__option"
+                  [class.zone-picker__option--active]="activeZoneSuggestionIndex() === i"
+                  (mousedown)="selectZone(zone)"
+                >
+                  {{ zone.name }}
+                  <span class="zone-picker__code">{{ zone.code }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (zoneSearchHint(); as hint) {
+          <p class="zone-picker__status">{{ hint }}</p>
+        }
+
+        @if (form.controls.zone_id.touched && form.controls.zone_id.invalid) {
+          <p class="zone-picker__error">Select a zone from the suggestions.</p>
+        }
+      </div>
 
       <label>
         State

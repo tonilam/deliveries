@@ -29,7 +29,16 @@ class StoreAddressRequest extends FormRequest
             'type' => ['required', 'string', Rule::enum(AddressType::class)],
             'business_name' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:255'],
-            'zone' => ['required', 'string', 'max:255'],
+            'zone_id' => [
+                'required',
+                'integer',
+                Rule::when(
+                    $countryId !== null,
+                    Rule::exists('zones', 'id')->where(fn ($query) => $query
+                        ->where('country_id', $countryId)
+                        ->where('is_active', true)),
+                ),
+            ],
             'state' => [
                 'required',
                 'string',
@@ -49,6 +58,10 @@ class StoreAddressRequest extends FormRequest
             if ($this->companyCountryId() === null) {
                 $validator->errors()->add(
                     'state',
+                    'Your company must have a country before addresses can be saved.',
+                );
+                $validator->errors()->add(
+                    'zone_id',
                     'Your company must have a country before addresses can be saved.',
                 );
             }

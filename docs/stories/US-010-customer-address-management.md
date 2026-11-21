@@ -16,6 +16,8 @@ As a customer, I want to manage my company’s collection and delivery addresses
 - [x] Each row has **Actions** with **Edit** and **Delete**
 - [x] A button opens a separate page to add a new address
 - [x] Create and edit forms capture: type, address, zone, state, postcode, business name; saving persists for the customer’s **company** and returns to the list
+- [x] **Zone** on the create/edit form is an **autocomplete combobox** (same interaction as company pick on admin create user): type to filter active zones for the company country, pick a suggestion to set `zone_id`; catalogue from `GET /api/addresses/zone-options`
+- [x] `POST /api/addresses` and `PUT /api/addresses/{address}` validate `zone_id` as an active zone **id** that belongs to the company’s country
 - [x] Edit opens a separate page (`/app/addresses/:id/edit`) prefilled with the address; saving updates that address
 - [x] Delete asks for confirmation, then removes the address and refreshes the list
 - [x] **State** on the create/edit form is a **dropdown** of states/regions for the customer’s company country (label = name, value = **code**); options come from `GET /api/addresses/state-options`
@@ -31,5 +33,6 @@ As a customer, I want to manage my company’s collection and delivery addresses
 - Menu item extends [US-004](US-004-authenticated-app-shell.md) customer nav.
 - List behaviour matches companies ([US-013](US-013-admin-company-management.md)): server-side pagination, filtering, and sorting.
 - Address `state` remains a string column storing the country-state **code** (not a foreign key).
+- Address `zone_id` references the [zone catalogue](US-017-admin-zone-management.md); list/search/filter/sort **Zone** uses the zone **name** in API payloads.
 - Admin management of addresses is out of scope for this story.
 - Customers without a company cannot list or mutate addresses (forbidden).

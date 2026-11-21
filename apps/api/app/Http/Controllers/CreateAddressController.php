@@ -16,10 +16,12 @@ class CreateAddressController extends Controller
             'type' => AddressType::from($request->string('type')->toString()),
             'business_name' => $request->string('business_name')->toString(),
             'address' => $request->string('address')->toString(),
-            'zone' => $request->string('zone')->toString(),
+            'zone_id' => $request->integer('zone_id'),
             'state' => $request->string('state')->toString(),
             'postcode' => $request->string('postcode')->toString(),
         ]);
+
+        $address->load('zone');
 
         return response()->json([
             'address' => $address->toCustomerPayload(),

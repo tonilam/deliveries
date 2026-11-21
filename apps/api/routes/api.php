@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AddressListController;
 use App\Http\Controllers\AddressStateOptionsController;
+use App\Http\Controllers\AddressZoneOptionsController;
 use App\Http\Controllers\Admin\CheckCompanyUniquenessController;
 use App\Http\Controllers\Admin\CompanyListController;
 use App\Http\Controllers\Admin\CountryListController;
@@ -101,6 +102,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('/addresses', AddressListController::class);
     Route::get('/addresses/state-options', AddressStateOptionsController::class);
+    Route::get('/addresses/zone-options', AddressZoneOptionsController::class);
     Route::post('/addresses', CreateAddressController::class);
     Route::get('/addresses/{address}', ShowAddressController::class);
     Route::put('/addresses/{address}', UpdateAddressController::class);

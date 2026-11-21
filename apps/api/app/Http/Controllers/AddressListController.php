@@ -14,7 +14,9 @@ class AddressListController extends Controller
     {
         $user = $request->user();
 
-        $query = Address::query()->where('company_id', $user->company_id);
+        $query = Address::query()
+            ->with('zone')
+            ->where('company_id', $user->company_id);
         $this->applyFilters($query, $request->filters());
         $this->applySearch($query, $request->search());
         $this->applySort($query, $request->sort(), $request->direction());
@@ -25,11 +27,14 @@ class AddressListController extends Controller
         $page = min(max(1, (int) $request->input('page', 1)), $lastPage);
 
         $paginator = $query
-            ->paginate($perPage, ['id', 'type', 'business_name', 'address', 'zone', 'state', 'postcode'], 'page', $page)
+            ->paginate($perPage, ['addresses.id', 'addresses.type', 'addresses.business_name', 'addresses.address', 'addresses.zone_id', 'addresses.state', 'addresses.postcode'], 'page', $page)
             ->withQueryString();
 
         return response()->json([
-            'addresses' => $paginator->items(),
+            'addresses' => collect($paginator->items())
+                ->map(static fn (Address $address) => $address->toCustomerPayload())
+                ->values()
+                ->all(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),
@@ -58,11 +63,11 @@ class AddressListController extends Controller
         $query->where(function (Builder $inner) use ($like, $displayExpr): void {
             $inner->where('business_name', 'like', $like)
                 ->orWhere('address', 'like', $like)
-                ->orWhere('zone', 'like', $like)
                 ->orWhere('state', 'like', $like)
                 ->orWhere('postcode', 'like', $like)
                 ->orWhere('type', 'like', $like)
-                ->orWhereRaw("{$displayExpr} LIKE ?", [$like]);
+                ->orWhereRaw("{$displayExpr} LIKE ?", [$like])
+                ->orWhereHas('zone', static fn (Builder $zoneQuery) => $zoneQuery->where('name', 'like', $like));
         });
     }
 
@@ -71,7 +76,14 @@ class AddressListController extends Controller
      */
     private function applySort(Builder $query, string $sort, string $direction): void
     {
-        $query->orderBy($sort, $direction)->orderBy('id');
+        if ($sort === 'zone') {
+            $this->joinZonesForQuery($query);
+            $query->orderBy('zones.name', $direction)->orderBy('addresses.id');
+
+            return;
+        }
+
+        $query->orderBy($sort, $direction)->orderBy('addresses.id');
     }
 
     /**
@@ -98,6 +110,12 @@ class AddressListController extends Controller
     ): void {
         if ($column === 'type') {
             $this->applyTypeFilter($query, $type, $value);
+
+            return;
+        }
+
+        if ($column === 'zone') {
+            $this->applyZoneFilter($query, $type, $value);
 
             return;
         }
@@ -203,6 +221,72 @@ class AddressListController extends Controller
     private function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    /**
+     * @param  Builder<Address>  $query
+     */
+    private function joinZonesForQuery(Builder $query): void
+    {
+        if (! $this->queryHasZoneJoin($query)) {
+            $query->leftJoin('zones', 'addresses.zone_id', '=', 'zones.id');
+        }
+    }
+
+    /**
+     * @param  Builder<Address>  $query
+     */
+    private function queryHasZoneJoin(Builder $query): bool
+    {
+        $joins = $query->getQuery()->joins ?? [];
+
+        foreach ($joins as $join) {
+            if ($join->table === 'zones') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  Builder<Address>  $query
+     */
+    private function applyZoneFilter(Builder $query, string $type, ?string $value): void
+    {
+        if ($type === 'blank') {
+            $query->whereNull('addresses.zone_id');
+
+            return;
+        }
+
+        if ($type === 'notBlank') {
+            $query->whereNotNull('addresses.zone_id');
+
+            return;
+        }
+
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        $this->joinZonesForQuery($query);
+        $like = $this->escapeLike($value);
+
+        match ($type) {
+            'equals' => $query->where('zones.name', $value),
+            'notEqual' => $query->where(function (Builder $inner) use ($value): void {
+                $inner->whereNull('zones.name')->orWhere('zones.name', '!=', $value);
+            }),
+            'contains' => $query->where('zones.name', 'like', '%'.$like.'%'),
+            'notContains' => $query->where(function (Builder $inner) use ($like): void {
+                $inner->whereNull('zones.name')
+                    ->orWhere('zones.name', 'not like', '%'.$like.'%');
+            }),
+            'startsWith' => $query->where('zones.name', 'like', $like.'%'),
+            'endsWith' => $query->where('zones.name', 'like', '%'.$like),
+            default => null,
+        };
     }
 
     private function usesPostcodeNumericComparison(string $type): bool
