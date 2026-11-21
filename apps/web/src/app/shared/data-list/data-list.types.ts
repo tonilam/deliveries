@@ -2,6 +2,8 @@ export interface DataListColumn<T> {
   field: keyof T & string;
   label: string;
   valueFor?: (row: T) => string;
+  /** When true, compact list shows a read-only checkbox instead of text. */
+  booleanCheckbox?: boolean;
 }
 
 export interface DataListSortOption {

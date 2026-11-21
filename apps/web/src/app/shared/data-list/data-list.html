@@ -47,7 +47,19 @@
             @for (column of columns(); track column.field) {
               <div class="data-list__field">
                 <dt>{{ column.label }}</dt>
-                <dd>{{ valueFor(column, row) }}</dd>
+                @if (column.booleanCheckbox) {
+                  <dd>
+                    <input
+                      type="checkbox"
+                      class="data-list__checkbox"
+                      [checked]="!!row[column.field]"
+                      disabled
+                      [attr.aria-label]="column.label"
+                    />
+                  </dd>
+                } @else {
+                  <dd>{{ valueFor(column, row) }}</dd>
+                }
               </div>
             }
           </dl>

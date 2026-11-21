@@ -82,6 +82,12 @@
   text-align: center;
 }
 
+:host ::ng-deep .users-grid__checkbox-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 :host ::ng-deep .ag-row {
   z-index: 0;
 }

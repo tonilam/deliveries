@@ -1,0 +1,42 @@
+<section class="portal">
+  <a routerLink="/admin/settings/zones">← Zones</a>
+  <h1>Add zone</h1>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p>Loading…</p>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="form-stack zone-form">
+      <label>
+        <span>Country</span>
+        <select formControlName="country_id">
+          @for (country of countries(); track country.id) {
+            <option [ngValue]="country.id">{{ country.name }} ({{ country.code }})</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Name</span>
+        <input type="text" formControlName="name" autocomplete="off" />
+      </label>
+      <label>
+        <span>Code</span>
+        <input type="text" formControlName="code" autocomplete="off" spellcheck="false" />
+        <small>Uppercase letters and numbers, e.g. BNE for Brisbane.</small>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" formControlName="is_active" />
+        <span>Active</span>
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+          {{ submitting() ? 'Saving…' : 'Save' }}
+        </button>
+        <a routerLink="/admin/settings/zones" class="btn btn--ghost">Cancel</a>
+      </div>
+    </form>
+  }
+</section>

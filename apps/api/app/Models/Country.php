@@ -29,4 +29,12 @@ class Country extends Model
     {
         return $this->hasMany(Company::class);
     }
+
+    /**
+     * @return HasMany<Zone, $this>
+     */
+    public function zones(): HasMany
+    {
+        return $this->hasMany(Zone::class)->orderBy('name');
+    }
 }

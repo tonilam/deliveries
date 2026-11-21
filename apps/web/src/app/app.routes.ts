@@ -120,6 +120,16 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./pages/admin/settings/countries/state-form').then((m) => m.AdminStateForm),
           },
+          {
+            path: 'zones',
+            loadComponent: () =>
+              import('./pages/admin/settings/zones/zones').then((m) => m.AdminZones),
+          },
+          {
+            path: 'zones/create',
+            loadComponent: () =>
+              import('./pages/admin/settings/zones/zone-form').then((m) => m.AdminZoneForm),
+          },
         ],
       },
       {

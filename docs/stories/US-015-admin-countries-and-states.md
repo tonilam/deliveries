@@ -21,3 +21,4 @@ As an admin user, I want to manage countries and their states/regions from Syste
   - `php artisan db:seed --class=NewZealandCountrySeeder`
 - Customer-facing API is limited to state options for the signed-in customer’s company country (`GET /api/addresses/state-options`); full country CRUD remains admin-only.
 - Deleting a country that is still referenced by companies is blocked (`restrictOnDelete`).
+- Deleting a country that still has zones is blocked ([US-017](US-017-admin-zone-management.md)).

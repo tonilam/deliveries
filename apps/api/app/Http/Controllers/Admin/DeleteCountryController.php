@@ -18,6 +18,12 @@ class DeleteCountryController extends Controller
             ]);
         }
 
+        if ($country->zones()->withTrashed()->exists()) {
+            throw ValidationException::withMessages([
+                'country' => ['This country cannot be deleted while zones still belong to it.'],
+            ]);
+        }
+
         $country->delete();
 
         return response()->noContent();

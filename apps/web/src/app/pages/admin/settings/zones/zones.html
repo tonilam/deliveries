@@ -1,0 +1,153 @@
+<section class="portal portal--wide">
+  <div class="users-header">
+    <div>
+      <h1>Zones</h1>
+      <p class="lede">City and urban-area reference data for freight zones.</p>
+    </div>
+    <a routerLink="/admin/settings/zones/create" class="btn btn--primary">Add zone</a>
+  </div>
+
+  @if (error()) {
+    <p class="users-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (compact()) {
+    <app-data-list
+      [loading]="loading()"
+      [rows]="zones()"
+      [titleFor]="zoneListTitle"
+      [columns]="listColumns"
+      [actionsFor]="actionsForList"
+      [searchValue]="searchQuery()"
+      searchPlaceholder="Search zones…"
+      [sortOptions]="sortOptions"
+      [sortField]="sortField"
+      [sortDirection]="sortDirection"
+      (searchChange)="onListSearch($event)"
+      (sortFieldChange)="onListSortField($event)"
+      (sortDirectionChange)="onListSortDirection($event)"
+    />
+  } @else {
+    <ag-grid-angular
+      class="users-grid"
+      [theme]="theme"
+      [rowData]="zones()"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [loading]="loading()"
+      [suppressMultiSort]="true"
+      domLayout="autoHeight"
+      (gridReady)="onGridReady($event)"
+      (filterChanged)="onFilterChanged($event)"
+      (sortChanged)="onSortChanged($event)"
+    />
+  }
+
+  @if (meta(); as pagination) {
+    <div class="pagination" aria-label="Zones pagination">
+      <p class="pagination__summary">
+        @if (pagination.total === 0) {
+          No zones
+        } @else {
+          Showing {{ pagination.from }}–{{ pagination.to }} of {{ pagination.total }}
+        }
+      </p>
+
+      <label class="pagination__size">
+        <span>Rows per page</span>
+        <select
+          [ngModel]="pageSize()"
+          (ngModelChange)="onPageSizeChange($event)"
+          [disabled]="loading()"
+        >
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="pagination__nav">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page <= 1"
+          (click)="goToPage(pagination.current_page - 1)"
+        >
+          Previous
+        </button>
+        <span class="pagination__page">
+          Page {{ pagination.current_page }} of {{ pagination.last_page }}
+        </span>
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page >= pagination.last_page"
+          (click)="goToPage(pagination.current_page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</section>
+
+@if (editOpen()) {
+  <div class="modal-backdrop" (click)="cancelEdit()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="zone-edit-title">
+    <h2 id="zone-edit-title">Edit zone</h2>
+    @if (editError(); as editErr) {
+      <p class="form-error" role="alert">{{ editErr }}</p>
+    }
+    <form [formGroup]="editForm" (ngSubmit)="saveEdit()" class="form-stack">
+      <label>
+        <span>Country</span>
+        <select formControlName="country_id">
+          @for (country of countries(); track country.id) {
+            <option [ngValue]="country.id">{{ country.name }} ({{ country.code }})</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Name</span>
+        <input type="text" formControlName="name" autocomplete="off" />
+      </label>
+      <label>
+        <span>Code</span>
+        <input type="text" formControlName="code" autocomplete="off" spellcheck="false" />
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" formControlName="is_active" />
+        <span>Active</span>
+      </label>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" [disabled]="saving()" (click)="cancelEdit()">
+          Cancel
+        </button>
+        <button type="submit" class="btn btn--primary" [disabled]="saving()">
+          {{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (pendingDelete(); as zone) {
+  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="zone-delete-title">
+    <h2 id="zone-delete-title">Confirm delete</h2>
+    <p>Delete zone {{ zone.name }} ({{ zone.code }})?</p>
+    <div class="modal__actions">
+      <button type="button" class="btn btn--ghost" [disabled]="deleting()" (click)="cancelDelete()">
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        [disabled]="deleting()"
+        (click)="confirmDelete()"
+      >
+        {{ deleting() ? 'Deleting…' : 'Delete' }}
+      </button>
+    </div>
+  </div>
+}

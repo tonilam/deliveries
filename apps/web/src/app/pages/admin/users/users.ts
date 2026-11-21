@@ -34,6 +34,7 @@ import {
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
 import { AuthService } from '../../../core/auth/auth.service';
+import { BooleanCheckboxCell } from '../../../shared/ag-grid/boolean-checkbox-cell';
 import { UserActionItem, UserActionsCell, UserActionsCellRow } from './user-actions-cell';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -86,13 +87,9 @@ const serverSideTextFilterParams: ITextFilterParams = {
   textMatcher: () => true,
 };
 
-function activeLabel(isActive: boolean): string {
-  return isActive ? 'Yes' : 'No';
-}
-
 @Component({
   selector: 'app-admin-users',
-  imports: [AgGridAngular, DataListComponent, FormsModule, RouterLink],
+  imports: [AgGridAngular, DataListComponent, FormsModule, RouterLink, BooleanCheckboxCell],
   templateUrl: './users.html',
   styleUrls: ['../../../shared/portal-shell.scss', './users.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -388,10 +385,12 @@ export class AdminUsers implements OnInit {
         headerName: 'Active',
         flex: 0.6,
         minWidth: 100,
+        maxWidth: 100,
         comparator: serverSideSortComparator,
         filter: 'agTextColumnFilter',
         filterParams: serverSideTextFilterParams,
-        valueFormatter: (params) => (params.value ? 'Yes' : 'No'),
+        cellRenderer: BooleanCheckboxCell,
+        cellClass: 'users-grid__checkbox-cell',
         filterValueGetter: (params) => (params.data?.is_active ? 'Yes' : 'No'),
       },
       {
@@ -432,7 +431,7 @@ export class AdminUsers implements OnInit {
       {
         field: 'is_active',
         label: 'Active',
-        valueFor: (row) => activeLabel(row.is_active),
+        booleanCheckbox: true,
       },
     );
 
