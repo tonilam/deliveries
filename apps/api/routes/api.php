@@ -66,6 +66,7 @@ use App\Http\Controllers\CreateRateCardController;
 use App\Http\Controllers\DeleteAddressController;
 use App\Http\Controllers\DeleteNetworkCompanyController;
 use App\Http\Controllers\FeatureFlagsController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\NetworkCompanyListController;
 use App\Http\Controllers\RateCardCompanyOptionsController;
 use App\Http\Controllers\RateCardListController;
@@ -76,25 +77,9 @@ use App\Http\Controllers\ShowRateCardController;
 use App\Http\Controllers\UpdateAddressController;
 use App\Http\Controllers\UpdateNetworkCompanyController;
 use App\Http\Controllers\UpdateRateCardController;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/health', function () {
-    $database = 'ok';
-
-    try {
-        DB::connection()->getPdo();
-    } catch (Throwable $e) {
-        $database = 'unavailable';
-    }
-
-    return response()->json([
-        'status' => 'ok',
-        'service' => 'loadplanner-api',
-        'database' => $database,
-        'timestamp' => now()->toIso8601String(),
-    ]);
-});
+Route::get('/health', HealthController::class);
 
 Route::get('/features', FeatureFlagsController::class);
 
