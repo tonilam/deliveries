@@ -105,8 +105,13 @@ class LoadListController extends Controller
     private function applySort(Builder $query, string $sort, string $direction): void
     {
         if ($sort === 'item_count') {
+            $sqlDirection = strtolower($direction) === 'desc' ? 'DESC' : 'ASC';
             $query->withCount('items')
-                ->orderBy('items_count', $direction)
+                ->orderByRaw(
+                    '(COALESCE(items_count, 0) + COALESCE((SELECT COUNT(*) FROM items '
+                    .'INNER JOIN loads AS child_loads ON child_loads.id = items.load_id '
+                    .'WHERE child_loads.parent_load_id = loads.id), 0)) '.$sqlDirection
+                )
                 ->orderBy('loads.id');
 
             return;

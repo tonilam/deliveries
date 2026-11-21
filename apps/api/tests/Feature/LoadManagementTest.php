@@ -28,6 +28,35 @@ class LoadManagementTest extends TestCase
         $this->asSpa()->getJson('/api/loads')->assertUnauthorized();
     }
 
+    public function test_list_loads_item_count_includes_child_items(): void
+    {
+        [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();
+        $load = $this->createDirectLoad($owner, $collection, $delivery);
+        $childDelivery = Address::factory()->for($owner)->delivery()->create();
+        $child = Load::query()->create([
+            'company_id' => $owner->id,
+            'parent_load_id' => $load->id,
+            'type' => LoadType::AddDrop,
+            'customer_company_id' => $load->customer_company_id,
+            'provider_company_id' => $load->provider_company_id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $childDelivery->id,
+            'pallet_count' => 1,
+        ]);
+
+        Item::factory()->for($owner)->create(['load_id' => $load->id]);
+        Item::factory()->for($owner)->create(['load_id' => $child->id]);
+        Item::factory()->for($owner)->create(['load_id' => $child->id]);
+
+        $this->loginAs($user);
+
+        $this->asSpa()->getJson('/api/loads?sort=item_count&direction=desc')
+            ->assertOk()
+            ->assertJsonPath('loads.0.id', $load->id)
+            ->assertJsonPath('loads.0.item_count', 1)
+            ->assertJsonPath('loads.0.children.0.item_count', 2);
+    }
+
     public function test_party_options_without_search_returns_up_to_ten(): void
     {
         [$owner, , , , , $user] = $this->brokerFixture();

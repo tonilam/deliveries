@@ -34,3 +34,30 @@ export type LoadGridRow = LoadRow | LoadDetailGridRow;
 export function isLoadDetailRow(row: LoadGridRow): row is LoadDetailGridRow {
   return 'detailRow' in row && row.detailRow === true;
 }
+
+export function childItemCountSum(load: LoadRow): number {
+  return (load.children ?? []).reduce((sum, child) => sum + child.item_count, 0);
+}
+
+/** Parent Deliveries row: items on this load plus every child load. */
+export function parentDisplayItemCount(load: LoadRow): number {
+  return load.item_count + childItemCountSum(load);
+}
+
+/** Parent has child loads but items still assigned to the parent load itself. */
+export function parentHasItemsOnParentLoad(load: LoadRow): boolean {
+  return (load.children?.length ?? 0) > 0 && load.item_count > 0;
+}
+
+export interface ParentItemCountCellValue {
+  total: number;
+  warn: boolean;
+}
+
+/** Grid cell value — warn can change while total stays the same (e.g. after move to child). */
+export function parentItemCountCellValue(load: LoadRow): ParentItemCountCellValue {
+  return {
+    total: parentDisplayItemCount(load),
+    warn: parentHasItemsOnParentLoad(load),
+  };
+}

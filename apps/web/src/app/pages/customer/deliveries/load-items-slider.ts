@@ -345,10 +345,13 @@ export class LoadItemsSlider {
           this.assigning.set(false);
           this.toastr.success('Item moved to child load.');
           this.children.update((list) => {
-            if (list.some((c) => c.id === res.child_load.id)) {
-              return list;
+            const index = list.findIndex((child) => child.id === res.child_load.id);
+            if (index < 0) {
+              return [...list, res.child_load];
             }
-            return [...list, res.child_load];
+            const next = [...list];
+            next[index] = res.child_load;
+            return next;
           });
           this.cancelMove();
           this.reloadLists();

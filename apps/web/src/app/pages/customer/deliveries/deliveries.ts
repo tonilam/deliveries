@@ -43,9 +43,19 @@ import {
 import { LoadActionItem, LoadActionsCell } from './load-actions-cell';
 import { LoadChildrenFullWidth } from './load-children-full-width';
 import { LoadExpandCell } from './load-expand-cell';
+import { LoadItemCountCell } from './load-item-count-cell';
 import { LoadItemsSlider } from './load-items-slider';
 import { LoadXDockEditModal } from './load-xdock-edit-modal';
-import { isLoadDetailRow, LoadGridRow, LoadRow, OwnerCompanyType } from './load.types';
+import {
+  isLoadDetailRow,
+  LoadGridRow,
+  LoadRow,
+  OwnerCompanyType,
+  parentDisplayItemCount,
+  parentHasItemsOnParentLoad,
+  parentItemCountCellValue,
+  ParentItemCountCellValue,
+} from './load.types';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -112,6 +122,7 @@ const serverSideNumberFilterParams: INumberFilterParams = {
     FormsModule,
     RouterLink,
     LoadActionsCell,
+    LoadItemCountCell,
     LoadItemsSlider,
     LoadXDockEditModal,
   ],
@@ -204,7 +215,14 @@ export class CustomerDeliveries implements OnInit {
     { field: 'collection', label: 'Collection', valueFor: (row) => row.collection ?? '—' },
     { field: 'delivery', label: 'Delivery', valueFor: (row) => row.delivery ?? '—' },
     { field: 'pallet_count', label: 'Pallets', valueFor: (row) => String(row.pallet_count) },
-    { field: 'item_count', label: 'Items', valueFor: (row) => String(row.item_count) },
+    {
+      field: 'item_count',
+      label: 'Items',
+      valueFor: (row) => {
+        const total = parentDisplayItemCount(row);
+        return parentHasItemsOnParentLoad(row) ? `${total} — Check items` : String(total);
+      },
+    },
   ];
 
   protected readonly sortOptions: DataListSortOption[] = [
@@ -315,11 +333,37 @@ export class CustomerDeliveries implements OnInit {
     {
       field: 'item_count',
       headerName: 'Items',
-      width: 90,
+      width: 108,
+      minWidth: 96,
       comparator: serverSideSortComparator,
       filter: false,
       floatingFilter: false,
-      valueGetter: (params) => (isLoadDetailRow(params.data!) ? null : params.data?.item_count),
+      cellRenderer: LoadItemCountCell,
+      cellClass: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return undefined;
+        }
+        return parentHasItemsOnParentLoad(data) ? 'deliveries-grid__items-cell--warn' : undefined;
+      },
+      valueGetter: (params) => {
+        if (isLoadDetailRow(params.data!)) {
+          return null;
+        }
+        const row = params.data as LoadRow;
+        return parentItemCountCellValue(row);
+      },
+      equals: (a, b) => {
+        if (a === b) {
+          return true;
+        }
+        if (a == null || b == null) {
+          return a === b;
+        }
+        const left = a as ParentItemCountCellValue;
+        const right = b as ParentItemCountCellValue;
+        return left.total === right.total && left.warn === right.warn;
+      },
     },
     {
       headerName: 'Actions',
@@ -415,6 +459,20 @@ export class CustomerDeliveries implements OnInit {
         this.meta.set(res.meta);
         this.page.set(res.meta.current_page);
         this.loading.set(false);
+
+        const managing = this.selectedLoadForItems();
+        if (managing) {
+          const updated = res.loads.find((load) => load.id === managing.id);
+          if (updated) {
+            this.selectedLoadForItems.set(updated);
+          }
+        }
+
+        if (this.gridApi) {
+          queueMicrotask(() => {
+            this.gridApi?.refreshCells({ force: true, columns: ['item_count'] });
+          });
+        }
       });
 
     this.loadLoads();

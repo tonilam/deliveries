@@ -7,7 +7,8 @@ As a customer user, I want to manage loads on the Deliveries page, so that I can
 - [ ] Customer **Deliveries** (`/app/deliveries`) lists the company’s **direct** loads (not a flat item list)
 - [ ] List pattern: **AG Grid** desktop with server pagination (default 25; 10, 25, 50, 100, 200), search, sort, column filters; **data list** ≤720px with the same server query
 - [ ] Direct rows **expand** to show nested grid of **Add Drop** and **X Dock** child loads
-- [ ] Columns include **load ID**, **customer**, **provider**, **collection**, **delivery**, **pallets**, **item count**
+- [ ] Columns include **load ID**, **customer**, **provider**, **collection**, **delivery**, **pallets**, **item count** (parent row shows **own items plus all child loads**; child rows show only that load’s items)
+- [ ] When a direct load has **child loads** but still has items on the **parent**, the parent **Items** cell shows a red background and **Check items**
 - [ ] Row actions: **Edit**, **Delete**, **Manage Item** (all load types including children)
 - [ ] **Create load** at `/app/deliveries/create`; **edit** at `/app/deliveries/:id/edit` for **direct** and **Add Drop** child loads; **X Dock** child **edit** uses an in-page **modal** (Deliveries list and direct load edit) — not the edit route
 - [ ] Load types: **Direct** (collection + delivery), **Add Drop** (same collection as parent, different delivery, same customer/provider as parent), **X Dock** (parent collection, x-dock delivery address, final delivery, **secondary provider** from network)
