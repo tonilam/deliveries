@@ -16,6 +16,13 @@ class ItemListController extends Controller
         $query = Item::query()
             ->with('goodType')
             ->where('items.company_id', $user->company_id);
+
+        if ($request->boolean('unassigned')) {
+            $query->whereNull('items.load_id');
+        } elseif ($request->filled('load_id')) {
+            $query->where('items.load_id', (int) $request->input('load_id'));
+        }
+
         $this->applyFilters($query, $request->filters());
         $this->applySearch($query, $request->search());
         $this->applySort($query, $request->sort(), $request->direction());

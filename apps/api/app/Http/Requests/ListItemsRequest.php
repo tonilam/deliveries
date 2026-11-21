@@ -65,6 +65,8 @@ class ListItemsRequest extends FormRequest
      */
     public function rules(): array
     {
+        $companyId = $this->user()?->company_id;
+
         $rules = [
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', Rule::in(self::ALLOWED_PER_PAGE)],
@@ -72,6 +74,14 @@ class ListItemsRequest extends FormRequest
             'direction' => ['sometimes', 'string', Rule::in(self::SORT_DIRECTIONS)],
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'filter' => ['sometimes', 'array'],
+            'load_id' => [
+                'sometimes',
+                'integer',
+                Rule::exists('loads', 'id')->where(
+                    static fn ($query) => $query->where('company_id', $companyId),
+                ),
+            ],
+            'unassigned' => ['sometimes', 'boolean'],
         ];
 
         foreach (self::FILTERABLE_COLUMNS as $column) {

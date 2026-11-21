@@ -19,7 +19,17 @@ class StoreItemRequest extends FormRequest
      */
     public function rules(): array
     {
+        $companyId = $this->user()?->company_id;
+
         return [
+            'load_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('loads', 'id')->where(
+                    static fn ($query) => $query->where('company_id', $companyId),
+                ),
+            ],
             'good_type_code' => [
                 'required',
                 'string',

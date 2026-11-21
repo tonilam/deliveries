@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'company_id',
+    'load_id',
     'good_type_code',
     'weight_tonnes',
     'display_unit',
@@ -39,6 +40,14 @@ class Item extends Model
     }
 
     /**
+     * @return BelongsTo<Load, $this>
+     */
+    public function assignedLoad(): BelongsTo
+    {
+        return $this->belongsTo(Load::class, 'load_id');
+    }
+
+    /**
      * @return BelongsTo<GoodType, $this>
      */
     public function goodType(): BelongsTo
@@ -61,6 +70,7 @@ class Item extends Model
             'display_unit' => $this->display_unit->value,
             'order_number' => $this->order_number,
             'connote' => $this->connote,
+            'load_id' => $this->load_id,
         ];
     }
 }

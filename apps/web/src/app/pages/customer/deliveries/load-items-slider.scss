@@ -1,0 +1,141 @@
+.btn {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn--primary {
+  color: #fff;
+  background: var(--ui-color-brand);
+}
+
+.btn--ghost {
+  color: var(--ui-color-navy);
+  background: transparent;
+  border-color: #cbd5e1;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.load-slider-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(15 23 42 / 40%);
+  z-index: 60;
+}
+
+.load-slider {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 70;
+  width: min(30vw, 100vw);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  box-shadow: -8px 0 24px rgb(15 23 42 / 12%);
+}
+
+.load-slider__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.load-slider__header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ui-color-navy);
+}
+
+.load-slider__header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.load-slider__body {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.tabs__tab {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.65rem 0.85rem;
+  color: #475569;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.tabs__tab:hover {
+  color: var(--ui-color-navy);
+}
+
+.tabs__tab--active {
+  color: var(--ui-color-navy);
+  border-bottom-color: var(--ui-color-brand);
+}
+
+.load-slider__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.load-slider__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+}
+
+.load-slider__item-meta {
+  margin: 0.15rem 0 0;
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.load-slider__empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.load-slider__error {
+  margin: 0;
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 0.875rem;
+}

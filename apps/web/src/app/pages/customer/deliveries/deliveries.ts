@@ -1,6 +1,15 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
-import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
@@ -10,9 +19,11 @@ import {
   GridApi,
   GridReadyEvent,
   INumberFilterParams,
+  IsFullWidthRowParams,
   ITextFilterParams,
   ModuleRegistry,
   NumberFilterModel,
+  RowHeightParams,
   SortChangedEvent,
   TextFilterModel,
   themeQuartz,
@@ -28,47 +39,34 @@ import {
   DataListColumn,
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
-import { ItemActionItem, ItemActionsCell, ItemActionsCellRow } from './item-actions-cell';
+import { LoadActionItem, LoadActionsCell } from './load-actions-cell';
+import { LoadChildrenFullWidth } from './load-children-full-width';
+import { LoadExpandCell } from './load-expand-cell';
+import { LoadItemsSlider } from './load-items-slider';
+import { isLoadDetailRow, LoadGridRow, LoadRow, OwnerCompanyType } from './load.types';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-export type ItemDisplayUnit = 'tonnes' | 'kg';
-
-export interface ItemRow {
-  id: number;
-  good_type_code: string;
-  good_type: string;
-  weight_tonnes: string;
-  display_unit: ItemDisplayUnit;
-  order_number: string | null;
-  connote: string | null;
-}
-
-interface GoodTypeOption {
-  code: string;
-  name: string;
-}
-
-const KG_PER_TONNE = 1000;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
 const FILTERABLE_FIELDS = [
-  'good_type',
-  'weight_tonnes',
-  'display_unit',
-  'order_number',
-  'connote',
+  'customer',
+  'provider',
+  'collection',
+  'delivery',
+  'pallet_count',
 ] as const;
-type SortableField = (typeof FILTERABLE_FIELDS)[number];
+type SortableField = (typeof FILTERABLE_FIELDS)[number] | 'item_count';
 type SortDirection = 'asc' | 'desc';
 
-const DEFAULT_SORT: SortableField = 'good_type';
+const DEFAULT_SORT: SortableField = 'customer';
 const DEFAULT_DIRECTION: SortDirection = 'asc';
 
 const serverSideSortComparator = (): number => 0;
 
-interface ItemsListMeta {
+interface LoadsListMeta {
+  own_company_type?: OwnerCompanyType;
   current_page: number;
   last_page: number;
   per_page: number;
@@ -77,9 +75,9 @@ interface ItemsListMeta {
   to: number | null;
 }
 
-interface ItemsListResponse {
-  items: ItemRow[];
-  meta: ItemsListMeta;
+interface LoadsListResponse {
+  loads: LoadRow[];
+  meta: LoadsListMeta;
 }
 
 const serverSideTextFilterParams: ITextFilterParams = {
@@ -103,45 +101,16 @@ const serverSideNumberFilterParams: INumberFilterParams = {
   ],
 };
 
-function displayUnitLabel(unit: ItemDisplayUnit): string {
-  return unit === 'kg' ? 'kg' : 'tonnes';
-}
-
-function formatWeightForDisplay(tonnes: string, unit: ItemDisplayUnit): string {
-  const t = Number.parseFloat(tonnes);
-  if (Number.isNaN(t)) {
-    return tonnes;
-  }
-  if (unit === 'kg') {
-    const kg = t * KG_PER_TONNE;
-    return Number.isInteger(kg) ? String(kg) : kg.toFixed(3).replace(/\.?0+$/, '');
-  }
-  return tonnes;
-}
-
-function weightInputToTonnes(value: number, unit: ItemDisplayUnit): number {
-  return unit === 'kg' ? value / KG_PER_TONNE : value;
-}
-
-function weightTonnesToInput(tonnes: string, unit: ItemDisplayUnit): number {
-  const t = Number.parseFloat(tonnes);
-  if (Number.isNaN(t)) {
-    return 0;
-  }
-  return unit === 'kg' ? t * KG_PER_TONNE : t;
-}
-
-function weightTonnesAsNumber(tonnes: string | undefined | null): number | null {
-  if (tonnes == null || tonnes.trim() === '') {
-    return null;
-  }
-  const value = Number.parseFloat(tonnes);
-  return Number.isNaN(value) ? null : value;
-}
-
 @Component({
   selector: 'app-customer-deliveries',
-  imports: [AgGridAngular, DataListComponent, FormsModule, ReactiveFormsModule, ItemActionsCell],
+  imports: [
+    AgGridAngular,
+    DataListComponent,
+    FormsModule,
+    RouterLink,
+    LoadActionsCell,
+    LoadItemsSlider,
+  ],
   templateUrl: './deliveries.html',
   styleUrls: ['../../../shared/portal-shell.scss', './deliveries.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -150,13 +119,12 @@ export class CustomerDeliveries implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly toastr = inject(ToastrService);
-  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
-  private gridApi: GridApi<ItemRow> | null = null;
+  private gridApi: GridApi<LoadGridRow> | null = null;
   private suppressGridEvents = false;
   private lastCompactView: boolean | null = null;
   private filterModel: FilterModel = {};
-  private formDisplayUnit: ItemDisplayUnit = 'tonnes';
 
   constructor() {
     effect(() => {
@@ -176,7 +144,15 @@ export class CustomerDeliveries implements OnInit {
         this.searchQuery.set('');
       }
       this.page.set(1);
-      this.loadItems();
+      this.loadLoads();
+    });
+
+    effect(() => {
+      this.gridRowData();
+      this.expandedLoadIds();
+      if (this.gridApi) {
+        queueMicrotask(() => this.gridApi?.resetRowHeights());
+      }
     });
   }
 
@@ -184,123 +160,141 @@ export class CustomerDeliveries implements OnInit {
   protected sortField: SortableField = DEFAULT_SORT;
   protected sortDirection: SortDirection = DEFAULT_DIRECTION;
   protected readonly searchQuery = signal('');
+  protected readonly expandedLoadIds = signal<Set<number>>(new Set());
+  protected readonly selectedLoadForItems = signal<LoadRow | null>(null);
 
-  protected readonly itemListTitle = (row: ItemRow): string => row.good_type;
+  protected readonly loads = signal<LoadRow[]>([]);
+  protected readonly gridRowData = computed<LoadGridRow[]>(() => {
+    const rows: LoadGridRow[] = [];
+    const expanded = this.expandedLoadIds();
 
-  protected readonly listColumns: DataListColumn<ItemRow>[] = [
-    {
-      field: 'weight_tonnes',
-      label: 'Weight',
-      valueFor: (row) =>
-        `${formatWeightForDisplay(row.weight_tonnes, row.display_unit)} ${displayUnitLabel(row.display_unit)}`,
-    },
-    {
-      field: 'display_unit',
-      label: 'Display unit',
-      valueFor: (row) => displayUnitLabel(row.display_unit),
-    },
-    {
-      field: 'order_number',
-      label: 'Order number',
-      valueFor: (row) => row.order_number ?? '—',
-    },
-    { field: 'connote', label: 'Connote', valueFor: (row) => row.connote ?? '—' },
+    for (const load of this.loads()) {
+      rows.push(load);
+      const childCount = load.children?.length ?? 0;
+      if (expanded.has(load.id) && childCount > 0) {
+        rows.push({
+          detailRow: true,
+          detailParentId: load.id,
+          children: load.children ?? [],
+        });
+      }
+    }
+
+    return rows;
+  });
+
+  protected readonly loadListTitle = (row: LoadRow): string =>
+    `${row.customer} → ${row.delivery ?? '—'}`;
+
+  protected readonly listColumns: DataListColumn<LoadRow>[] = [
+    { field: 'customer', label: 'Customer', valueFor: (row) => row.customer },
+    { field: 'provider', label: 'Provider', valueFor: (row) => row.provider },
+    { field: 'collection', label: 'Collection', valueFor: (row) => row.collection ?? '—' },
+    { field: 'delivery', label: 'Delivery', valueFor: (row) => row.delivery ?? '—' },
+    { field: 'pallet_count', label: 'Pallets', valueFor: (row) => String(row.pallet_count) },
+    { field: 'item_count', label: 'Items', valueFor: (row) => String(row.item_count) },
   ];
 
   protected readonly sortOptions: DataListSortOption[] = [
-    { field: 'good_type', label: 'Goods type' },
-    { field: 'weight_tonnes', label: 'Weight (tonnes)' },
-    { field: 'display_unit', label: 'Display unit' },
-    { field: 'order_number', label: 'Order number' },
-    { field: 'connote', label: 'Connote' },
+    { field: 'customer', label: 'Customer' },
+    { field: 'provider', label: 'Provider' },
+    { field: 'collection', label: 'Collection' },
+    { field: 'delivery', label: 'Delivery' },
+    { field: 'pallet_count', label: 'Pallets' },
+    { field: 'item_count', label: 'Items' },
   ];
 
   protected readonly theme = themeQuartz;
   protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   protected readonly loading = signal(false);
   protected readonly deleting = signal(false);
-  protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected readonly formError = signal<string | null>(null);
-  protected readonly items = signal<ItemRow[]>([]);
-  protected readonly goodTypeOptions = signal<GoodTypeOption[]>([]);
-  protected readonly pendingDelete = signal<ItemActionsCellRow | null>(null);
-  protected readonly formModalOpen = signal(false);
-  protected readonly editingId = signal<number | null>(null);
+  protected readonly pendingDelete = signal<LoadRow | null>(null);
   protected readonly page = signal(1);
   protected readonly pageSize = signal<PageSize>(25);
-  protected readonly meta = signal<ItemsListMeta | null>(null);
+  protected readonly meta = signal<LoadsListMeta | null>(null);
 
-  protected readonly itemForm = this.fb.nonNullable.group({
-    good_type_code: ['', Validators.required],
-    weight: [0, [Validators.required, Validators.min(0.000_001)]],
-    display_unit: ['tonnes' as ItemDisplayUnit, Validators.required],
-    order_number: [''],
-    connote: [''],
-  });
-
-  protected readonly columnDefs: ColDef<ItemRow>[] = [
+  protected readonly columnDefs: ColDef<LoadGridRow>[] = [
     {
-      field: 'good_type',
-      headerName: 'Goods type',
-      flex: 1.1,
-      minWidth: 140,
+      colId: 'expand',
+      headerName: '',
+      width: 52,
+      minWidth: 52,
+      maxWidth: 52,
+      sortable: false,
+      filter: false,
+      floatingFilter: false,
+      resizable: false,
+      cellRenderer: LoadExpandCell,
+      cellRendererParams: {
+        isExpanded: (loadId: number) => this.expandedLoadIds().has(loadId),
+        toggle: (loadId: number) => this.toggleExpand(loadId),
+        hasChildren: (load: LoadRow) => (load.children?.length ?? 0) > 0,
+      },
+    },
+    {
+      field: 'customer',
+      headerName: 'Customer',
+      flex: 1,
+      minWidth: 130,
       sort: DEFAULT_DIRECTION,
       comparator: serverSideSortComparator,
       filter: 'agTextColumnFilter',
       filterParams: serverSideTextFilterParams,
+      valueGetter: (params) => (isLoadDetailRow(params.data!) ? '' : (params.data?.customer ?? '')),
     },
     {
-      field: 'weight_tonnes',
-      headerName: 'Weight',
-      headerTooltip: 'Column filter uses stored tonnes (list values use each row’s display unit).',
-      flex: 0.9,
-      minWidth: 120,
+      field: 'provider',
+      headerName: 'Provider',
+      flex: 1,
+      minWidth: 130,
+      comparator: serverSideSortComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: serverSideTextFilterParams,
+      valueGetter: (params) => (isLoadDetailRow(params.data!) ? '' : (params.data?.provider ?? '')),
+    },
+    {
+      field: 'collection',
+      headerName: 'Collection',
+      flex: 1.1,
+      minWidth: 150,
+      comparator: serverSideSortComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: serverSideTextFilterParams,
+      valueGetter: (params) =>
+        isLoadDetailRow(params.data!) ? '' : (params.data?.collection ?? '—'),
+    },
+    {
+      field: 'delivery',
+      headerName: 'Delivery',
+      flex: 1.1,
+      minWidth: 150,
+      comparator: serverSideSortComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: serverSideTextFilterParams,
+      valueGetter: (params) =>
+        isLoadDetailRow(params.data!) ? '' : (params.data?.delivery ?? '—'),
+    },
+    {
+      field: 'pallet_count',
+      headerName: 'Pallets',
+      width: 100,
       comparator: serverSideSortComparator,
       filter: 'agNumberColumnFilter',
       filterParams: serverSideNumberFilterParams,
-      filterValueGetter: (params) => weightTonnesAsNumber(params.data?.weight_tonnes),
-      valueFormatter: (params) => {
-        const row = params.data;
-        if (!row) {
-          return '';
-        }
-        return `${formatWeightForDisplay(row.weight_tonnes, row.display_unit)} ${displayUnitLabel(row.display_unit)}`;
-      },
+      valueGetter: (params) => (isLoadDetailRow(params.data!) ? null : params.data?.pallet_count),
     },
     {
-      field: 'display_unit',
-      headerName: 'Display unit',
-      flex: 0.7,
-      minWidth: 110,
+      field: 'item_count',
+      headerName: 'Items',
+      width: 90,
       comparator: serverSideSortComparator,
-      filter: 'agTextColumnFilter',
-      filterParams: serverSideTextFilterParams,
-      valueFormatter: (params) => displayUnitLabel(params.value as ItemDisplayUnit),
-    },
-    {
-      field: 'order_number',
-      headerName: 'Order number',
-      flex: 1,
-      minWidth: 130,
-      comparator: serverSideSortComparator,
-      filter: 'agTextColumnFilter',
-      filterParams: serverSideTextFilterParams,
-      valueFormatter: (params) => params.value ?? '—',
-    },
-    {
-      field: 'connote',
-      headerName: 'Connote',
-      flex: 1,
-      minWidth: 130,
-      comparator: serverSideSortComparator,
-      filter: 'agTextColumnFilter',
-      filterParams: serverSideTextFilterParams,
-      valueFormatter: (params) => params.value ?? '—',
+      filter: false,
+      floatingFilter: false,
+      valueGetter: (params) => (isLoadDetailRow(params.data!) ? null : params.data?.item_count),
     },
     {
       headerName: 'Actions',
-      flex: 0,
       width: 100,
       minWidth: 100,
       maxWidth: 100,
@@ -308,11 +302,11 @@ export class CustomerDeliveries implements OnInit {
       filter: false,
       floatingFilter: false,
       resizable: false,
-      suppressSizeToFit: true,
       cellClass: 'deliveries-grid__actions-cell',
-      cellRenderer: ItemActionsCell,
+      cellRenderer: LoadActionsCell,
       cellRendererParams: {
-        actionsFor: (data: ItemRow) => this.actionsForRow(data),
+        actionsFor: (data: LoadGridRow) =>
+          isLoadDetailRow(data) ? [] : this.actionsForRow(data as LoadRow),
       },
     },
   ];
@@ -324,9 +318,32 @@ export class CustomerDeliveries implements OnInit {
     sortingOrder: ['asc', 'desc'],
   };
 
-  ngOnInit(): void {
-    this.loadGoodTypeOptions();
+  protected readonly isFullWidthRow = (params: IsFullWidthRowParams<LoadGridRow>) =>
+    params.rowNode.data !== undefined && isLoadDetailRow(params.rowNode.data);
 
+  protected readonly fullWidthCellRenderer = LoadChildrenFullWidth;
+
+  protected readonly fullWidthCellRendererParams = {
+    onActionsFor: (child: LoadRow) => this.actionsForChildRow(child),
+  };
+
+  protected readonly getRowId = (params: { data: LoadGridRow }): string => {
+    if (isLoadDetailRow(params.data)) {
+      return `detail-${params.data.detailParentId}`;
+    }
+    return `load-${params.data.id}`;
+  };
+
+  protected readonly getRowHeight = (params: RowHeightParams<LoadGridRow>) => {
+    const data = params.data;
+    if (data && isLoadDetailRow(data)) {
+      const childRows = data.children.length;
+      return 64 + childRows * 42;
+    }
+    return undefined;
+  };
+
+  ngOnInit(): void {
     this.load$
       .pipe(
         tap(() => {
@@ -334,7 +351,7 @@ export class CustomerDeliveries implements OnInit {
           this.error.set(null);
         }),
         switchMap(() =>
-          this.http.get<ItemsListResponse>('/api/items', { params: this.buildParams() }).pipe(
+          this.http.get<LoadsListResponse>('/api/loads', { params: this.buildParams() }).pipe(
             catchError(() => {
               const lastGood = this.meta();
               if (lastGood) {
@@ -343,7 +360,7 @@ export class CustomerDeliveries implements OnInit {
                   this.pageSize.set(lastGood.per_page as PageSize);
                 }
               }
-              this.error.set('Unable to load items. Please try again.');
+              this.error.set('Unable to load deliveries. Please try again.');
               this.loading.set(false);
               return of(null);
             }),
@@ -354,132 +371,54 @@ export class CustomerDeliveries implements OnInit {
         if (!res) {
           return;
         }
-        this.items.set(res.items);
+        this.loads.set(res.loads);
         this.meta.set(res.meta);
         this.page.set(res.meta.current_page);
         this.loading.set(false);
       });
 
-    this.loadItems();
+    this.loadLoads();
   }
 
-  protected openCreate(): void {
-    const options = this.goodTypeOptions();
-    if (options.length === 0) {
-      this.toastr.error('Goods types are not available yet. Try again in a moment.');
-      return;
-    }
-    this.formError.set(null);
-    this.editingId.set(null);
-    this.itemForm.reset({
-      good_type_code: options[0].code,
-      weight: 1,
-      display_unit: 'tonnes',
-      order_number: '',
-      connote: '',
+  protected toggleExpand(loadId: number): void {
+    this.expandedLoadIds.update((current) => {
+      const next = new Set(current);
+      if (next.has(loadId)) {
+        next.delete(loadId);
+      } else {
+        next.add(loadId);
+      }
+      return next;
     });
-    this.formDisplayUnit = 'tonnes';
-    this.formModalOpen.set(true);
   }
 
-  protected openEdit(row: ItemRow): void {
-    this.formError.set(null);
-    this.editingId.set(row.id);
-    this.itemForm.reset({
-      good_type_code: row.good_type_code,
-      weight: weightTonnesToInput(row.weight_tonnes, row.display_unit),
-      display_unit: row.display_unit,
-      order_number: row.order_number ?? '',
-      connote: row.connote ?? '',
-    });
-    this.formDisplayUnit = row.display_unit;
-    this.ensureGoodTypeOption(row.good_type_code, row.good_type);
-    this.formModalOpen.set(true);
+  protected openManageItems(row: LoadRow): void {
+    this.selectedLoadForItems.set(row);
   }
 
-  protected cancelFormModal(): void {
-    if (!this.saving()) {
-      this.formModalOpen.set(false);
-      this.editingId.set(null);
-      this.formError.set(null);
-    }
+  protected closeItemsSlider(): void {
+    this.selectedLoadForItems.set(null);
   }
 
-  protected onDisplayUnitChange(): void {
-    const next = this.itemForm.controls.display_unit.value;
-    const tonnes = weightInputToTonnes(this.itemForm.controls.weight.value, this.formDisplayUnit);
-    this.itemForm.patchValue({
-      weight: weightTonnesToInput(String(tonnes), next),
-    });
-    this.formDisplayUnit = next;
+  protected onItemsChanged(): void {
+    this.loadLoads();
   }
 
-  protected saveItem(): void {
-    if (this.itemForm.invalid) {
-      this.itemForm.markAllAsTouched();
-      return;
-    }
-
-    if (this.saving()) {
-      return;
-    }
-
-    this.saving.set(true);
-    this.formError.set(null);
-
-    const raw = this.itemForm.getRawValue();
-    const unit = raw.display_unit;
-    const weightTonnes = weightInputToTonnes(raw.weight, unit);
-
-    const payload = {
-      good_type_code: raw.good_type_code,
-      weight_tonnes: weightTonnes,
-      display_unit: unit,
-      order_number: raw.order_number.trim() === '' ? null : raw.order_number.trim(),
-      connote: raw.connote.trim() === '' ? null : raw.connote.trim(),
-    };
-
-    const id = this.editingId();
-    const request$ =
-      id === null
-        ? this.http.post<{ item: ItemRow }>('/api/items', payload)
-        : this.http.put<{ item: ItemRow }>(`/api/items/${id}`, payload);
-
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.formModalOpen.set(false);
-          this.editingId.set(null);
-          this.loadItems();
-          this.toastr.success(id === null ? 'Item created.' : 'Item updated.');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          const message = this.firstError(err) ?? 'Unable to save item.';
-          this.formError.set(message);
-          this.toastr.error(message);
-          this.saving.set(false);
-        },
-      });
-  }
-
-  protected onGridReady(event: GridReadyEvent<ItemRow>): void {
+  protected onGridReady(event: GridReadyEvent<LoadGridRow>): void {
     this.gridApi = event.api;
     this.syncGridUiFromState();
   }
 
-  protected onFilterChanged(event: FilterChangedEvent<ItemRow>): void {
+  protected onFilterChanged(event: FilterChangedEvent<LoadGridRow>): void {
     if (this.suppressGridEvents || this.compact()) {
       return;
     }
     this.filterModel = event.api.getFilterModel() ?? {};
     this.page.set(1);
-    this.loadItems();
+    this.loadLoads();
   }
 
-  protected onSortChanged(event: SortChangedEvent<ItemRow>): void {
+  protected onSortChanged(event: SortChangedEvent<LoadGridRow>): void {
     if (this.suppressGridEvents) {
       return;
     }
@@ -500,7 +439,7 @@ export class CustomerDeliveries implements OnInit {
     this.sortField = nextField;
     this.sortDirection = nextDirection;
     this.page.set(1);
-    this.loadItems();
+    this.loadLoads();
   }
 
   protected onListSearch(value: string): void {
@@ -509,7 +448,7 @@ export class CustomerDeliveries implements OnInit {
     }
     this.searchQuery.set(value);
     this.page.set(1);
-    this.loadItems();
+    this.loadLoads();
   }
 
   protected onListSortField(field: string): void {
@@ -518,7 +457,7 @@ export class CustomerDeliveries implements OnInit {
     }
     this.sortField = field;
     this.page.set(1);
-    this.loadItems();
+    this.loadLoads();
   }
 
   protected onListSortDirection(direction: SortDirection): void {
@@ -527,16 +466,22 @@ export class CustomerDeliveries implements OnInit {
     }
     this.sortDirection = direction;
     this.page.set(1);
-    this.loadItems();
+    this.loadLoads();
   }
 
-  protected actionsForList = (data: ItemRow): DataListAction<ItemRow>[] => {
+  protected actionsForList = (data: LoadRow): DataListAction<LoadRow>[] => {
     return [
       {
         id: 'edit',
         label: 'Edit',
         variant: 'primary',
-        run: (row) => this.openEdit(row),
+        run: (row) => this.goToEdit(row),
+      },
+      {
+        id: 'items',
+        label: 'Manage items',
+        variant: 'ghost',
+        run: (row) => this.openManageItems(row),
       },
       {
         id: 'delete',
@@ -554,10 +499,10 @@ export class CustomerDeliveries implements OnInit {
     }
     this.pageSize.set(next);
     this.page.set(1);
-    this.loadItems();
+    this.loadLoads();
   }
 
-  protected requestDelete(row: ItemActionsCellRow): void {
+  protected requestDelete(row: LoadRow): void {
     if (this.deleting()) {
       return;
     }
@@ -583,16 +528,16 @@ export class CustomerDeliveries implements OnInit {
 
     this.auth
       .ensureCsrf()
-      .pipe(switchMap(() => this.http.delete(`/api/items/${pending.id}`)))
+      .pipe(switchMap(() => this.http.delete(`/api/loads/${pending.id}`)))
       .subscribe({
         next: () => {
           this.deleting.set(false);
           this.pendingDelete.set(null);
-          this.loadItems();
-          this.toastr.success('Item deleted.');
+          this.loadLoads();
+          this.toastr.success('Load deleted.');
         },
         error: () => {
-          const message = 'Unable to delete item. Please try again.';
+          const message = 'Unable to delete load. Please try again.';
           this.error.set(message);
           this.toastr.error(message);
           this.deleting.set(false);
@@ -606,38 +551,26 @@ export class CustomerDeliveries implements OnInit {
       return;
     }
     this.page.set(nextPage);
-    this.loadItems();
+    this.loadLoads();
   }
 
-  protected readonly isEditMode = () => this.editingId() !== null;
-
-  private loadGoodTypeOptions(): void {
-    this.http
-      .get<{ good_types: GoodTypeOption[] }>('/api/items/good-type-options')
-      .pipe(catchError(() => of({ good_types: [] })))
-      .subscribe((res) => this.goodTypeOptions.set(res.good_types));
+  private goToEdit(row: LoadRow): void {
+    void this.router.navigate(['/app/deliveries', row.id, 'edit']);
   }
 
-  private actionsForRow(data: ItemRow): ItemActionItem[] {
+  private actionsForRow(data: LoadRow): LoadActionItem[] {
     return [
-      {
-        id: 'edit',
-        label: 'Edit',
-        run: () => this.openEdit(data),
-      },
-      {
-        id: 'delete',
-        label: 'Delete',
-        run: () => this.requestDelete(data),
-      },
+      { id: 'edit', label: 'Edit', run: () => this.goToEdit(data) },
+      { id: 'items', label: 'Manage items', run: () => this.openManageItems(data) },
+      { id: 'delete', label: 'Delete', run: () => this.requestDelete(data) },
     ];
   }
 
-  private ensureGoodTypeOption(code: string, name: string): void {
-    if (this.goodTypeOptions().some((opt) => opt.code === code)) {
-      return;
-    }
-    this.goodTypeOptions.update((opts) => [...opts, { code, name }]);
+  private actionsForChildRow(child: LoadRow): LoadActionItem[] {
+    return [
+      { id: 'edit', label: 'Edit', run: () => this.goToEdit(child) },
+      { id: 'delete', label: 'Delete', run: () => this.requestDelete(child) },
+    ];
   }
 
   private buildParams(): HttpParams {
@@ -652,7 +585,6 @@ export class CustomerDeliveries implements OnInit {
       if (search !== '') {
         params = params.set('search', search);
       }
-
       return params;
     }
 
@@ -662,8 +594,8 @@ export class CustomerDeliveries implements OnInit {
         continue;
       }
 
-      if (field === 'weight_tonnes') {
-        params = this.appendWeightFilterParams(params, model);
+      if (field === 'pallet_count') {
+        params = this.appendPalletFilterParams(params, model);
         continue;
       }
 
@@ -686,7 +618,7 @@ export class CustomerDeliveries implements OnInit {
     return params;
   }
 
-  private appendWeightFilterParams(params: HttpParams, model: FilterModel[string]): HttpParams {
+  private appendPalletFilterParams(params: HttpParams, model: FilterModel[string]): HttpParams {
     if (!this.isNumberFilterModel(model) || !model.type) {
       return params;
     }
@@ -697,11 +629,11 @@ export class CustomerDeliveries implements OnInit {
     }
 
     params = params
-      .set('filter[weight_tonnes][type]', model.type)
-      .set('filter[weight_tonnes][filter]', String(filterValue));
+      .set('filter[pallet_count][type]', model.type)
+      .set('filter[pallet_count][filter]', String(filterValue));
 
     if (model.type === 'inRange' && model.filterTo != null && !Number.isNaN(model.filterTo)) {
-      params = params.set('filter[weight_tonnes][filterTo]', String(model.filterTo));
+      params = params.set('filter[pallet_count][filterTo]', String(model.filterTo));
     }
 
     return params;
@@ -728,7 +660,9 @@ export class CustomerDeliveries implements OnInit {
   }
 
   private isSortableField(field: string): field is SortableField {
-    return (FILTERABLE_FIELDS as readonly string[]).includes(field);
+    return (
+      ['customer', 'provider', 'collection', 'delivery', 'pallet_count', 'item_count'] as const
+    ).includes(field as SortableField);
   }
 
   private syncGridUiFromState(): void {
@@ -747,23 +681,7 @@ export class CustomerDeliveries implements OnInit {
     });
   }
 
-  private loadItems(): void {
+  private loadLoads(): void {
     this.load$.next();
-  }
-
-  private firstError(err: {
-    error?: { message?: string; errors?: Record<string, string[]> };
-  }): string | null {
-    const errors = err.error?.errors;
-    if (errors) {
-      const firstKey = Object.keys(errors)[0];
-      if (firstKey && errors[firstKey]?.[0]) {
-        return errors[firstKey][0];
-      }
-    }
-    if (typeof err.error?.message === 'string') {
-      return err.error.message;
-    }
-    return null;
   }
 }

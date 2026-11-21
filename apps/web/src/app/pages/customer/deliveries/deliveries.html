@@ -2,11 +2,9 @@
   <div class="deliveries-header">
     <div>
       <h1>Deliveries</h1>
-      <p class="lede">
-        Manage delivery items for your company (goods type, weight, and references).
-      </p>
+      <p class="lede">Plan direct loads, add drops, and manage freight items.</p>
     </div>
-    <button type="button" class="btn btn--primary" (click)="openCreate()">Add item</button>
+    <a class="btn btn--primary" routerLink="/app/deliveries/create">Create load</a>
   </div>
 
   @if (error()) {
@@ -16,12 +14,12 @@
   @if (compact()) {
     <app-data-list
       [loading]="loading()"
-      [rows]="items()"
-      [titleFor]="itemListTitle"
+      [rows]="loads()"
+      [titleFor]="loadListTitle"
       [columns]="listColumns"
       [actionsFor]="actionsForList"
       [searchValue]="searchQuery()"
-      searchPlaceholder="Search items…"
+      searchPlaceholder="Search loads…"
       [sortOptions]="sortOptions"
       [sortField]="sortField"
       [sortDirection]="sortDirection"
@@ -33,11 +31,17 @@
     <ag-grid-angular
       class="deliveries-grid"
       [theme]="theme"
-      [rowData]="items()"
+      [rowData]="gridRowData()"
       [columnDefs]="columnDefs"
       [defaultColDef]="defaultColDef"
       [loading]="loading()"
       [suppressMultiSort]="true"
+      [isFullWidthRow]="isFullWidthRow"
+      [fullWidthCellRenderer]="fullWidthCellRenderer"
+      [fullWidthCellRendererParams]="fullWidthCellRendererParams"
+      [getRowId]="getRowId"
+      [getRowHeight]="getRowHeight"
+      [embedFullWidthRows]="true"
       domLayout="autoHeight"
       (gridReady)="onGridReady($event)"
       (filterChanged)="onFilterChanged($event)"
@@ -46,10 +50,10 @@
   }
 
   @if (meta(); as pagination) {
-    <div class="pagination" aria-label="Items pagination">
+    <div class="pagination" aria-label="Loads pagination">
       <p class="pagination__summary">
         @if (pagination.total === 0) {
-          No items
+          No loads
         } @else {
           Showing {{ pagination.from }}–{{ pagination.to }} of {{ pagination.total }}
         }
@@ -93,72 +97,19 @@
   }
 </section>
 
-@if (formModalOpen()) {
-  <div class="modal-backdrop" (click)="cancelFormModal()"></div>
-  <div
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    [attr.aria-labelledby]="isEditMode() ? 'item-edit-title' : 'item-create-title'"
-  >
-    <h2 [id]="isEditMode() ? 'item-edit-title' : 'item-create-title'">
-      {{ isEditMode() ? 'Edit item' : 'Add item' }}
-    </h2>
-    @if (formError(); as formErr) {
-      <p class="form-error" role="alert">{{ formErr }}</p>
-    }
-    <form [formGroup]="itemForm" (ngSubmit)="saveItem()" class="form-stack">
-      <label>
-        <span>Goods type</span>
-        <select formControlName="good_type_code">
-          @for (opt of goodTypeOptions(); track opt.code) {
-            <option [value]="opt.code">{{ opt.name }} ({{ opt.code }})</option>
-          }
-        </select>
-      </label>
-      <div class="form-row">
-        <label>
-          <span>Weight</span>
-          <input type="number" formControlName="weight" step="any" min="0" inputmode="decimal" />
-        </label>
-        <label class="unit">
-          <span>Unit</span>
-          <select formControlName="display_unit" (change)="onDisplayUnitChange()">
-            <option value="tonnes">tonnes</option>
-            <option value="kg">kg</option>
-          </select>
-        </label>
-      </div>
-      <label>
-        <span>Order number <span class="optional">(optional)</span></span>
-        <input type="text" formControlName="order_number" autocomplete="off" />
-      </label>
-      <label>
-        <span>Connote <span class="optional">(optional)</span></span>
-        <input type="text" formControlName="connote" autocomplete="off" />
-      </label>
-      <div class="modal__actions">
-        <button
-          type="button"
-          class="btn btn--ghost"
-          [disabled]="saving()"
-          (click)="cancelFormModal()"
-        >
-          Cancel
-        </button>
-        <button type="submit" class="btn btn--primary" [disabled]="saving()">
-          {{ saving() ? 'Saving…' : 'Save' }}
-        </button>
-      </div>
-    </form>
-  </div>
+@if (selectedLoadForItems(); as loadForItems) {
+  <app-load-items-slider
+    [load]="loadForItems"
+    (closed)="closeItemsSlider()"
+    (changed)="onItemsChanged()"
+  />
 }
 
 @if (pendingDelete(); as pending) {
   <div class="modal-backdrop" (click)="cancelDelete()"></div>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="item-delete-title">
-    <h2 id="item-delete-title">Confirm delete</h2>
-    <p>Delete item “{{ pending.good_type }}”?</p>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="load-delete-title">
+    <h2 id="load-delete-title">Confirm delete</h2>
+    <p>Delete load #{{ pending.id }} ({{ pending.customer }} → {{ pending.delivery ?? '—' }})?</p>
     <div class="modal__actions">
       <button type="button" class="btn btn--ghost" [disabled]="deleting()" (click)="cancelDelete()">
         Cancel

@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Models\Address;
 use App\Models\Company;
 use App\Models\Item;
+use App\Models\Load;
 use App\Models\RateCard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -27,6 +28,23 @@ final class RouteBindingRegistrar
             }
 
             return Address::query()
+                ->where('company_id', $user->company_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('load', static function (string $value): Load {
+            $request = request();
+            if (! self::isCustomerLoadRoute($request)) {
+                return Load::query()->whereKey($value)->firstOrFail();
+            }
+
+            $user = $request->user();
+            if ($user?->role !== UserRole::Customer || $user->company_id === null) {
+                return Load::query()->whereKey($value)->firstOrFail();
+            }
+
+            return Load::query()
                 ->where('company_id', $user->company_id)
                 ->whereKey($value)
                 ->firstOrFail();
@@ -90,7 +108,13 @@ final class RouteBindingRegistrar
 
     private static function isCustomerItemRoute(Request $request): bool
     {
-        return $request->is('api/items/*');
+        return $request->is('api/items/*')
+            || (bool) preg_match('#^api/loads/\d+/items/\d+$#', $request->path());
+    }
+
+    private static function isCustomerLoadRoute(Request $request): bool
+    {
+        return $request->is('api/loads/*');
     }
 
     private static function isCustomerNetworkCompanyRoute(Request $request): bool

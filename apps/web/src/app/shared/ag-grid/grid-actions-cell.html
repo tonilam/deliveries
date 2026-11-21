@@ -1,0 +1,17 @@
+@if (actions().length === 1) {
+  <button type="button" class="grid-action-link" (click)="runAction(actions()[0], $event)">
+    {{ actions()[0].label }}
+  </button>
+} @else if (actions().length > 1) {
+  <div class="grid-actions">
+    <button
+      type="button"
+      class="grid-actions__trigger"
+      [attr.aria-expanded]="menuOpen()"
+      aria-haspopup="menu"
+      (click)="toggleMenu($event)"
+    >
+      Actions
+    </button>
+  </div>
+}

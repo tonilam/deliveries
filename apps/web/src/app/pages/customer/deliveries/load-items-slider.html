@@ -1,0 +1,93 @@
+<div class="load-slider-backdrop" (click)="close()"></div>
+<aside class="load-slider" role="dialog" aria-modal="true" aria-labelledby="load-items-title">
+  <header class="load-slider__header">
+    <div>
+      <h2 id="load-items-title">Manage items</h2>
+      <p>Load #{{ load().id }} · {{ load().customer }} → {{ load().delivery ?? '—' }}</p>
+    </div>
+    <button type="button" class="btn btn--ghost" (click)="close()">Close</button>
+  </header>
+
+  <div class="load-slider__body">
+    @if (error()) {
+      <p class="load-slider__error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="tabs" role="tablist" aria-label="Load items">
+      <button
+        type="button"
+        role="tab"
+        class="tabs__tab"
+        [class.tabs__tab--active]="tab() === 'assigned'"
+        [attr.aria-selected]="tab() === 'assigned'"
+        (click)="selectTab('assigned')"
+      >
+        On this load ({{ assigned().length }})
+      </button>
+      <button
+        type="button"
+        role="tab"
+        class="tabs__tab"
+        [class.tabs__tab--active]="tab() === 'available'"
+        [attr.aria-selected]="tab() === 'available'"
+        (click)="selectTab('available')"
+      >
+        Available items ({{ unassigned().length }})
+      </button>
+    </div>
+
+    @if (loading()) {
+      <p>Loading…</p>
+    } @else if (tab() === 'assigned') {
+      <section class="load-slider__section" role="tabpanel">
+        @if (assigned().length === 0) {
+          <p class="load-slider__empty">No items assigned yet.</p>
+        } @else {
+          <ul class="load-slider__list">
+            @for (item of assigned(); track item.id) {
+              <li class="load-slider__item">
+                <div>
+                  <strong>{{ item.good_type }}</strong>
+                  <p class="load-slider__item-meta">{{ itemSummary(item) }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn--ghost"
+                  [disabled]="assigning()"
+                  (click)="unassignItem(item)"
+                >
+                  Remove
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    } @else {
+      <section class="load-slider__section" role="tabpanel">
+        @if (unassigned().length === 0) {
+          <p class="load-slider__empty">No unassigned items.</p>
+        } @else {
+          <ul class="load-slider__list">
+            @for (item of unassigned(); track item.id) {
+              <li class="load-slider__item">
+                <div>
+                  <strong>{{ item.good_type }}</strong>
+                  <p class="load-slider__item-meta">{{ itemSummary(item) }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn--primary"
+                  [disabled]="assigning()"
+                  (click)="assignItem(item)"
+                >
+                  Add
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </div>
+</aside>
