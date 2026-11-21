@@ -13,6 +13,7 @@ export interface Company {
   company_type_label: string;
   parent_company_id: number | null;
   parent_business_name: string | null;
+  blocked_root_company_types?: CompanyType[];
   country: CompanyCountry | null;
   has_addresses: boolean;
   reg_number: string;

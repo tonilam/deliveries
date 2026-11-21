@@ -91,6 +91,11 @@
           [options]="companyTypeRadioOptions()"
           inline
         />
+        @if (blockedRootCompanyTypes().length > 0) {
+          <span class="field-hint"
+            >Some types are unavailable because of companies linked on the Network tab.</span
+          >
+        }
 
         <label>
           <span class="label-text">Country <span class="required" aria-hidden="true">*</span></span>

@@ -44,6 +44,31 @@ class CompanyTypeService
         }
     }
 
+    /**
+     * @return list<string>
+     */
+    public function blockedAdminRootCompanyTypes(Company $company): array
+    {
+        if ($company->parent_company_id !== null) {
+            return [];
+        }
+
+        $currentType = $this->resolveType($company);
+        $blocked = [];
+
+        foreach (CompanyType::rootOptions() as $candidate) {
+            if ($candidate === $currentType) {
+                continue;
+            }
+
+            if ($this->wouldBlockRootTypeChange($company, $candidate)) {
+                $blocked[] = $candidate->value;
+            }
+        }
+
+        return $blocked;
+    }
+
     public function assertAdminRootTypeChange(Company $company, CompanyType $newType): void
     {
         if ($company->parent_company_id !== null) {
@@ -55,18 +80,59 @@ class CompanyTypeService
             return;
         }
 
-        $allowedChildTypes = $newType->allowedChildTypes();
-        $disallowed = $company->children()
-            ->whereNotIn('company_type', array_map(static fn (CompanyType $t) => $t->value, $allowedChildTypes))
-            ->exists();
-
-        if ($disallowed) {
-            throw ValidationException::withMessages([
-                'company_type' => [
-                    'Cannot change type while linked companies exist that are not allowed for '.$newType->label().'.',
-                ],
-            ]);
+        if (! $this->wouldBlockRootTypeChange($company, $newType)) {
+            return;
         }
+
+        throw ValidationException::withMessages([
+            'company_type' => [$this->rootTypeChangeBlockedMessage($company, $newType)],
+        ]);
+    }
+
+    public function wouldBlockRootTypeChange(Company $company, CompanyType $newType): bool
+    {
+        if ($company->parent_company_id !== null) {
+            return false;
+        }
+
+        if ($this->resolveType($company) === $newType) {
+            return false;
+        }
+
+        $allowedValues = array_map(
+            static fn (CompanyType $t) => $t->value,
+            $newType->allowedChildTypes(),
+        );
+
+        return $company->children()->whereNotIn('company_type', $allowedValues)->exists();
+    }
+
+    private function rootTypeChangeBlockedMessage(Company $company, CompanyType $newType): string
+    {
+        $allowedValues = array_map(
+            static fn (CompanyType $t) => $t->value,
+            $newType->allowedChildTypes(),
+        );
+
+        $conflictingTypes = $company->children()
+            ->whereNotIn('company_type', $allowedValues)
+            ->pluck('company_type')
+            ->unique()
+            ->map(function (mixed $raw): CompanyType {
+                return $raw instanceof CompanyType
+                    ? $raw
+                    : CompanyType::from(is_string($raw) ? $raw : CompanyType::Broker->value);
+            });
+
+        if ($newType === CompanyType::Customer && $conflictingTypes->contains(CompanyType::Customer)) {
+            return 'Cannot change to Customer while linked customer companies exist.';
+        }
+
+        if ($newType === CompanyType::Provider && $conflictingTypes->contains(CompanyType::Provider)) {
+            return 'Cannot change to Provider while linked provider companies exist.';
+        }
+
+        return 'Cannot change type while linked companies exist that are not allowed for '.$newType->label().'.';
     }
 
     public function assertAdminCompanyType(Company $company, CompanyType $type): void

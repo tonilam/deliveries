@@ -98,13 +98,19 @@ export class AdminCompanyForm implements OnInit {
   protected readonly hasAddresses = signal(false);
   protected readonly parentBusinessName = signal<string | null>(null);
   protected readonly rootCompanyType = signal<CompanyType>('broker');
+  protected readonly blockedRootCompanyTypes = signal<CompanyType[]>([]);
   protected readonly countryLocked = computed(() => this.isEdit() && this.hasAddresses());
   protected readonly isLinkedCompany = computed(() => this.parentBusinessName() !== null);
   protected readonly showNetworkTab = computed(() => this.isEdit() && !this.isLinkedCompany());
   protected readonly detailsDirty = signal(false);
-  protected readonly companyTypeRadioOptions = computed((): RadioCardOption[] =>
-    this.isLinkedCompany() ? LINKED_COMPANY_TYPE_OPTIONS : ROOT_COMPANY_TYPE_OPTIONS,
-  );
+  protected readonly companyTypeRadioOptions = computed((): RadioCardOption[] => {
+    const base = this.isLinkedCompany() ? LINKED_COMPANY_TYPE_OPTIONS : ROOT_COMPANY_TYPE_OPTIONS;
+    const blocked = new Set(this.blockedRootCompanyTypes());
+    return base.map((option) => ({
+      ...option,
+      disabled: blocked.has(option.value as CompanyType),
+    }));
+  });
   private checkGeneration = 0;
   protected readonly companyId = signal<number | null>(null);
   protected readonly activeTab = signal<EditTab>('details');
@@ -380,6 +386,7 @@ export class AdminCompanyForm implements OnInit {
   private patchDetails(company: Company): void {
     this.hasAddresses.set(company.has_addresses);
     this.parentBusinessName.set(company.parent_business_name);
+    this.blockedRootCompanyTypes.set(company.blocked_root_company_types ?? []);
     if (company.parent_company_id === null) {
       this.rootCompanyType.set(company.company_type);
     }

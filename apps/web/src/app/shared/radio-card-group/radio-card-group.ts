@@ -13,6 +13,7 @@ export interface RadioCardOption {
   value: string;
   label: string;
   description?: string;
+  disabled?: boolean;
 }
 
 @Component({
@@ -64,10 +65,15 @@ export class RadioCardGroupComponent implements ControlValueAccessor {
     return this.selectedValue === optionValue;
   }
 
-  protected select(optionValue: string): void {
-    if (this.isDisabled || this.selectedValue === optionValue) {
+  protected isOptionDisabled(option: RadioCardOption): boolean {
+    return this.isDisabled || !!option.disabled;
+  }
+
+  protected select(option: RadioCardOption): void {
+    if (this.isOptionDisabled(option) || this.selectedValue === option.value) {
       return;
     }
+    const optionValue = option.value;
     this.selectedValue = optionValue;
     this.onChange(optionValue);
     this.onTouched();

@@ -16,7 +16,7 @@
       <label
         class="radio-card"
         [class.radio-card--selected]="isSelected(option.value)"
-        [class.radio-card--disabled]="isDisabled"
+        [class.radio-card--disabled]="isOptionDisabled(option)"
       >
         <input
           type="radio"
@@ -24,8 +24,8 @@
           [attr.name]="legend() ?? 'radio-card-group'"
           [value]="option.value"
           [checked]="isSelected(option.value)"
-          [disabled]="isDisabled"
-          (change)="select(option.value)"
+          [disabled]="isOptionDisabled(option)"
+          (change)="select(option)"
         />
         <span class="radio-card__body">
           <span class="radio-card__label">{{ option.label }}</span>
