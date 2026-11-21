@@ -121,6 +121,13 @@
   font-size: 0.8125rem;
 }
 
+.load-slider__item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
 .load-slider__item-meta {
   margin: 0.15rem 0 0;
   color: #64748b;
@@ -138,4 +145,110 @@
   color: #b91c1c;
   font-weight: 600;
   font-size: 0.875rem;
+}
+
+.move-panel {
+  margin-top: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.move-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.move-panel__header h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--ui-color-navy);
+}
+
+.move-panel__provider-note {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.move-panel__mode,
+.move-panel__type {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.move-panel__radio {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ui-color-navy);
+}
+
+.move-panel__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.move-panel__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ui-color-navy);
+}
+
+.move-panel__form input,
+.move-panel__form select {
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+}
+
+.picker {
+  position: relative;
+}
+
+.picker__list {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  margin: 0.15rem 0 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 10rem;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 12px rgb(15 23 42 / 12%);
+}
+
+.picker__option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.55rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.picker__option:hover {
+  background: #f1f5f9;
 }

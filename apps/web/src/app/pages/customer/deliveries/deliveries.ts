@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AgGridAngular } from 'ag-grid-angular';
 import {
   AllCommunityModule,
@@ -24,6 +24,7 @@ import {
   ModuleRegistry,
   NumberFilterModel,
   RowHeightParams,
+  GridOptions,
   SortChangedEvent,
   TextFilterModel,
   themeQuartz,
@@ -43,6 +44,7 @@ import { LoadActionItem, LoadActionsCell } from './load-actions-cell';
 import { LoadChildrenFullWidth } from './load-children-full-width';
 import { LoadExpandCell } from './load-expand-cell';
 import { LoadItemsSlider } from './load-items-slider';
+import { LoadXDockEditModal } from './load-xdock-edit-modal';
 import { isLoadDetailRow, LoadGridRow, LoadRow, OwnerCompanyType } from './load.types';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -51,6 +53,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const;
 type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
 const FILTERABLE_FIELDS = [
+  'id',
   'customer',
   'provider',
   'collection',
@@ -110,6 +113,7 @@ const serverSideNumberFilterParams: INumberFilterParams = {
     RouterLink,
     LoadActionsCell,
     LoadItemsSlider,
+    LoadXDockEditModal,
   ],
   templateUrl: './deliveries.html',
   styleUrls: ['../../../shared/portal-shell.scss', './deliveries.scss'],
@@ -120,6 +124,7 @@ export class CustomerDeliveries implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly load$ = new Subject<void>();
   private gridApi: GridApi<LoadGridRow> | null = null;
   private suppressGridEvents = false;
@@ -150,8 +155,12 @@ export class CustomerDeliveries implements OnInit {
     effect(() => {
       this.gridRowData();
       this.expandedLoadIds();
+      this.detailRowHeights();
       if (this.gridApi) {
-        queueMicrotask(() => this.gridApi?.resetRowHeights());
+        queueMicrotask(() => {
+          this.gridApi?.resetRowHeights();
+          this.gridApi?.onRowHeightChanged();
+        });
       }
     });
   }
@@ -162,6 +171,8 @@ export class CustomerDeliveries implements OnInit {
   protected readonly searchQuery = signal('');
   protected readonly expandedLoadIds = signal<Set<number>>(new Set());
   protected readonly selectedLoadForItems = signal<LoadRow | null>(null);
+  protected readonly editingXDock = signal<LoadRow | null>(null);
+  protected readonly detailRowHeights = signal<Record<number, number>>({});
 
   protected readonly loads = signal<LoadRow[]>([]);
   protected readonly gridRowData = computed<LoadGridRow[]>(() => {
@@ -187,6 +198,7 @@ export class CustomerDeliveries implements OnInit {
     `${row.customer} → ${row.delivery ?? '—'}`;
 
   protected readonly listColumns: DataListColumn<LoadRow>[] = [
+    { field: 'id', label: 'Load ID', valueFor: (row) => String(row.id) },
     { field: 'customer', label: 'Customer', valueFor: (row) => row.customer },
     { field: 'provider', label: 'Provider', valueFor: (row) => row.provider },
     { field: 'collection', label: 'Collection', valueFor: (row) => row.collection ?? '—' },
@@ -196,6 +208,7 @@ export class CustomerDeliveries implements OnInit {
   ];
 
   protected readonly sortOptions: DataListSortOption[] = [
+    { field: 'id', label: 'Load ID' },
     { field: 'customer', label: 'Customer' },
     { field: 'provider', label: 'Provider' },
     { field: 'collection', label: 'Collection' },
@@ -205,6 +218,10 @@ export class CustomerDeliveries implements OnInit {
   ];
 
   protected readonly theme = themeQuartz;
+  protected readonly gridOptions: GridOptions<LoadGridRow> = {
+    domLayout: 'autoHeight',
+    alwaysShowVerticalScroll: false,
+  };
   protected readonly pageSizeOptions = PAGE_SIZE_OPTIONS;
   protected readonly loading = signal(false);
   protected readonly deleting = signal(false);
@@ -231,6 +248,17 @@ export class CustomerDeliveries implements OnInit {
         toggle: (loadId: number) => this.toggleExpand(loadId),
         hasChildren: (load: LoadRow) => (load.children?.length ?? 0) > 0,
       },
+    },
+    {
+      field: 'id',
+      headerName: 'Load ID',
+      width: 88,
+      minWidth: 72,
+      maxWidth: 110,
+      comparator: serverSideSortComparator,
+      filter: 'agNumberColumnFilter',
+      filterParams: serverSideNumberFilterParams,
+      valueGetter: (params) => (isLoadDetailRow(params.data!) ? null : params.data?.id),
     },
     {
       field: 'customer',
@@ -325,6 +353,14 @@ export class CustomerDeliveries implements OnInit {
 
   protected readonly fullWidthCellRendererParams = {
     onActionsFor: (child: LoadRow) => this.actionsForChildRow(child),
+    onDetailHeight: (parentLoadId: number, height: number) => {
+      this.detailRowHeights.update((current) => {
+        if (current[parentLoadId] === height) {
+          return current;
+        }
+        return { ...current, [parentLoadId]: height };
+      });
+    },
   };
 
   protected readonly getRowId = (params: { data: LoadGridRow }): string => {
@@ -337,8 +373,12 @@ export class CustomerDeliveries implements OnInit {
   protected readonly getRowHeight = (params: RowHeightParams<LoadGridRow>) => {
     const data = params.data;
     if (data && isLoadDetailRow(data)) {
+      const measured = this.detailRowHeights()[data.detailParentId];
+      if (measured) {
+        return measured;
+      }
       const childRows = data.children.length;
-      return 64 + childRows * 42;
+      return 130 + childRows * 48;
     }
     return undefined;
   };
@@ -378,6 +418,26 @@ export class CustomerDeliveries implements OnInit {
       });
 
     this.loadLoads();
+
+    this.route.queryParamMap.subscribe((params) => {
+      const raw = params.get('edit_load');
+      if (!raw) {
+        return;
+      }
+      const id = Number(raw);
+      if (!Number.isInteger(id) || id < 1) {
+        return;
+      }
+      this.openXDockEditById(id);
+    });
+  }
+
+  protected closeXDockEdit(): void {
+    this.editingXDock.set(null);
+  }
+
+  protected onXDockSaved(): void {
+    this.loadLoads();
   }
 
   protected toggleExpand(loadId: number): void {
@@ -385,6 +445,14 @@ export class CustomerDeliveries implements OnInit {
       const next = new Set(current);
       if (next.has(loadId)) {
         next.delete(loadId);
+        this.detailRowHeights.update((heights) => {
+          if (!(loadId in heights)) {
+            return heights;
+          }
+          const next = { ...heights };
+          delete next[loadId];
+          return next;
+        });
       } else {
         next.add(loadId);
       }
@@ -555,7 +623,38 @@ export class CustomerDeliveries implements OnInit {
   }
 
   private goToEdit(row: LoadRow): void {
+    if (row.type === 'x_dock') {
+      this.editingXDock.set(row);
+      return;
+    }
     void this.router.navigate(['/app/deliveries', row.id, 'edit']);
+  }
+
+  private openXDockEditById(id: number): void {
+    this.http.get<{ load: LoadRow }>(`/api/loads/${id}`).subscribe({
+      next: (res) => {
+        if (res.load.type !== 'x_dock') {
+          this.clearEditLoadQueryParam();
+          void this.router.navigate(['/app/deliveries', res.load.id, 'edit']);
+          return;
+        }
+        this.editingXDock.set(res.load);
+        this.clearEditLoadQueryParam();
+      },
+      error: () => {
+        this.toastr.error('Unable to open X Dock load.');
+        this.clearEditLoadQueryParam();
+      },
+    });
+  }
+
+  private clearEditLoadQueryParam(): void {
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { edit_load: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   private actionsForRow(data: LoadRow): LoadActionItem[] {
@@ -594,8 +693,8 @@ export class CustomerDeliveries implements OnInit {
         continue;
       }
 
-      if (field === 'pallet_count') {
-        params = this.appendPalletFilterParams(params, model);
+      if (field === 'pallet_count' || field === 'id') {
+        params = this.appendNumberFilterParams(params, model, field);
         continue;
       }
 
@@ -618,7 +717,11 @@ export class CustomerDeliveries implements OnInit {
     return params;
   }
 
-  private appendPalletFilterParams(params: HttpParams, model: FilterModel[string]): HttpParams {
+  private appendNumberFilterParams(
+    params: HttpParams,
+    model: FilterModel[string],
+    field: 'id' | 'pallet_count',
+  ): HttpParams {
     if (!this.isNumberFilterModel(model) || !model.type) {
       return params;
     }
@@ -629,11 +732,11 @@ export class CustomerDeliveries implements OnInit {
     }
 
     params = params
-      .set('filter[pallet_count][type]', model.type)
-      .set('filter[pallet_count][filter]', String(filterValue));
+      .set(`filter[${field}][type]`, model.type)
+      .set(`filter[${field}][filter]`, String(filterValue));
 
     if (model.type === 'inRange' && model.filterTo != null && !Number.isNaN(model.filterTo)) {
-      params = params.set('filter[pallet_count][filterTo]', String(model.filterTo));
+      params = params.set(`filter[${field}][filterTo]`, String(model.filterTo));
     }
 
     return params;
@@ -661,7 +764,15 @@ export class CustomerDeliveries implements OnInit {
 
   private isSortableField(field: string): field is SortableField {
     return (
-      ['customer', 'provider', 'collection', 'delivery', 'pallet_count', 'item_count'] as const
+      [
+        'id',
+        'customer',
+        'provider',
+        'collection',
+        'delivery',
+        'pallet_count',
+        'item_count',
+      ] as const
     ).includes(field as SortableField);
   }
 

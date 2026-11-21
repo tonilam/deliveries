@@ -18,7 +18,7 @@
   @if (loading()) {
     <p>Loading…</p>
   } @else if (!loadFailed()) {
-    @if (isChildEdit()) {
+    @if (isAddDropEdit()) {
       <form [formGroup]="childEditForm" (ngSubmit)="submitDirect()" class="load-form">
         <div class="load-form__fields">
           <div class="picker">
@@ -51,71 +51,6 @@
               </ul>
             }
           </div>
-
-          @if (loadType() === 'x_dock') {
-            <div class="picker">
-              <label>
-                X dock address
-                <input
-                  type="text"
-                  [value]="addressState('xdock').query"
-                  (input)="onAddressQueryInput('xdock', $event, 'child')"
-                  (focus)="onAddressFocus('xdock')"
-                  (blur)="onAddressBlur('xdock')"
-                  autocomplete="off"
-                  placeholder="Type at least 2 characters"
-                />
-              </label>
-              @if (addressState('xdock').menuOpen && addressState('xdock').options.length > 0) {
-                <ul class="picker__list" role="listbox">
-                  @for (opt of $any(addressState('xdock').options); track opt.id) {
-                    <li role="option">
-                      <button
-                        type="button"
-                        class="picker__option"
-                        (mousedown)="selectAddress('xdock', opt, 'child')"
-                      >
-                        {{ opt.label }}
-                      </button>
-                    </li>
-                  }
-                </ul>
-              }
-            </div>
-
-            <div class="picker">
-              <label>
-                Secondary provider
-                <input
-                  type="text"
-                  [value]="partyState('secondary_provider').query"
-                  (input)="onPartyQueryInput('secondary_provider', $event)"
-                  (focus)="onPartyFocus('secondary_provider')"
-                  (blur)="onPartyBlur('secondary_provider')"
-                  autocomplete="off"
-                  placeholder="Type at least 2 characters"
-                />
-              </label>
-              @if (
-                partyState('secondary_provider').menuOpen &&
-                partyState('secondary_provider').options.length > 0
-              ) {
-                <ul class="picker__list" role="listbox">
-                  @for (opt of $any(partyState('secondary_provider').options); track opt.id) {
-                    <li role="option">
-                      <button
-                        type="button"
-                        class="picker__option"
-                        (mousedown)="selectParty('secondary_provider', opt)"
-                      >
-                        {{ opt.business_name }}
-                      </button>
-                    </li>
-                  }
-                </ul>
-              }
-            </div>
-          }
 
           <label>
             Pallet count
@@ -305,12 +240,25 @@
                 <ul>
                   @for (child of children(); track child.id) {
                     <li>
-                      <a [routerLink]="['/app/deliveries', child.id, 'edit']">
-                        {{ child.type_label }} — {{ child.delivery ?? '—' }}
-                        @if (child.pallet_count) {
-                          ({{ child.pallet_count }} pallets)
-                        }
-                      </a>
+                      @if (child.type === 'x_dock') {
+                        <button
+                          type="button"
+                          class="children-panel__link"
+                          (click)="openXDockEdit(child)"
+                        >
+                          {{ child.type_label }} — {{ child.delivery ?? '—' }}
+                          @if (child.pallet_count) {
+                            ({{ child.pallet_count }} pallets)
+                          }
+                        </button>
+                      } @else {
+                        <a [routerLink]="['/app/deliveries', child.id, 'edit']">
+                          {{ child.type_label }} — {{ child.delivery ?? '—' }}
+                          @if (child.pallet_count) {
+                            ({{ child.pallet_count }} pallets)
+                          }
+                        </a>
+                      }
                     </li>
                   }
                 </ul>
@@ -510,3 +458,11 @@
     }
   }
 </section>
+
+@if (editingXDockChild(); as xdockChild) {
+  <app-load-xdock-edit-modal
+    [load]="xdockChild"
+    (closed)="closeXDockEdit()"
+    (saved)="onXDockChildSaved($event)"
+  />
+}

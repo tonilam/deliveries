@@ -15,6 +15,7 @@ import { catchError, debounceTime, forkJoin, of, Subject, switchMap } from 'rxjs
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
+import { LoadXDockEditModal } from './load-xdock-edit-modal';
 import { LoadRow, LoadType, OwnerCompanyType } from './load.types';
 
 const SEARCH_MIN_CHARS = 2;
@@ -55,7 +56,7 @@ const emptyPicker = (): PickerState => ({
 
 @Component({
   selector: 'app-customer-load-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, LoadXDockEditModal],
   templateUrl: './load-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './load-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -83,6 +84,7 @@ export class CustomerLoadForm implements OnInit {
   protected readonly loadType = signal<LoadType | null>(null);
   protected readonly ownCompanyType = signal<OwnerCompanyType | null>(null);
   protected readonly children = signal<LoadRow[]>([]);
+  protected readonly editingXDockChild = signal<LoadRow | null>(null);
 
   protected readonly partyPickers = signal<Record<PartyPickerKey, PickerState>>({
     customer: emptyPicker(),
@@ -104,6 +106,9 @@ export class CustomerLoadForm implements OnInit {
   protected readonly isDirectEdit = computed(() => this.isEdit() && this.loadType() === 'direct');
   protected readonly isChildEdit = computed(
     () => this.isEdit() && this.loadType() !== null && this.loadType() !== 'direct',
+  );
+  protected readonly isAddDropEdit = computed(
+    () => this.isChildEdit() && this.loadType() === 'add_drop',
   );
   protected readonly showCustomerPicker = computed(
     () => this.ownCompanyType() !== 'customer' && !this.isChildEdit(),
@@ -187,6 +192,14 @@ export class CustomerLoadForm implements OnInit {
 
         if (load) {
           const row = load.load;
+          if (row.type === 'x_dock') {
+            this.loading.set(false);
+            void this.router.navigate(['/app/deliveries'], {
+              queryParams: { edit_load: String(row.id) },
+            });
+            return;
+          }
+
           this.loadType.set(row.type);
           if (row.type === 'direct') {
             this.children.set(row.children ?? []);
@@ -357,6 +370,18 @@ export class CustomerLoadForm implements OnInit {
           this.submitting.set(false);
         },
       });
+  }
+
+  protected openXDockEdit(child: LoadRow): void {
+    this.editingXDockChild.set(child);
+  }
+
+  protected closeXDockEdit(): void {
+    this.editingXDockChild.set(null);
+  }
+
+  protected onXDockChildSaved(updated: LoadRow): void {
+    this.children.update((list) => list.map((c) => (c.id === updated.id ? updated : c)));
   }
 
   protected submitAddDropChild(): void {

@@ -50,19 +50,273 @@
                   <strong>{{ item.good_type }}</strong>
                   <p class="load-slider__item-meta">{{ itemSummary(item) }}</p>
                 </div>
-                <button
-                  type="button"
-                  class="btn btn--ghost"
-                  [disabled]="assigning()"
-                  (click)="unassignItem(item)"
-                >
-                  Remove
-                </button>
+                <div class="load-slider__item-actions">
+                  @if (canMoveToChild()) {
+                    <button
+                      type="button"
+                      class="btn btn--ghost"
+                      [disabled]="assigning()"
+                      (click)="openMove(item)"
+                    >
+                      Move to child
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="btn btn--ghost"
+                    [disabled]="assigning()"
+                    (click)="unassignItem(item)"
+                  >
+                    Remove
+                  </button>
+                </div>
               </li>
             }
           </ul>
         }
       </section>
+
+      @if (movingItem(); as target) {
+        <section class="move-panel" aria-labelledby="move-item-title">
+          <div class="move-panel__header">
+            <h3 id="move-item-title">Move {{ target.good_type }} to child load</h3>
+            <button type="button" class="btn btn--ghost" (click)="cancelMove()">Cancel</button>
+          </div>
+
+          @if (canMoveToChild()) {
+            <p class="move-panel__provider-note">
+              Add Drop uses provider <strong>{{ load().provider }}</strong> (same as this direct
+              load).
+            </p>
+          }
+
+          <div class="move-panel__mode" role="radiogroup" aria-label="Child load destination">
+            @if (children().length > 0) {
+              <label class="move-panel__radio">
+                <input
+                  type="radio"
+                  name="move_mode"
+                  [checked]="moveMode() === 'existing'"
+                  (change)="setMoveMode('existing')"
+                />
+                Existing child load
+              </label>
+            }
+            <label class="move-panel__radio">
+              <input
+                type="radio"
+                name="move_mode"
+                [checked]="moveMode() === 'new'"
+                (change)="setMoveMode('new')"
+              />
+              New child load
+            </label>
+          </div>
+
+          @if (moveMode() === 'existing' && children().length > 0) {
+            <form [formGroup]="moveExistingForm" (ngSubmit)="submitMove()" class="move-panel__form">
+              <label>
+                Child load
+                <select formControlName="child_load_id">
+                  <option [ngValue]="null" disabled>Select a child load</option>
+                  @for (child of children(); track child.id) {
+                    <option [ngValue]="child.id">{{ childLabel(child) }}</option>
+                  }
+                </select>
+              </label>
+              <button type="submit" class="btn btn--primary" [disabled]="assigning()">
+                {{ assigning() ? 'Moving…' : 'Move item' }}
+              </button>
+            </form>
+          } @else {
+            <div class="move-panel__type" role="radiogroup" aria-label="New child type">
+              <label class="move-panel__radio">
+                <input
+                  type="radio"
+                  name="new_child_type"
+                  [checked]="newChildType() === 'add_drop'"
+                  (change)="setNewChildType('add_drop')"
+                />
+                Add Drop
+              </label>
+              @if (showXDockNewChild()) {
+                <label class="move-panel__radio">
+                  <input
+                    type="radio"
+                    name="new_child_type"
+                    [checked]="newChildType() === 'x_dock'"
+                    (change)="setNewChildType('x_dock')"
+                  />
+                  X Dock
+                </label>
+              }
+            </div>
+
+            @if (newChildType() === 'add_drop') {
+              <form
+                [formGroup]="moveAddDropForm"
+                (ngSubmit)="submitMove()"
+                class="move-panel__form"
+              >
+                <div class="picker">
+                  <label>
+                    Delivery address
+                    <input
+                      type="text"
+                      [value]="addressState('add_drop_delivery').query"
+                      (input)="onAddressQueryInput('add_drop_delivery', $event, 'add_drop')"
+                      (focus)="onAddressFocus('add_drop_delivery')"
+                      (blur)="onAddressBlur('add_drop_delivery')"
+                      autocomplete="off"
+                      placeholder="Search or pick from list"
+                    />
+                  </label>
+                  @if (
+                    addressState('add_drop_delivery').menuOpen &&
+                    addressState('add_drop_delivery').options.length > 0
+                  ) {
+                    <ul class="picker__list" role="listbox">
+                      @for (opt of $any(addressState('add_drop_delivery').options); track opt.id) {
+                        <li role="option">
+                          <button
+                            type="button"
+                            class="picker__option"
+                            (mousedown)="selectAddress('add_drop_delivery', opt, 'add_drop')"
+                          >
+                            {{ opt.label }}
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+                <label>
+                  Pallet count
+                  <input
+                    type="number"
+                    formControlName="pallet_count"
+                    min="0"
+                    step="1"
+                    inputmode="numeric"
+                  />
+                </label>
+                <button type="submit" class="btn btn--primary" [disabled]="assigning()">
+                  {{ assigning() ? 'Moving…' : 'Create Add Drop & move item' }}
+                </button>
+              </form>
+            } @else {
+              <form [formGroup]="moveXDockForm" (ngSubmit)="submitMove()" class="move-panel__form">
+                <div class="picker">
+                  <label>
+                    X dock address
+                    <input
+                      type="text"
+                      [value]="addressState('x_dock_xdock').query"
+                      (input)="onAddressQueryInput('x_dock_xdock', $event, 'x_dock')"
+                      (focus)="onAddressFocus('x_dock_xdock')"
+                      (blur)="onAddressBlur('x_dock_xdock')"
+                      autocomplete="off"
+                      placeholder="Search or pick from list"
+                    />
+                  </label>
+                  @if (
+                    addressState('x_dock_xdock').menuOpen &&
+                    addressState('x_dock_xdock').options.length > 0
+                  ) {
+                    <ul class="picker__list" role="listbox">
+                      @for (opt of $any(addressState('x_dock_xdock').options); track opt.id) {
+                        <li role="option">
+                          <button
+                            type="button"
+                            class="picker__option"
+                            (mousedown)="selectAddress('x_dock_xdock', opt, 'x_dock')"
+                          >
+                            {{ opt.label }}
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+                <div class="picker">
+                  <label>
+                    Final delivery address
+                    <input
+                      type="text"
+                      [value]="addressState('x_dock_delivery').query"
+                      (input)="onAddressQueryInput('x_dock_delivery', $event, 'x_dock')"
+                      (focus)="onAddressFocus('x_dock_delivery')"
+                      (blur)="onAddressBlur('x_dock_delivery')"
+                      autocomplete="off"
+                      placeholder="Search or pick from list"
+                    />
+                  </label>
+                  @if (
+                    addressState('x_dock_delivery').menuOpen &&
+                    addressState('x_dock_delivery').options.length > 0
+                  ) {
+                    <ul class="picker__list" role="listbox">
+                      @for (opt of $any(addressState('x_dock_delivery').options); track opt.id) {
+                        <li role="option">
+                          <button
+                            type="button"
+                            class="picker__option"
+                            (mousedown)="selectAddress('x_dock_delivery', opt, 'x_dock')"
+                          >
+                            {{ opt.label }}
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+                <div class="picker">
+                  <label>
+                    Secondary provider
+                    <input
+                      type="text"
+                      [value]="partyState().query"
+                      (input)="onPartyQueryInput($event)"
+                      (focus)="onPartyFocus()"
+                      (blur)="onPartyBlur()"
+                      autocomplete="off"
+                      placeholder="Search or pick from list"
+                    />
+                  </label>
+                  @if (partyState().menuOpen && partyState().options.length > 0) {
+                    <ul class="picker__list" role="listbox">
+                      @for (opt of $any(partyState().options); track opt.id) {
+                        <li role="option">
+                          <button
+                            type="button"
+                            class="picker__option"
+                            (mousedown)="selectParty(opt)"
+                          >
+                            {{ opt.business_name }}
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                </div>
+                <label>
+                  Pallet count
+                  <input
+                    type="number"
+                    formControlName="pallet_count"
+                    min="0"
+                    step="1"
+                    inputmode="numeric"
+                  />
+                </label>
+                <button type="submit" class="btn btn--primary" [disabled]="assigning()">
+                  {{ assigning() ? 'Moving…' : 'Create X Dock & move item' }}
+                </button>
+              </form>
+            }
+          }
+        </section>
+      }
     } @else {
       <section class="load-slider__section" role="tabpanel">
         @if (unassigned().length === 0) {

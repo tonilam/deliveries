@@ -113,6 +113,7 @@ class LoadListController extends Controller
         }
 
         $column = match ($sort) {
+            'id' => 'loads.id',
             'customer' => 'load_customer.business_name',
             'provider' => 'load_provider.business_name',
             'collection' => 'load_collection.business_name',
@@ -152,6 +153,7 @@ class LoadListController extends Controller
         ?string $filterTo = null,
     ): void {
         $dbColumn = match ($column) {
+            'id' => 'loads.id',
             'customer' => 'load_customer.business_name',
             'provider' => 'load_provider.business_name',
             'collection' => 'load_collection.business_name',
@@ -164,7 +166,7 @@ class LoadListController extends Controller
             return;
         }
 
-        if ($column === 'pallet_count' && $this->usesNumericComparison($type)) {
+        if (in_array($column, ['id', 'pallet_count'], true) && $this->usesNumericComparison($type)) {
             $this->applyNumericFilter($query, $dbColumn, $type, $value, $filterTo);
 
             return;

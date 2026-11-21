@@ -83,6 +83,7 @@ use App\Http\Controllers\ItemListController;
 use App\Http\Controllers\LoadAddressOptionsController;
 use App\Http\Controllers\LoadListController;
 use App\Http\Controllers\LoadPartyOptionsController;
+use App\Http\Controllers\MoveItemToChildLoadController;
 use App\Http\Controllers\NetworkCompanyListController;
 use App\Http\Controllers\RateCardCompanyOptionsController;
 use App\Http\Controllers\RateCardListController;
@@ -145,6 +146,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::delete('/loads/{load}', DeleteLoadController::class);
     Route::post('/loads/{load}/children', CreateLoadChildController::class);
     Route::post('/loads/{load}/items', AssignItemToLoadController::class);
+    Route::post('/loads/{load}/items/{item}/move', MoveItemToChildLoadController::class);
     Route::delete('/loads/{load}/items/{item}', UnassignItemFromLoadController::class);
 
     Route::get('/items/good-type-options', ItemGoodTypeOptionsController::class);

@@ -31,6 +31,7 @@
     <ag-grid-angular
       class="deliveries-grid"
       [theme]="theme"
+      [gridOptions]="gridOptions"
       [rowData]="gridRowData()"
       [columnDefs]="columnDefs"
       [defaultColDef]="defaultColDef"
@@ -42,7 +43,6 @@
       [getRowId]="getRowId"
       [getRowHeight]="getRowHeight"
       [embedFullWidthRows]="true"
-      domLayout="autoHeight"
       (gridReady)="onGridReady($event)"
       (filterChanged)="onFilterChanged($event)"
       (sortChanged)="onSortChanged($event)"
@@ -102,6 +102,14 @@
     [load]="loadForItems"
     (closed)="closeItemsSlider()"
     (changed)="onItemsChanged()"
+  />
+}
+
+@if (editingXDock(); as xdockLoad) {
+  <app-load-xdock-edit-modal
+    [load]="xdockLoad"
+    (closed)="closeXDockEdit()"
+    (saved)="onXDockSaved()"
   />
 }
 

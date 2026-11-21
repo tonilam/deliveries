@@ -1,0 +1,115 @@
+<div class="modal-backdrop" (click)="cancel()"></div>
+<div class="modal modal--wide" role="dialog" aria-modal="true" aria-labelledby="xdock-edit-title">
+  <h2 id="xdock-edit-title">Edit X Dock #{{ load().id }}</h2>
+
+  @if (error()) {
+    <p class="modal__error" role="alert">{{ error() }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="form-stack">
+    <div class="picker">
+      <label>
+        X dock address
+        <input
+          type="text"
+          [value]="addressState('x_dock_xdock').query"
+          (input)="onAddressQueryInput('x_dock_xdock', $event)"
+          (focus)="onAddressFocus('x_dock_xdock')"
+          (blur)="onAddressBlur('x_dock_xdock')"
+          autocomplete="off"
+          placeholder="Search or pick from list"
+        />
+      </label>
+      @if (
+        addressState('x_dock_xdock').menuOpen && addressState('x_dock_xdock').options.length > 0
+      ) {
+        <ul class="picker__list" role="listbox">
+          @for (opt of $any(addressState('x_dock_xdock').options); track opt.id) {
+            <li role="option">
+              <button
+                type="button"
+                class="picker__option"
+                (mousedown)="selectAddress('x_dock_xdock', opt)"
+              >
+                {{ opt.label }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="picker">
+      <label>
+        Final delivery address
+        <input
+          type="text"
+          [value]="addressState('x_dock_delivery').query"
+          (input)="onAddressQueryInput('x_dock_delivery', $event)"
+          (focus)="onAddressFocus('x_dock_delivery')"
+          (blur)="onAddressBlur('x_dock_delivery')"
+          autocomplete="off"
+          placeholder="Search or pick from list"
+        />
+      </label>
+      @if (
+        addressState('x_dock_delivery').menuOpen &&
+        addressState('x_dock_delivery').options.length > 0
+      ) {
+        <ul class="picker__list" role="listbox">
+          @for (opt of $any(addressState('x_dock_delivery').options); track opt.id) {
+            <li role="option">
+              <button
+                type="button"
+                class="picker__option"
+                (mousedown)="selectAddress('x_dock_delivery', opt)"
+              >
+                {{ opt.label }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="picker">
+      <label>
+        Secondary provider
+        <input
+          type="text"
+          [value]="partyState().query"
+          (input)="onPartyQueryInput($event)"
+          (focus)="onPartyFocus()"
+          (blur)="onPartyBlur()"
+          autocomplete="off"
+          placeholder="Search or pick from list"
+        />
+      </label>
+      @if (partyState().menuOpen && partyState().options.length > 0) {
+        <ul class="picker__list" role="listbox">
+          @for (opt of $any(partyState().options); track opt.id) {
+            <li role="option">
+              <button type="button" class="picker__option" (mousedown)="selectParty(opt)">
+                {{ opt.business_name }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+
+    <label>
+      Pallet count
+      <input type="number" formControlName="pallet_count" min="0" step="1" inputmode="numeric" />
+    </label>
+
+    <div class="modal__actions">
+      <button type="button" class="btn btn--ghost" [disabled]="submitting()" (click)="cancel()">
+        Cancel
+      </button>
+      <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+        {{ submitting() ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  </form>
+</div>

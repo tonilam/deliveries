@@ -109,7 +109,7 @@ final class RouteBindingRegistrar
     private static function isCustomerItemRoute(Request $request): bool
     {
         return $request->is('api/items/*')
-            || (bool) preg_match('#^api/loads/\d+/items/\d+$#', $request->path());
+            || (bool) preg_match('#^api/loads/\d+/items/\d+(/move)?$#', $request->path());
     }
 
     private static function isCustomerLoadRoute(Request $request): bool

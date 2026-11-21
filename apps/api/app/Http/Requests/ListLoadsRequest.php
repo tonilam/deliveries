@@ -15,6 +15,7 @@ class ListLoadsRequest extends FormRequest
 
     /** @var list<string> */
     public const FILTERABLE_COLUMNS = [
+        'id',
         'customer',
         'provider',
         'collection',
@@ -24,6 +25,7 @@ class ListLoadsRequest extends FormRequest
 
     /** @var list<string> */
     public const SORTABLE_COLUMNS = [
+        'id',
         'customer',
         'provider',
         'collection',
@@ -83,7 +85,7 @@ class ListLoadsRequest extends FormRequest
                 Rule::in(self::FILTER_TYPES),
             ];
             $rules["filter.{$column}.filter"] = ['nullable', 'string', 'max:255'];
-            if ($column === 'pallet_count') {
+            if (in_array($column, ['id', 'pallet_count'], true)) {
                 $rules["filter.{$column}.filterTo"] = ['nullable', 'string', 'max:255'];
             }
         }
@@ -148,7 +150,7 @@ class ListLoadsRequest extends FormRequest
                 'type' => $type,
                 'filter' => is_string($value) ? $value : null,
             ];
-            if ($column === 'pallet_count' && is_string($filterTo)) {
+            if (in_array($column, ['id', 'pallet_count'], true) && is_string($filterTo)) {
                 $filters[$column]['filterTo'] = $filterTo;
             }
         }

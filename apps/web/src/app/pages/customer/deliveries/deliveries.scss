@@ -39,6 +39,28 @@
   width: 100%;
 }
 
+/* autoHeight: grow with rows; vertical scroll lives on .shell__content only */
+:host ::ng-deep .deliveries-grid .ag-root-wrapper,
+:host ::ng-deep .deliveries-grid .ag-root-wrapper-body,
+:host ::ng-deep .deliveries-grid .ag-body,
+:host ::ng-deep .deliveries-grid .ag-body-viewport,
+:host ::ng-deep .deliveries-grid .ag-center-cols-viewport {
+  overflow-y: visible !important;
+  max-height: none !important;
+}
+
+:host ::ng-deep .deliveries-grid .ag-body-vertical-scroll,
+:host ::ng-deep .deliveries-grid .ag-body-vertical-scroll-container,
+:host ::ng-deep .deliveries-grid .ag-body-vertical-scroll-viewport {
+  display: none !important;
+}
+
+:host ::ng-deep .deliveries-grid .ag-full-width-row .ag-cell-wrapper,
+:host ::ng-deep .deliveries-grid .ag-full-width-row .ag-cell-value,
+:host ::ng-deep .deliveries-grid .ag-full-width-row {
+  overflow: visible !important;
+}
+
 :host ::ng-deep .deliveries-grid__actions-cell {
   overflow: visible;
   text-align: center;

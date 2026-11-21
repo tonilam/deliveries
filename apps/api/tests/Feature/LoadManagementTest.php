@@ -118,6 +118,142 @@ class LoadManagementTest extends TestCase
         $this->assertDatabaseMissing('loads', ['id' => $child->id]);
     }
 
+    public function test_move_item_to_existing_add_drop_child(): void
+    {
+        [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();
+        $this->loginAs($user);
+
+        $load = $this->createDirectLoad($owner, $collection, $delivery);
+        $childDelivery = Address::factory()->for($owner)->delivery()->create();
+        $child = Load::query()->create([
+            'company_id' => $owner->id,
+            'parent_load_id' => $load->id,
+            'type' => LoadType::AddDrop,
+            'customer_company_id' => $load->customer_company_id,
+            'provider_company_id' => $load->provider_company_id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $childDelivery->id,
+            'pallet_count' => 1,
+        ]);
+
+        $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $load->id]);
+
+        $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+            'child_load_id' => $child->id,
+        ])
+            ->assertOk()
+            ->assertJsonPath('item.load_id', $child->id)
+            ->assertJsonPath('child_load.id', $child->id);
+
+        $this->assertSame($child->id, $item->fresh()->load_id);
+    }
+
+    public function test_move_item_creates_add_drop_child_with_parent_provider(): void
+    {
+        [$owner, , $provider, $collection, $delivery, $user] = $this->brokerFixture();
+        $this->loginAs($user);
+
+        $load = $this->createDirectLoad($owner, $collection, $delivery);
+        $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $load->id]);
+        $childDelivery = Address::factory()->for($owner)->delivery()->create();
+
+        $response = $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+            'type' => 'add_drop',
+            'delivery_address_id' => $childDelivery->id,
+            'pallet_count' => 2,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('child_load.type', 'add_drop')
+            ->assertJsonPath('child_load.provider_company_id', $load->provider_company_id)
+            ->assertJsonPath('child_load.secondary_provider_company_id', null);
+
+        $childId = $response->json('child_load.id');
+        $this->assertSame($childId, $item->fresh()->load_id);
+        $this->assertSame($provider->id, (int) Load::query()->whereKey($childId)->value('provider_company_id'));
+    }
+
+    public function test_move_item_creates_x_dock_child_with_secondary_provider(): void
+    {
+        [$owner, , $provider, $collection, $delivery, $user] = $this->brokerFixture();
+        $secondary = Company::factory()->forNetworkOf($owner, CompanyType::Provider)->create();
+        $this->loginAs($user);
+
+        $load = $this->createDirectLoad($owner, $collection, $delivery);
+        $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $load->id]);
+        $xdock = Address::factory()->for($owner)->delivery()->create();
+        $childDelivery = Address::factory()->for($owner)->delivery()->create();
+
+        $response = $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+            'type' => 'x_dock',
+            'xdock_address_id' => $xdock->id,
+            'delivery_address_id' => $childDelivery->id,
+            'secondary_provider_company_id' => $secondary->id,
+            'pallet_count' => 1,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('child_load.type', 'x_dock')
+            ->assertJsonPath('child_load.provider_company_id', $load->provider_company_id)
+            ->assertJsonPath('child_load.secondary_provider_company_id', $secondary->id);
+
+        $this->assertSame($provider->id, $response->json('child_load.provider_company_id'));
+    }
+
+    public function test_cannot_move_item_not_on_parent_direct_load(): void
+    {
+        [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();
+        $this->loginAs($user);
+
+        $load = $this->createDirectLoad($owner, $collection, $delivery);
+        $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN']);
+        $childDelivery = Address::factory()->for($owner)->delivery()->create();
+
+        $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+            'type' => 'add_drop',
+            'delivery_address_id' => $childDelivery->id,
+            'pallet_count' => 1,
+        ])->assertForbidden();
+    }
+
+    public function test_provider_owner_cannot_move_item_to_new_x_dock_child(): void
+    {
+        $owner = Company::factory()->create(['company_type' => CompanyType::Provider]);
+        $customer = Company::factory()->forNetworkOf($owner, CompanyType::Customer)->create();
+        $collection = Address::factory()->for($owner)->collection()->create();
+        $delivery = Address::factory()->for($owner)->delivery()->create();
+        $user = User::factory()->forCompany($owner)->create([
+            'email' => 'provider-move@example.com',
+            'password' => 'Password1!',
+        ]);
+
+        $load = Load::query()->create([
+            'company_id' => $owner->id,
+            'type' => LoadType::Direct,
+            'customer_company_id' => $customer->id,
+            'provider_company_id' => $owner->id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $delivery->id,
+            'pallet_count' => 2,
+        ]);
+
+        $item = Item::factory()->for($owner)->create(['good_type_code' => 'GEN', 'load_id' => $load->id]);
+
+        $this->loginAs($user);
+
+        $this->asSpa()->postJson("/api/loads/{$load->id}/items/{$item->id}/move", [
+            'type' => 'x_dock',
+            'xdock_address_id' => Address::factory()->for($owner)->delivery()->create()->id,
+            'delivery_address_id' => Address::factory()->for($owner)->delivery()->create()->id,
+            'secondary_provider_company_id' => 1,
+            'pallet_count' => 1,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['type']);
+    }
+
     public function test_provider_owner_cannot_create_x_dock_child(): void
     {
         $owner = Company::factory()->create(['company_type' => CompanyType::Provider]);

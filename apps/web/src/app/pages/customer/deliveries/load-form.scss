@@ -193,7 +193,8 @@
   gap: 0.35rem;
 }
 
-.children-panel a {
+.children-panel a,
+.children-panel__link {
   color: var(--ui-color-navy);
   font-weight: 600;
 }
@@ -225,7 +226,17 @@
   max-width: none;
 }
 
-.children-panel li a {
+.children-panel__link {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+}
+
+.children-panel li a,
+.children-panel li .children-panel__link {
   display: block;
   padding: 0.45rem 0.55rem;
   border-radius: 0.375rem;
