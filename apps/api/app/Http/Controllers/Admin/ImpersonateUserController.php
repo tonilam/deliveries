@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AdminRequest;
 use App\Models\User;
 use App\Services\ImpersonationService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class ImpersonateUserController extends Controller
 {
@@ -14,7 +14,7 @@ class ImpersonateUserController extends Controller
         private readonly ImpersonationService $impersonation,
     ) {}
 
-    public function __invoke(Request $request, User $user): JsonResponse
+    public function __invoke(AdminRequest $request, User $user): JsonResponse
     {
         $target = $this->impersonation->start($request, $user);
 

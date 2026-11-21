@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AdminRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Password;
@@ -10,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 
 class SendPasswordResetController extends Controller
 {
-    public function __invoke(User $user): JsonResponse
+    public function __invoke(AdminRequest $request, User $user): JsonResponse
     {
         if (! $user->has_password) {
             throw ValidationException::withMessages([
