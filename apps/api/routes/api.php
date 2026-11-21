@@ -3,6 +3,8 @@
 use App\Http\Controllers\AddressListController;
 use App\Http\Controllers\AddressStateOptionsController;
 use App\Http\Controllers\AddressZoneOptionsController;
+use App\Http\Controllers\Admin\AdminCompanyNetworkCandidatesController;
+use App\Http\Controllers\Admin\AdminCompanyNetworkListController;
 use App\Http\Controllers\Admin\CheckCompanyUniquenessController;
 use App\Http\Controllers\Admin\CompanyListController;
 use App\Http\Controllers\Admin\CountryListController;
@@ -23,6 +25,7 @@ use App\Http\Controllers\Admin\DeleteZoneController;
 use App\Http\Controllers\Admin\FeatureListController;
 use App\Http\Controllers\Admin\ImpersonateUserController;
 use App\Http\Controllers\Admin\InviteUserController;
+use App\Http\Controllers\Admin\LinkAdminCompanyNetworkController;
 use App\Http\Controllers\Admin\ResetUserPasswordController;
 use App\Http\Controllers\Admin\SendPasswordResetController;
 use App\Http\Controllers\Admin\ShowCompanyController;
@@ -147,6 +150,9 @@ Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->pref
     Route::get('/companies', CompanyListController::class);
     Route::post('/companies', CreateCompanyController::class);
     Route::post('/companies/check-uniqueness', CheckCompanyUniquenessController::class);
+    Route::get('/companies/{company}/network/candidates', AdminCompanyNetworkCandidatesController::class);
+    Route::get('/companies/{company}/network', AdminCompanyNetworkListController::class);
+    Route::post('/companies/{company}/network', LinkAdminCompanyNetworkController::class);
     Route::get('/companies/{company}', ShowCompanyController::class);
     Route::put('/companies/{company}', UpdateCompanyController::class);
     Route::get('/vehicle-categories', VehicleCategoryListController::class);

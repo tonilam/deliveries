@@ -46,6 +46,21 @@
         >
           Finance
         </button>
+        @if (showNetworkTab()) {
+          <button
+            type="button"
+            role="tab"
+            class="tabs__tab"
+            id="tab-network"
+            [attr.aria-selected]="activeTab() === 'network'"
+            [class.tabs__tab--active]="activeTab() === 'network'"
+            [disabled]="detailsDirty()"
+            [title]="detailsDirty() ? 'Save company details first' : null"
+            (click)="selectTab('network')"
+          >
+            Network
+          </button>
+        }
       </div>
     }
 
@@ -143,6 +158,13 @@
           </button>
         </div>
       </form>
+    }
+
+    @if (isEdit() && activeTab() === 'network' && companyId(); as parentId) {
+      <app-admin-company-network
+        [parentCompanyId]="parentId"
+        [parentCompanyType]="rootCompanyType()"
+      />
     }
 
     @if (isEdit() && activeTab() === 'finance') {

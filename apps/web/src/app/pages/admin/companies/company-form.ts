@@ -24,6 +24,7 @@ import {
   RadioCardGroupComponent,
   RadioCardOption,
 } from '../../../shared/radio-card-group/radio-card-group';
+import { AdminCompanyNetwork } from './company-network';
 
 const ROOT_COMPANY_TYPE_OPTIONS: RadioCardOption[] = [
   {
@@ -49,7 +50,7 @@ const LINKED_COMPANY_TYPE_OPTIONS: RadioCardOption[] = ROOT_COMPANY_TYPE_OPTIONS
 
 type FieldKey = 'business_name' | 'reg_number' | 'allowed_domains';
 type FieldStatus = 'pending' | 'checking' | 'ok' | 'conflict' | 'error';
-type EditTab = 'details' | 'finance';
+type EditTab = 'details' | 'finance' | 'network';
 
 interface FieldCheck {
   status: FieldStatus;
@@ -71,7 +72,7 @@ const DEFAULT_GST_PERCENT = 10;
 
 @Component({
   selector: 'app-admin-company-form',
-  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent],
+  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent, AdminCompanyNetwork],
   templateUrl: './company-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './company-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -96,8 +97,11 @@ export class AdminCompanyForm implements OnInit {
   protected readonly countries = signal<Country[]>([]);
   protected readonly hasAddresses = signal(false);
   protected readonly parentBusinessName = signal<string | null>(null);
+  protected readonly rootCompanyType = signal<CompanyType>('broker');
   protected readonly countryLocked = computed(() => this.isEdit() && this.hasAddresses());
   protected readonly isLinkedCompany = computed(() => this.parentBusinessName() !== null);
+  protected readonly showNetworkTab = computed(() => this.isEdit() && !this.isLinkedCompany());
+  protected readonly detailsDirty = signal(false);
   protected readonly companyTypeRadioOptions = computed((): RadioCardOption[] =>
     this.isLinkedCompany() ? LINKED_COMPANY_TYPE_OPTIONS : ROOT_COMPANY_TYPE_OPTIONS,
   );
@@ -155,6 +159,10 @@ export class AdminCompanyForm implements OnInit {
   });
 
   ngOnInit(): void {
+    this.detailsForm.valueChanges.subscribe(() => {
+      this.detailsDirty.set(this.detailsForm.dirty);
+    });
+
     this.loading.set(true);
     this.http.get<{ countries: Country[] }>('/api/admin/countries').subscribe({
       next: ({ countries }) => {
@@ -185,6 +193,8 @@ export class AdminCompanyForm implements OnInit {
     const tab = this.route.snapshot.queryParamMap.get('tab');
     if (tab === 'finance') {
       this.activeTab.set('finance');
+    } else if (tab === 'network') {
+      this.activeTab.set('network');
     }
 
     this.http.get<{ company: Company }>(`/api/admin/companies/${id}`).subscribe({
@@ -200,6 +210,10 @@ export class AdminCompanyForm implements OnInit {
   }
 
   protected selectTab(tab: EditTab): void {
+    if (tab === 'network' && this.detailsDirty()) {
+      this.error.set('Save company details before managing the network.');
+      return;
+    }
     this.activeTab.set(tab);
     this.error.set(null);
     this.financeSuccess.set(null);
@@ -366,6 +380,9 @@ export class AdminCompanyForm implements OnInit {
   private patchDetails(company: Company): void {
     this.hasAddresses.set(company.has_addresses);
     this.parentBusinessName.set(company.parent_business_name);
+    if (company.parent_company_id === null) {
+      this.rootCompanyType.set(company.company_type);
+    }
     this.detailsForm.patchValue({
       company_type: company.company_type,
       country_id: company.country_id,
@@ -377,6 +394,8 @@ export class AdminCompanyForm implements OnInit {
       address: company.address,
       allowed_domains: (company.allowed_domains ?? []).join(', '),
     });
+    this.detailsForm.markAsPristine();
+    this.detailsDirty.set(false);
     this.syncCountryControlLock();
   }
 

@@ -1,0 +1,177 @@
+<div class="company-network" role="tabpanel" aria-labelledby="tab-network">
+  @if (showNetworkSubTabs()) {
+    <div class="network-segment" role="tablist" aria-label="Network sections">
+      @if (showCustomersTab()) {
+        <button
+          type="button"
+          role="tab"
+          class="network-segment__btn"
+          [attr.aria-selected]="segment() === 'customers'"
+          [class.network-segment__btn--active]="segment() === 'customers'"
+          (click)="selectSegment('customers')"
+        >
+          Customers
+        </button>
+      }
+      @if (showProvidersTab()) {
+        <button
+          type="button"
+          role="tab"
+          class="network-segment__btn"
+          [attr.aria-selected]="segment() === 'providers'"
+          [class.network-segment__btn--active]="segment() === 'providers'"
+          (click)="selectSegment('providers')"
+        >
+          Providers
+        </button>
+      }
+    </div>
+  }
+
+  <div class="company-network__toolbar">
+    <p class="company-network__lede">
+      Linked companies are attached to this business for trading in the network.
+    </p>
+    <button type="button" class="btn btn--primary" (click)="openAddModal()">
+      {{ addButtonLabel() }}
+    </button>
+  </div>
+
+  @if (error()) {
+    <p class="company-network__error" role="alert">{{ error() }}</p>
+  }
+
+  @if (compact()) {
+    <app-data-list
+      [loading]="loading()"
+      [rows]="companies()"
+      [titleFor]="companyListTitle"
+      [columns]="listColumns"
+      [actionsFor]="emptyActions"
+      [searchValue]="searchQuery()"
+      searchPlaceholder="Search companies…"
+      [sortOptions]="sortOptions"
+      [sortField]="sortField"
+      [sortDirection]="sortDirection"
+      (searchChange)="onListSearch($event)"
+      (sortFieldChange)="onListSortField($event)"
+      (sortDirectionChange)="onListSortDirection($event)"
+    />
+  } @else {
+    <ag-grid-angular
+      class="company-network__grid"
+      [theme]="theme"
+      [rowData]="companies()"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [loading]="loading()"
+      [suppressMultiSort]="true"
+      domLayout="autoHeight"
+      (gridReady)="onGridReady($event)"
+      (filterChanged)="onFilterChanged($event)"
+      (sortChanged)="onSortChanged($event)"
+    />
+  }
+
+  @if (meta(); as pagination) {
+    <div class="pagination" aria-label="Network pagination">
+      <p class="pagination__summary">
+        @if (pagination.total === 0) {
+          No companies
+        } @else {
+          Showing {{ pagination.from }}–{{ pagination.to }} of {{ pagination.total }}
+        }
+      </p>
+
+      <label class="pagination__size">
+        <span>Rows per page</span>
+        <select
+          [ngModel]="pageSize()"
+          (ngModelChange)="onPageSizeChange($event)"
+          [disabled]="loading()"
+        >
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="pagination__nav">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page <= 1"
+          (click)="goToPage(pagination.current_page - 1)"
+        >
+          Previous
+        </button>
+        <span class="pagination__page">
+          Page {{ pagination.current_page }} of {{ pagination.last_page }}
+        </span>
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page >= pagination.last_page"
+          (click)="goToPage(pagination.current_page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</div>
+
+@if (addModalOpen()) {
+  <div class="modal-backdrop" (click)="closeAddModal()" role="presentation"></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="add-network-company-title">
+    <h2 id="add-network-company-title">{{ addButtonLabel() }}</h2>
+    <p>Search for a root company with no parent and no linked children.</p>
+
+    <label class="company-picker">
+      <span class="company-picker__label">Business name</span>
+      <input
+        type="text"
+        [value]="candidateQuery()"
+        (input)="onCandidateQueryInput($any($event.target).value)"
+        autocomplete="off"
+        aria-autocomplete="list"
+      />
+    </label>
+
+    @if (candidatesLoading()) {
+      <p class="company-picker__status">Searching…</p>
+    } @else if (candidateQuery().trim().length > 0 && candidateQuery().trim().length < 2) {
+      <p class="company-picker__status">Type at least 2 characters to search.</p>
+    }
+
+    @if (candidateSuggestions().length > 0) {
+      <ul class="company-picker__list" role="listbox">
+        @for (candidate of candidateSuggestions(); track candidate.id) {
+          <li role="option">
+            <button
+              type="button"
+              class="company-picker__option"
+              [disabled]="linking()"
+              (click)="linkCandidate(candidate)"
+            >
+              <span class="company-picker__name">{{ candidate.business_name }}</span>
+              <span class="company-picker__meta"
+                >{{ candidate.reg_number }} · {{ candidate.email }}</span
+              >
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (linkError()) {
+      <p class="company-network__error" role="alert">{{ linkError() }}</p>
+    }
+
+    <div class="modal__actions">
+      <button type="button" class="btn btn--ghost" [disabled]="linking()" (click)="closeAddModal()">
+        Cancel
+      </button>
+    </div>
+  </div>
+}

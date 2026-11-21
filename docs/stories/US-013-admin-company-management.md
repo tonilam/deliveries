@@ -13,7 +13,7 @@ As an admin user, I want to manage companies (list, create, edit) and attach cus
 - [x] List API accepts optional `search` (contains match across business name, reg number, email, and allowed domains)
 - [x] A **Create company** button opens a create flow for company identity/contact fields from [US-011](US-011-company-entity.md), including required **country**, plus **allowed domains** (finance fields are set on edit — [US-014](US-014-admin-company-finance-details.md))
 - [x] After successful create, the admin is redirected to that company’s **edit** page
-- [x] Each row has an **Edit** action; edit has **Details** and **Finance** tabs ([US-014](US-014-admin-company-finance-details.md))
+- [x] Each row has an **Edit** action; edit has **Details** and **Finance** tabs ([US-014](US-014-admin-company-finance-details.md)); root companies also have a **Network** tab ([US-021](US-021-admin-company-network.md))
 - [x] On **Details** edit, **country** can be changed only while the company has **no addresses**; when addresses exist the country control is disabled and the API rejects country changes
 - [x] Saving create or **Details** edit opens a **confirmation modal** that shows **country**, **business name**, **reg number**, and **allowed domains** for the admin to review before the save is submitted
 - [x] When the confirmation modal opens, it automatically calls an admin uniqueness-check API; while checking, a **spinner** is shown; each field then shows a **green check** if unique or a **red cross** if conflicting, and conflicting results ask the admin to review the data

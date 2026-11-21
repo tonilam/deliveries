@@ -8,6 +8,23 @@ use Illuminate\Validation\ValidationException;
 
 class CompanyTypeService
 {
+    public function assertAdminNetworkListAllowed(Company $parent, CompanyType $networkType): void
+    {
+        if ($parent->parent_company_id !== null) {
+            throw ValidationException::withMessages([
+                'company' => ['Only root companies can have a network.'],
+            ]);
+        }
+
+        $parentType = $this->resolveType($parent);
+
+        if (! $parentType->allowsNetworkTab($networkType)) {
+            throw ValidationException::withMessages([
+                'type' => ['This network list is not available for this company type.'],
+            ]);
+        }
+    }
+
     public function assertChildTypeAllowedForParent(Company $parent, CompanyType $childType): void
     {
         if ($parent->parent_company_id !== null) {

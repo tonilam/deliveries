@@ -13,4 +13,4 @@ As an admin user, I want to set each company’s type (Customer, Provider, or Br
 
 ## Notes
 - Customer-managed links: [US-019](US-019-customer-network.md).
-- Admin create still creates root companies only; customers attach children via Network.
+- Admin create still creates root companies only; customers attach children via Network ([US-019](US-019-customer-network.md)); admins may link existing root companies from the company **Network** tab ([US-021](US-021-admin-company-network.md)).
