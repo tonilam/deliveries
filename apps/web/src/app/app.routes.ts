@@ -165,6 +165,16 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./pages/admin/settings/zones/zone-form').then((m) => m.AdminZoneForm),
           },
+          {
+            path: 'goods',
+            loadComponent: () =>
+              import('./pages/admin/settings/goods/goods').then((m) => m.AdminGoods),
+          },
+          {
+            path: 'goods/create',
+            loadComponent: () =>
+              import('./pages/admin/settings/goods/good-form').then((m) => m.AdminGoodForm),
+          },
         ],
       },
       {

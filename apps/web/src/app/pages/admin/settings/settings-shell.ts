@@ -17,5 +17,6 @@ export class AdminSettingsShell {
   protected readonly navItems: SettingsNavItem[] = [
     { label: 'Countries', path: '/admin/settings/countries' },
     { label: 'Zones', path: '/admin/settings/zones' },
+    { label: 'Goods', path: '/admin/settings/goods' },
   ];
 }

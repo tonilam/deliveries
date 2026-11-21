@@ -1,0 +1,40 @@
+<div class="refrigerated-required-floating-filter">
+  <button
+    #trigger
+    type="button"
+    class="refrigerated-required-floating-filter__trigger"
+    [class.refrigerated-required-floating-filter__trigger--active]="filterActive()"
+    [attr.aria-expanded]="panelOpen()"
+    aria-haspopup="listbox"
+    (click)="togglePanel($event)"
+  >
+    <span class="refrigerated-required-floating-filter__label">{{ summary() }}</span>
+    <span class="refrigerated-required-floating-filter__caret" aria-hidden="true">▾</span>
+  </button>
+
+  @if (panelOpen()) {
+    <div
+      class="refrigerated-required-floating-filter__panel"
+      role="listbox"
+      [ngStyle]="panelStyle()"
+      (click)="onPanelClick($event)"
+    >
+      <label class="refrigerated-required-floating-filter__option">
+        <input
+          type="checkbox"
+          [checked]="yes()"
+          (change)="onYesChange($any($event.target).checked)"
+        />
+        <span>Yes</span>
+      </label>
+      <label class="refrigerated-required-floating-filter__option">
+        <input
+          type="checkbox"
+          [checked]="no()"
+          (change)="onNoChange($any($event.target).checked)"
+        />
+        <span>No</span>
+      </label>
+    </div>
+  }
+</div>

@@ -1,0 +1,46 @@
+<p class="back">
+  <a routerLink="/admin/settings/goods">← Goods</a>
+</p>
+<h2>Add goods type</h2>
+<p class="lede">Short code and name for classifying freight (e.g. FRZ for frozen).</p>
+
+@if (error()) {
+  <p class="form-error" role="alert">{{ error() }}</p>
+}
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="create-form">
+  <label>
+    <span class="label-text">Code <span class="required" aria-hidden="true">*</span></span>
+    <input
+      type="text"
+      formControlName="code"
+      autocomplete="off"
+      spellcheck="false"
+      aria-describedby="good-code-hint"
+    />
+  </label>
+  <p id="good-code-hint" class="field-hint">
+    Uppercase letters and numbers, 2–8 characters, e.g. FRZ for frozen.
+  </p>
+
+  <label>
+    <span class="label-text">Name <span class="required" aria-hidden="true">*</span></span>
+    <input type="text" formControlName="name" autocomplete="off" />
+  </label>
+
+  <label class="checkbox">
+    <input type="checkbox" formControlName="refrigerated_required" />
+    <span class="label-text">Refrigerated required</span>
+  </label>
+
+  <div class="actions">
+    <a routerLink="/admin/settings/goods" class="btn btn--ghost">Cancel</a>
+    <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+      @if (submitting()) {
+        Saving…
+      } @else {
+        Save goods type
+      }
+    </button>
+  </div>
+</form>
