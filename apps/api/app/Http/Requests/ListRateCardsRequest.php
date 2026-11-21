@@ -2,14 +2,12 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\AuthorizesCompanyRateCard;
+use App\Models\RateCard;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class ListRateCardsRequest extends FormRequest
 {
-    use AuthorizesCompanyRateCard;
-
     public const DEFAULT_PER_PAGE = 25;
 
     /** @var list<int> */
@@ -51,7 +49,7 @@ class ListRateCardsRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->customerCanManageCompanyRateCards();
+        return $this->user()?->can('viewAny', RateCard::class) ?? false;
     }
 
     /**

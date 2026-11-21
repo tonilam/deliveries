@@ -2,14 +2,15 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\AuthorizesCompanyAddress;
+use App\Models\Address;
 
 class UpdateAddressRequest extends StoreAddressRequest
 {
-    use AuthorizesCompanyAddress;
-
     public function authorize(): bool
     {
-        return $this->customerCanAccessCompanyAddress($this->routeAddress());
+        $address = $this->route('address');
+
+        return $address instanceof Address
+            && ($this->user()?->can('update', $address) ?? false);
     }
 }

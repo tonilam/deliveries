@@ -3,17 +3,15 @@
 namespace App\Http\Requests;
 
 use App\Enums\RateCardUserType;
-use App\Http\Requests\Concerns\AuthorizesCompanyRateCard;
+use App\Models\RateCard;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class RateCardCompanyOptionsRequest extends FormRequest
 {
-    use AuthorizesCompanyRateCard;
-
     public function authorize(): bool
     {
-        return $this->customerCanManageCompanyRateCards();
+        return $this->user()?->can('viewAny', RateCard::class) ?? false;
     }
 
     /**

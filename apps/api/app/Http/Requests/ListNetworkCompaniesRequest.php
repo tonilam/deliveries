@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Enums\CompanyType;
 use App\Http\Requests\Concerns\AuthorizesNetworkCompany;
 use App\Http\Requests\Concerns\ValidatesNetworkCompanyListParams;
+use App\Models\Company;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,7 @@ class ListNetworkCompaniesRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->customerCanManageNetwork();
+        return $this->user()?->can('viewAnyNetwork', Company::class) ?? false;
     }
 
     /**

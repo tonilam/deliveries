@@ -3,7 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\AddressType;
-use App\Enums\UserRole;
+use App\Models\Address;
 use App\Models\Company;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -13,9 +13,7 @@ class StoreAddressRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $user = $this->user();
-
-        return $user?->role === UserRole::Customer && $user->company_id !== null;
+        return $this->user()?->can('create', Address::class) ?? false;
     }
 
     /**

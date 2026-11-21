@@ -2,19 +2,11 @@
 
 namespace App\Http\Requests\Concerns;
 
-use App\Enums\UserRole;
 use App\Models\Company;
 use Illuminate\Validation\ValidationException;
 
 trait AuthorizesNetworkCompany
 {
-    public function customerCanManageNetwork(): bool
-    {
-        $user = $this->user();
-
-        return $user?->role === UserRole::Customer && $user->company_id !== null;
-    }
-
     public function ownCompany(): Company
     {
         $user = $this->user();

@@ -3,19 +3,18 @@
 namespace App\Http\Requests;
 
 use App\Enums\RateCardUserType;
-use App\Http\Requests\Concerns\AuthorizesCompanyRateCard;
 use App\Http\Requests\Concerns\ValidatesRateCardPayload;
+use App\Models\RateCard;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class StoreRateCardRequest extends FormRequest
 {
-    use AuthorizesCompanyRateCard;
     use ValidatesRateCardPayload;
 
     public function authorize(): bool
     {
-        return $this->customerCanManageCompanyRateCards();
+        return $this->user()?->can('create', RateCard::class) ?? false;
     }
 
     /**

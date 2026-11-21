@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\AuthorizesNetworkCompany;
+use App\Models\Company;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CheckNetworkCompanyUniquenessRequest extends FormRequest
@@ -11,7 +12,7 @@ class CheckNetworkCompanyUniquenessRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->customerCanManageNetwork();
+        return $this->user()?->can('createNetwork', Company::class) ?? false;
     }
 
     /**

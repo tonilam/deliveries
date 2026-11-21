@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Enums\CompanyType;
 use App\Http\Requests\Concerns\AuthorizesNetworkCompany;
+use App\Models\Company;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -13,7 +14,7 @@ class StoreNetworkCompanyRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return $this->customerCanManageNetwork();
+        return $this->user()?->can('createNetwork', Company::class) ?? false;
     }
 
     /**

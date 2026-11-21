@@ -3,19 +3,21 @@
 namespace App\Http\Requests;
 
 use App\Enums\RateCardUserType;
-use App\Http\Requests\Concerns\AuthorizesCompanyRateCard;
 use App\Http\Requests\Concerns\ValidatesRateCardPayload;
+use App\Models\RateCard;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class UpdateRateCardRequest extends FormRequest
 {
-    use AuthorizesCompanyRateCard;
     use ValidatesRateCardPayload;
 
     public function authorize(): bool
     {
-        return $this->customerCanAccessCompanyRateCard($this->routeRateCard());
+        $rateCard = $this->route('rateCard');
+
+        return $rateCard instanceof RateCard
+            && ($this->user()?->can('update', $rateCard) ?? false);
     }
 
     /**
@@ -23,12 +25,18 @@ class UpdateRateCardRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->rateCardFieldRules($this->routeRateCard()?->id);
+        $rateCard = $this->route('rateCard');
+
+        return $this->rateCardFieldRules($rateCard instanceof RateCard ? $rateCard->id : null);
     }
 
     public function withValidator(Validator $validator): void
     {
-        $this->withRateCardValidator($validator, $this->routeRateCard()?->id);
+        $rateCard = $this->route('rateCard');
+        $this->withRateCardValidator(
+            $validator,
+            $rateCard instanceof RateCard ? $rateCard->id : null,
+        );
     }
 
     public function userType(): RateCardUserType

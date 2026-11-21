@@ -2,16 +2,17 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\AuthorizesNetworkCompany;
+use App\Models\Company;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DeleteNetworkCompanyRequest extends FormRequest
 {
-    use AuthorizesNetworkCompany;
-
     public function authorize(): bool
     {
-        return $this->customerCanManageNetwork();
+        $company = $this->route('company');
+
+        return $company instanceof Company
+            && ($this->user()?->can('deleteNetwork', $company) ?? false);
     }
 
     /**

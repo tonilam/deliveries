@@ -2,16 +2,21 @@
 
 namespace App\Http\Requests;
 
-use App\Http\Requests\Concerns\AuthorizesCompanyAddress;
+use App\Models\Address;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ManageAddressRequest extends FormRequest
 {
-    use AuthorizesCompanyAddress;
-
     public function authorize(): bool
     {
-        return $this->customerCanAccessCompanyAddress($this->routeAddress());
+        $address = $this->route('address');
+        if (! $address instanceof Address) {
+            return false;
+        }
+
+        $ability = $this->isMethod('DELETE') ? 'delete' : 'view';
+
+        return $this->user()?->can($ability, $address) ?? false;
     }
 
     /**
