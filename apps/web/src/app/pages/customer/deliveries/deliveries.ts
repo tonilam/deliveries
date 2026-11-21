@@ -41,12 +41,14 @@ import {
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
 import { LoadActionItem, LoadActionsCell } from './load-actions-cell';
-import { LoadChildrenFullWidth } from './load-children-full-width';
+import { LoadDetailFullWidth } from './load-detail-full-width';
 import { LoadExpandCell } from './load-expand-cell';
 import { LoadItemCountCell } from './load-item-count-cell';
 import { LoadItemsSlider } from './load-items-slider';
 import { LoadXDockEditModal } from './load-xdock-edit-modal';
 import {
+  directLoadCanExpand,
+  isLoadChildrenDetail,
   isLoadDetailRow,
   LoadGridRow,
   LoadRow,
@@ -122,6 +124,8 @@ const serverSideNumberFilterParams: INumberFilterParams = {
     FormsModule,
     RouterLink,
     LoadActionsCell,
+    LoadDetailFullWidth,
+    LoadExpandCell,
     LoadItemCountCell,
     LoadItemsSlider,
     LoadXDockEditModal,
@@ -169,6 +173,7 @@ export class CustomerDeliveries implements OnInit {
       this.detailRowHeights();
       if (this.gridApi) {
         queueMicrotask(() => {
+          this.gridApi?.refreshCells({ columns: ['expand'], force: true });
           this.gridApi?.resetRowHeights();
           this.gridApi?.onRowHeightChanged();
         });
@@ -192,12 +197,24 @@ export class CustomerDeliveries implements OnInit {
 
     for (const load of this.loads()) {
       rows.push(load);
+      if (!expanded.has(load.id)) {
+        continue;
+      }
       const childCount = load.children?.length ?? 0;
-      if (expanded.has(load.id) && childCount > 0) {
+      if (childCount > 0) {
         rows.push({
           detailRow: true,
+          kind: 'children',
           detailParentId: load.id,
           children: load.children ?? [],
+        });
+      } else if (load.item_count > 0) {
+        rows.push({
+          detailRow: true,
+          kind: 'items',
+          detailParentId: load.id,
+          loadId: load.id,
+          itemCount: load.item_count,
         });
       }
     }
@@ -264,7 +281,8 @@ export class CustomerDeliveries implements OnInit {
       cellRendererParams: {
         isExpanded: (loadId: number) => this.expandedLoadIds().has(loadId),
         toggle: (loadId: number) => this.toggleExpand(loadId),
-        hasChildren: (load: LoadRow) => (load.children?.length ?? 0) > 0,
+        canExpand: (load: LoadRow) => directLoadCanExpand(load),
+        expandTarget: 'auto',
       },
     },
     {
@@ -393,7 +411,7 @@ export class CustomerDeliveries implements OnInit {
   protected readonly isFullWidthRow = (params: IsFullWidthRowParams<LoadGridRow>) =>
     params.rowNode.data !== undefined && isLoadDetailRow(params.rowNode.data);
 
-  protected readonly fullWidthCellRenderer = LoadChildrenFullWidth;
+  protected readonly fullWidthCellRenderer = LoadDetailFullWidth;
 
   protected readonly fullWidthCellRendererParams = {
     onActionsFor: (child: LoadRow) => this.actionsForChildRow(child),
@@ -409,7 +427,7 @@ export class CustomerDeliveries implements OnInit {
 
   protected readonly getRowId = (params: { data: LoadGridRow }): string => {
     if (isLoadDetailRow(params.data)) {
-      return `detail-${params.data.detailParentId}`;
+      return `detail-${params.data.detailParentId}-${params.data.kind}`;
     }
     return `load-${params.data.id}`;
   };
@@ -421,8 +439,11 @@ export class CustomerDeliveries implements OnInit {
       if (measured) {
         return measured;
       }
-      const childRows = data.children.length;
-      return 130 + childRows * 48;
+      if (isLoadChildrenDetail(data)) {
+        const childRows = data.children.length;
+        return 130 + childRows * 48;
+      }
+      return 56 + data.itemCount * 42;
     }
     return undefined;
   };
@@ -726,6 +747,7 @@ export class CustomerDeliveries implements OnInit {
   private actionsForChildRow(child: LoadRow): LoadActionItem[] {
     return [
       { id: 'edit', label: 'Edit', run: () => this.goToEdit(child) },
+      { id: 'items', label: 'Manage items', run: () => this.openManageItems(child) },
       { id: 'delete', label: 'Delete', run: () => this.requestDelete(child) },
     ];
   }

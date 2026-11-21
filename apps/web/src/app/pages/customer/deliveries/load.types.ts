@@ -23,16 +23,59 @@ export interface LoadRow {
   children?: LoadRow[];
 }
 
-export interface LoadDetailGridRow {
+export interface LoadChildrenDetailRow {
   detailRow: true;
+  kind: 'children';
   detailParentId: number;
   children: LoadRow[];
 }
+
+export interface LoadItemsDetailRow {
+  detailRow: true;
+  kind: 'items';
+  detailParentId: number;
+  loadId: number;
+  itemCount: number;
+}
+
+export type LoadDetailGridRow = LoadChildrenDetailRow | LoadItemsDetailRow;
 
 export type LoadGridRow = LoadRow | LoadDetailGridRow;
 
 export function isLoadDetailRow(row: LoadGridRow): row is LoadDetailGridRow {
   return 'detailRow' in row && row.detailRow === true;
+}
+
+export function isLoadChildrenDetail(row: LoadDetailGridRow): row is LoadChildrenDetailRow {
+  return row.kind === 'children';
+}
+
+export function isLoadItemsDetail(row: LoadDetailGridRow): row is LoadItemsDetailRow {
+  return row.kind === 'items';
+}
+
+/** First-level Deliveries row: expand child loads or items on a pure direct load. */
+export function directLoadCanExpand(load: LoadRow): boolean {
+  if ((load.children?.length ?? 0) > 0) {
+    return true;
+  }
+  return load.item_count > 0;
+}
+
+export function childLoadCanExpand(child: LoadRow): boolean {
+  return child.item_count > 0;
+}
+
+export interface LoadChildItemDetailRow {
+  childDetailRow: true;
+  loadId: number;
+  itemCount: number;
+}
+
+export type LoadChildGridRow = LoadRow | LoadChildItemDetailRow;
+
+export function isLoadChildItemDetailRow(row: LoadChildGridRow): row is LoadChildItemDetailRow {
+  return 'childDetailRow' in row && row.childDetailRow === true;
 }
 
 export function childItemCountSum(load: LoadRow): number {
