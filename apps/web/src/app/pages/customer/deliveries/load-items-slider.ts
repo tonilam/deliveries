@@ -16,7 +16,13 @@ import { catchError, debounceTime, of, Subject, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
-import { displayUnitLabel, formatWeightForDisplay, ItemRow } from './item-format';
+import {
+  displayUnitLabel,
+  formatWeightForDisplay,
+  ItemDisplayUnit,
+  ItemRow,
+  weightInputToTonnes,
+} from './item-format';
 import { LoadRow, OwnerCompanyType } from './load.types';
 
 const SEARCH_MIN_CHARS = 2;
@@ -59,6 +65,11 @@ const emptyPicker = (): PickerState => ({
 interface MoveResponse {
   item: ItemRow;
   child_load: LoadRow;
+}
+
+interface GoodTypeOption {
+  code: string;
+  name: string;
 }
 
 @Component({
@@ -121,6 +132,20 @@ export class LoadItemsSlider {
     delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
     secondary_provider_company_id: this.fb.control<number | null>(null, [Validators.required]),
     pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
+  });
+
+  protected readonly createItemOpen = signal(false);
+  protected readonly savingItem = signal(false);
+  protected readonly createItemError = signal<string | null>(null);
+  protected readonly goodTypeOptions = signal<GoodTypeOption[]>([]);
+
+  protected readonly createItemForm = this.fb.nonNullable.group({
+    good_type_code: this.fb.nonNullable.control('', [Validators.required]),
+    weight: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.000_001)]),
+    display_unit: this.fb.nonNullable.control<ItemDisplayUnit>('tonnes', [Validators.required]),
+    order_number: this.fb.nonNullable.control(''),
+    connote: this.fb.nonNullable.control(''),
+    assign_to_load: this.fb.nonNullable.control(true),
   });
 
   constructor() {
@@ -365,6 +390,90 @@ export class LoadItemsSlider {
           this.assigning.set(false);
           const message = 'Unable to assign item.';
           this.error.set(message);
+          this.toastr.error(message);
+        },
+      });
+  }
+
+  protected openCreateItem(): void {
+    this.createItemError.set(null);
+    this.createItemForm.reset({
+      good_type_code: '',
+      weight: null,
+      display_unit: 'tonnes',
+      order_number: '',
+      connote: '',
+      assign_to_load: true,
+    });
+    this.createItemOpen.set(true);
+
+    this.http
+      .get<{ good_types: GoodTypeOption[] }>('/api/items/good-type-options')
+      .pipe(catchError(() => of({ good_types: [] as GoodTypeOption[] })))
+      .subscribe({
+        next: (res) => {
+          this.goodTypeOptions.set(res.good_types);
+        },
+      });
+  }
+
+  protected cancelCreateItem(): void {
+    if (this.savingItem()) {
+      return;
+    }
+    this.createItemOpen.set(false);
+    this.createItemError.set(null);
+  }
+
+  protected submitCreateItem(): void {
+    if (this.savingItem()) {
+      return;
+    }
+
+    this.createItemForm.markAllAsTouched();
+    if (this.createItemForm.invalid) {
+      return;
+    }
+
+    const raw = this.createItemForm.getRawValue();
+    const weight = raw.weight;
+    if (weight === null) {
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      good_type_code: raw.good_type_code,
+      weight_tonnes: weightInputToTonnes(weight, raw.display_unit),
+      display_unit: raw.display_unit,
+      order_number: raw.order_number.trim() === '' ? null : raw.order_number.trim(),
+      connote: raw.connote.trim() === '' ? null : raw.connote.trim(),
+    };
+    if (raw.assign_to_load) {
+      payload['load_id'] = this.load().id;
+    }
+
+    this.savingItem.set(true);
+    this.createItemError.set(null);
+
+    this.auth
+      .ensureCsrf()
+      .pipe(switchMap(() => this.http.post<{ item: ItemRow }>('/api/items', payload)))
+      .subscribe({
+        next: () => {
+          this.savingItem.set(false);
+          this.createItemOpen.set(false);
+          this.toastr.success('Item created.');
+          const assigned = raw.assign_to_load;
+          this.reloadLists();
+          if (assigned) {
+            this.tab.set('assigned');
+            this.changed.emit();
+          }
+        },
+        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+          this.savingItem.set(false);
+          const message = this.firstError(err) ?? 'Could not create item.';
+          this.createItemError.set(message);
           this.toastr.error(message);
         },
       });

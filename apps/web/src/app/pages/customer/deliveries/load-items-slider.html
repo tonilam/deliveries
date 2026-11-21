@@ -319,6 +319,11 @@
       }
     } @else {
       <section class="load-slider__section" role="tabpanel">
+        <div class="load-slider__section-actions">
+          <button type="button" class="btn btn--primary" (click)="openCreateItem()">
+            New item
+          </button>
+        </div>
         @if (unassigned().length === 0) {
           <p class="load-slider__empty">No unassigned items.</p>
         } @else {
@@ -345,3 +350,67 @@
     }
   </div>
 </aside>
+
+@if (createItemOpen()) {
+  <div class="item-create-modal-backdrop" (click)="cancelCreateItem()" role="presentation"></div>
+  <div
+    class="modal item-create-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="create-item-title"
+  >
+    <h2 id="create-item-title">New item</h2>
+    @if (createItemError(); as createErr) {
+      <p class="modal__error" role="alert">{{ createErr }}</p>
+    }
+    <form [formGroup]="createItemForm" (ngSubmit)="submitCreateItem()" class="form-stack">
+      <label>
+        <span>Goods type</span>
+        <select formControlName="good_type_code">
+          <option value="" disabled>Select goods type</option>
+          @for (opt of goodTypeOptions(); track opt.code) {
+            <option [value]="opt.code">{{ opt.name }} ({{ opt.code }})</option>
+          }
+        </select>
+      </label>
+      <div class="form-stack__row">
+        <label>
+          <span>Weight</span>
+          <input type="number" formControlName="weight" min="0" step="any" inputmode="decimal" />
+        </label>
+        <label>
+          <span>Unit</span>
+          <select formControlName="display_unit">
+            <option value="tonnes">Tonnes</option>
+            <option value="kg">kg</option>
+          </select>
+        </label>
+      </div>
+      <label>
+        <span>Order number</span>
+        <input type="text" formControlName="order_number" autocomplete="off" />
+      </label>
+      <label>
+        <span>Connote</span>
+        <input type="text" formControlName="connote" autocomplete="off" />
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" formControlName="assign_to_load" />
+        <span>Assign to this load</span>
+      </label>
+      <div class="modal__actions">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="savingItem()"
+          (click)="cancelCreateItem()"
+        >
+          Cancel
+        </button>
+        <button type="submit" class="btn btn--primary" [disabled]="savingItem()">
+          {{ savingItem() ? 'Creating…' : 'Create item' }}
+        </button>
+      </div>
+    </form>
+  </div>
+}

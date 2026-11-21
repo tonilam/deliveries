@@ -5,3 +5,4 @@
 - **X Dock edit** opens a four-field modal on Deliveries (and from the direct load child list) instead of the edit route; `/app/deliveries/:id/edit` redirects X Dock rows to Deliveries with the modal.
 - Updated [US-023](../stories/US-023-customer-delivery-items.md): items managed in the slider; `load_id` / `unassigned` list filters; optional `load_id` on create.
 - Customer APIs: `/api/loads`, assign/unassign `/api/loads/{load}/items`, `items.load_id` migration.
+- **Available items** tab: **New item** opens create modal with optional assign-to-load (default on).

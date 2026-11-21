@@ -14,7 +14,7 @@ As a customer user, I want to manage loads on the Deliveries page, so that I can
 - [ ] Party rules: owner **customer** → customer is owner company, provider from network; owner **provider** → provider is owner, customer from network; owner **broker** → both from network
 - [ ] Addresses must be owner company **collection** or **delivery** types as appropriate; direct collection ≠ delivery
 - [ ] **Pallet count** required integer ≥ 0 per load
-- [ ] **Manage Item** opens a **50vw** right slider (100vw compact): tabs **Assigned to This Load** | **Unassigned Item**; server-paginated item lists; **Add** / **Remove** assign; **New item** creates item already on that load; **Edit** / **Delete** items in slider
+- [ ] **Manage Item** opens a **50vw** right slider (100vw compact): tabs **On this load** | **Available items**; server-paginated item lists; **Add** / **Remove** assign; **Available items** has **New item** opening a create modal (goods type, weight, unit, optional refs) with **Assign to this load** checkbox (default checked); **Edit** / **Delete** items in slider
 - [ ] On a **direct** load, each assigned item has **Move to child**: move onto an **existing** Add Drop / X Dock child or **create** a new child (Add Drop: delivery + pallets, parent provider; X Dock: x-dock + final delivery + network provider + pallets); `POST /api/loads/{load}/items/{item}/move` in one transaction
 - [ ] Only **unassigned** items can be assigned; assign to another load **422**; delete load unassigns items (direct delete removes children and unassigns all)
 - [ ] Provider owner cannot create **X Dock** (no network providers) — API **422** and UI hidden/disabled
