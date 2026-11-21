@@ -20,15 +20,7 @@ trait AuthorizesCompanyRateCard
             return false;
         }
 
-        if ($rateCard === null) {
-            return false;
-        }
-
-        if ((int) $rateCard->company_id !== (int) $this->user()->company_id) {
-            abort(404);
-        }
-
-        return true;
+        return $rateCard !== null;
     }
 
     protected function routeRateCard(): ?RateCard

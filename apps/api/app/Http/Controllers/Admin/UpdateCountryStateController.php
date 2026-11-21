@@ -7,7 +7,6 @@ use App\Http\Requests\Admin\UpdateCountryStateRequest;
 use App\Models\Country;
 use App\Models\CountryState;
 use Illuminate\Http\JsonResponse;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class UpdateCountryStateController extends Controller
 {
@@ -16,8 +15,6 @@ class UpdateCountryStateController extends Controller
         Country $country,
         CountryState $state,
     ): JsonResponse {
-        $this->assertStateBelongsToCountry($country, $state);
-
         $state->update([
             'name' => $request->string('name')->toString(),
             'code' => $request->string('code')->toString(),
@@ -26,12 +23,5 @@ class UpdateCountryStateController extends Controller
         return response()->json([
             'state' => $state->fresh(),
         ]);
-    }
-
-    private function assertStateBelongsToCountry(Country $country, CountryState $state): void
-    {
-        if ($state->country_id !== $country->id) {
-            throw new NotFoundHttpException;
-        }
     }
 }

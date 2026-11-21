@@ -16,8 +16,6 @@ class DeleteNetworkCompanyController extends Controller
 
     public function __invoke(DeleteNetworkCompanyRequest $request, Company $company): JsonResponse
     {
-        $request->assertNetworkCompanyAccessible($company);
-
         $reason = $this->companyTypes->companyCanDelete($company);
         if ($reason !== null) {
             return response()->json([

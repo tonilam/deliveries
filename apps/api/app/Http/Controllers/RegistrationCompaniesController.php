@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\RegistrationCompaniesRequest;
 use App\Services\CompanyDomainService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class RegistrationCompaniesController extends Controller
 {
@@ -12,14 +12,10 @@ class RegistrationCompaniesController extends Controller
         private readonly CompanyDomainService $domains,
     ) {}
 
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(RegistrationCompaniesRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'email' => ['required', 'string', 'email', 'max:255'],
-        ]);
-
         return response()->json([
-            'companies' => $this->domains->companyChoicesForEmail($validated['email']),
+            'companies' => $this->domains->companyChoicesForEmail($request->string('email')->toString()),
         ]);
     }
 }

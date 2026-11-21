@@ -16,8 +16,6 @@ class CreateVehicleBodyTypeOptionController extends Controller
         VehicleCategory $vehicleCategory,
         VehicleBodyType $bodyType,
     ): JsonResponse {
-        ShowVehicleBodyTypeController::assertBodyTypeBelongsToCategory($vehicleCategory, $bodyType);
-
         /** @var VehicleBodyTypeOption $option */
         $option = $bodyType->options()->create([
             'key' => strtolower($request->string('key')->toString()),

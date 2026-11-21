@@ -11,8 +11,6 @@ class DeleteVehicleBodyTypeController extends Controller
 {
     public function __invoke(VehicleCategory $vehicleCategory, VehicleBodyType $bodyType): Response
     {
-        ShowVehicleBodyTypeController::assertBodyTypeBelongsToCategory($vehicleCategory, $bodyType);
-
         $bodyType->delete();
 
         return response()->noContent();

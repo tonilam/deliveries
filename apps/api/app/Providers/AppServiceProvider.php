@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Routing\RouteBindingRegistrar;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use SocialiteProviders\Apple\Provider as AppleProvider;
@@ -22,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RouteBindingRegistrar::register();
+
         Event::listen(function (SocialiteWasCalled $event): void {
             $event->extendSocialite('apple', AppleProvider::class);
         });

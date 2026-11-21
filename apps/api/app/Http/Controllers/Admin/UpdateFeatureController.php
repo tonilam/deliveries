@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\FeatureKey;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\UpdateFeatureRequest;
 use App\Services\FeatureService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -16,18 +15,10 @@ class UpdateFeatureController extends Controller
         private readonly FeatureService $features,
     ) {}
 
-    public function __invoke(Request $request, string $key): JsonResponse
+    public function __invoke(UpdateFeatureRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'enabled' => ['required', 'boolean'],
-        ]);
-
-        if (FeatureKey::tryFrom($key) === null) {
-            throw new NotFoundHttpException('Unknown feature.');
-        }
-
         try {
-            $feature = $this->features->setEnabled($key, (bool) $validated['enabled']);
+            $feature = $this->features->setEnabled($request->featureKey(), $request->boolean('enabled'));
         } catch (InvalidArgumentException) {
             throw new NotFoundHttpException('Unknown feature.');
         }

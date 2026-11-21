@@ -22,9 +22,6 @@ class UpdateVehicleBodyTypeOptionController extends Controller
         VehicleBodyType $bodyType,
         VehicleBodyTypeOption $option,
     ): JsonResponse {
-        ShowVehicleBodyTypeController::assertBodyTypeBelongsToCategory($vehicleCategory, $bodyType);
-        $this->assertOptionBelongsToBodyType($bodyType, $option);
-
         $oldKey = $option->key;
         $newKey = strtolower($request->string('key')->toString());
 
@@ -56,12 +53,5 @@ class UpdateVehicleBodyTypeOptionController extends Controller
         return response()->json([
             'option' => $option->fresh()->toAdminPayload(),
         ]);
-    }
-
-    public static function assertOptionBelongsToBodyType(VehicleBodyType $bodyType, VehicleBodyTypeOption $option): void
-    {
-        if ($option->vehicle_body_type_id !== $bodyType->id) {
-            abort(404);
-        }
     }
 }

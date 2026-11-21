@@ -12,8 +12,6 @@ class VehicleBodyTypeOptionListController extends Controller
 {
     public function __invoke(VehicleCategory $vehicleCategory, VehicleBodyType $bodyType): JsonResponse
     {
-        ShowVehicleBodyTypeController::assertBodyTypeBelongsToCategory($vehicleCategory, $bodyType);
-
         $options = $bodyType->options()->get();
 
         return response()->json([

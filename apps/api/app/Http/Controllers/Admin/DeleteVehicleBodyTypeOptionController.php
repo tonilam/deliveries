@@ -15,9 +15,6 @@ class DeleteVehicleBodyTypeOptionController extends Controller
         VehicleBodyType $bodyType,
         VehicleBodyTypeOption $option,
     ): Response {
-        ShowVehicleBodyTypeController::assertBodyTypeBelongsToCategory($vehicleCategory, $bodyType);
-        UpdateVehicleBodyTypeOptionController::assertOptionBelongsToBodyType($bodyType, $option);
-
         $key = $option->key;
         $option->delete();
 

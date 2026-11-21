@@ -20,8 +20,6 @@ class UpdateVehicleBodyTypeController extends Controller
         VehicleCategory $vehicleCategory,
         VehicleBodyType $bodyType,
     ): JsonResponse {
-        ShowVehicleBodyTypeController::assertBodyTypeBelongsToCategory($vehicleCategory, $bodyType);
-
         $bodyType->load('options');
 
         $existing = $bodyType->option_values ?? [];

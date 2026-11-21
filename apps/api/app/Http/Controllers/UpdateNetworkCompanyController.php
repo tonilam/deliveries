@@ -18,8 +18,6 @@ class UpdateNetworkCompanyController extends Controller
 
     public function __invoke(UpdateNetworkCompanyRequest $request, Company $company): JsonResponse
     {
-        $request->assertNetworkCompanyAccessible($company);
-
         $domains = $this->domains->normalizeDomains($request->input('allowed_domains', []));
         $regNumber = $this->domains->normalizeRegNumber($request->string('reg_number')->toString());
         $businessName = $this->domains->normalizeBusinessName($request->string('business_name')->toString());

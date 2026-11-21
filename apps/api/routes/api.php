@@ -138,7 +138,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::delete('/network/companies/{company}', DeleteNetworkCompanyController::class);
 });
 
-Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->prefix('admin')->scopeBindings()->group(function () {
     Route::get('/ping', fn () => response()->json(['ok' => true]));
     Route::get('/users', UserListController::class);
     Route::post('/users', CreateUserController::class);

@@ -14,15 +14,7 @@ trait AuthorizesCompanyAddress
             return false;
         }
 
-        if ($address === null) {
-            return false;
-        }
-
-        if ((int) $address->company_id !== (int) $user->company_id) {
-            abort(404);
-        }
-
-        return true;
+        return $address !== null;
     }
 
     protected function routeAddress(): ?Address
