@@ -6,6 +6,7 @@ use App\Enums\CompanyType;
 use App\Enums\UserRole;
 use App\Models\Address;
 use App\Models\Company;
+use App\Models\Item;
 use App\Models\RateCard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,23 @@ final class RouteBindingRegistrar
             }
 
             return Address::query()
+                ->where('company_id', $user->company_id)
+                ->whereKey($value)
+                ->firstOrFail();
+        });
+
+        Route::bind('item', static function (string $value): Item {
+            $request = request();
+            if (! self::isCustomerItemRoute($request)) {
+                return Item::query()->whereKey($value)->firstOrFail();
+            }
+
+            $user = $request->user();
+            if ($user?->role !== UserRole::Customer || $user->company_id === null) {
+                return Item::query()->whereKey($value)->firstOrFail();
+            }
+
+            return Item::query()
                 ->where('company_id', $user->company_id)
                 ->whereKey($value)
                 ->firstOrFail();
@@ -68,6 +86,11 @@ final class RouteBindingRegistrar
     private static function isCustomerAddressRoute(Request $request): bool
     {
         return $request->is('api/addresses/*');
+    }
+
+    private static function isCustomerItemRoute(Request $request): bool
+    {
+        return $request->is('api/items/*');
     }
 
     private static function isCustomerNetworkCompanyRoute(Request $request): bool

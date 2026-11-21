@@ -51,4 +51,15 @@ class GoodType extends Model
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
+
+    /**
+     * @return array{code: string, name: string}
+     */
+    public function toOptionPayload(): array
+    {
+        return [
+            'code' => $this->code,
+            'name' => $this->name,
+        ];
+    }
 }
