@@ -9,6 +9,7 @@ As the product, I need a Company record with registration and billing details, s
 - [x] Company has finance fields: `gst_rate` (fraction, default `0.1`), `tracking_option` (optional free text for Xero)
 - [x] Company has an **allowed domains** list (email domains used to decide which customers may join)
 - [x] Company can have many addresses ([US-010](US-010-customer-address-management.md))
+- [x] Company can have many rate cards ([US-018](US-018-customer-rate-cards.md))
 - [x] Company can have many users ([US-012](US-012-user-belongs-to-company.md))
 
 ## Notes

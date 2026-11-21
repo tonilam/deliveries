@@ -1,0 +1,261 @@
+<section class="portal portal--wide">
+  <p class="back">
+    <a routerLink="/app/rate-cards">← Rate cards</a>
+  </p>
+  <h1>{{ title() }}</h1>
+  <p class="lede">Configure profile details, company restrictions, and zone lane rates.</p>
+
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p>Loading…</p>
+  } @else if (!loadFailed()) {
+    <form [formGroup]="form" (ngSubmit)="submit()" class="rate-card-form">
+      <div class="rate-card-form__fields">
+        <label>
+          Profile name
+          <input type="text" formControlName="profile_name" autocomplete="off" />
+        </label>
+
+        <fieldset class="type-fieldset">
+          <legend>User type</legend>
+          <label class="radio">
+            <input type="radio" formControlName="user_type" value="customer" />
+            Customer
+          </label>
+          <label class="radio">
+            <input type="radio" formControlName="user_type" value="provider" />
+            Provider
+          </label>
+        </fieldset>
+
+        <div class="company-picker">
+          <span class="company-picker__label">{{ restrictionLabel() }}</span>
+          <p class="company-picker__hint">Optional. Leave empty to apply to all companies.</p>
+
+          @if (selectedCompanies().length > 0) {
+            <ul class="company-chips" aria-label="Selected companies">
+              @for (company of selectedCompanies(); track company.id) {
+                <li>
+                  <span>{{ company.business_name }}</span>
+                  <button type="button" (click)="removeCompany(company.id)" aria-label="Remove">
+                    ×
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          <input
+            type="text"
+            [value]="companyQuery()"
+            (input)="onCompanyQueryInput($event)"
+            (focus)="onCompanyFocus()"
+            (blur)="onCompanyBlur()"
+            [attr.aria-expanded]="companyMenuOpen()"
+            aria-autocomplete="list"
+            autocomplete="off"
+            placeholder="Type at least 2 characters to search"
+          />
+
+          @if (companyMenuOpen() && companySuggestions().length > 0) {
+            <ul class="company-picker__list" role="listbox">
+              @for (company of companySuggestions(); track company.id) {
+                <li role="option">
+                  <button
+                    type="button"
+                    class="company-picker__option"
+                    (mousedown)="selectCompany(company)"
+                  >
+                    {{ company.business_name }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (companiesLoading()) {
+            <p class="company-picker__status">Searching…</p>
+          }
+        </div>
+
+        <label>
+          Minimum price
+          <input
+            type="text"
+            formControlName="minimum_price"
+            inputmode="decimal"
+            autocomplete="off"
+          />
+        </label>
+
+        <label class="checkbox">
+          <input type="checkbox" formControlName="is_active" />
+          Active
+        </label>
+      </div>
+
+      <section class="zone-rates">
+        <div class="zone-rates__header">
+          <h2>Zone rates</h2>
+          <button type="button" class="btn btn--ghost" (click)="addZoneRow()">Add row</button>
+        </div>
+
+        @if (zoneRowError()) {
+          <p class="form-error" role="alert">{{ zoneRowError() }}</p>
+        }
+
+        <table class="zone-rates__table">
+          <thead>
+            <tr>
+              <th>Collection zone</th>
+              <th>Delivery zone</th>
+              <th>Base rate</th>
+              <th>Fuel surcharge %</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of zoneRows(); track $index; let i = $index) {
+              <tr>
+                <td>
+                  <div class="zone-picker">
+                    <input
+                      type="text"
+                      class="zone-picker__input"
+                      [value]="row.collection_zone_query"
+                      (input)="onZoneQueryInput(i, 'collection', $event)"
+                      (focus)="onZoneFocus(i, 'collection')"
+                      (blur)="onZoneBlur(i, 'collection')"
+                      (keydown)="onZoneKeydown(i, 'collection', $event)"
+                      [disabled]="!zoneCatalogReady()"
+                      [attr.aria-expanded]="isZonePickerOpen(i, 'collection')"
+                      [attr.aria-activedescendant]="activeZoneOptionId(i, 'collection')"
+                      aria-autocomplete="list"
+                      role="combobox"
+                      autocomplete="off"
+                      placeholder="Type at least 2 characters"
+                    />
+                    @if (isZonePickerOpen(i, 'collection') && zonePickerSuggestions().length > 0) {
+                      <ul class="zone-picker__list" role="listbox">
+                        @for (zone of zonePickerSuggestions(); track zone.id; let zi = $index) {
+                          <li
+                            role="option"
+                            [attr.id]="zoneOptionId(i, 'collection', zone.id)"
+                            [attr.aria-selected]="activeZoneSuggestionIndex() === zi"
+                          >
+                            <button
+                              type="button"
+                              class="zone-picker__option"
+                              [class.zone-picker__option--active]="
+                                activeZoneSuggestionIndex() === zi
+                              "
+                              (mousedown)="selectZone(i, 'collection', zone)"
+                            >
+                              {{ zone.name }}
+                              <span class="zone-picker__code">{{ zone.code }}</span>
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                    @if (zoneSearchHint(i, 'collection'); as hint) {
+                      <p class="zone-picker__status">{{ hint }}</p>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <div class="zone-picker">
+                    <input
+                      type="text"
+                      class="zone-picker__input"
+                      [value]="row.delivery_zone_query"
+                      (input)="onZoneQueryInput(i, 'delivery', $event)"
+                      (focus)="onZoneFocus(i, 'delivery')"
+                      (blur)="onZoneBlur(i, 'delivery')"
+                      (keydown)="onZoneKeydown(i, 'delivery', $event)"
+                      [disabled]="!zoneCatalogReady()"
+                      [attr.aria-expanded]="isZonePickerOpen(i, 'delivery')"
+                      [attr.aria-activedescendant]="activeZoneOptionId(i, 'delivery')"
+                      aria-autocomplete="list"
+                      role="combobox"
+                      autocomplete="off"
+                      placeholder="Type at least 2 characters"
+                    />
+                    @if (isZonePickerOpen(i, 'delivery') && zonePickerSuggestions().length > 0) {
+                      <ul class="zone-picker__list" role="listbox">
+                        @for (zone of zonePickerSuggestions(); track zone.id; let zi = $index) {
+                          <li
+                            role="option"
+                            [attr.id]="zoneOptionId(i, 'delivery', zone.id)"
+                            [attr.aria-selected]="activeZoneSuggestionIndex() === zi"
+                          >
+                            <button
+                              type="button"
+                              class="zone-picker__option"
+                              [class.zone-picker__option--active]="
+                                activeZoneSuggestionIndex() === zi
+                              "
+                              (mousedown)="selectZone(i, 'delivery', zone)"
+                            >
+                              {{ zone.name }}
+                              <span class="zone-picker__code">{{ zone.code }}</span>
+                            </button>
+                          </li>
+                        }
+                      </ul>
+                    }
+                    @if (zoneSearchHint(i, 'delivery'); as hint) {
+                      <p class="zone-picker__status">{{ hint }}</p>
+                    }
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    [value]="row.base_rate"
+                    (input)="onZoneFieldChange(i, 'base_rate', $event)"
+                    inputmode="decimal"
+                  />
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    [value]="row.fuel_surcharge_percent"
+                    (input)="onZoneFieldChange(i, 'fuel_surcharge_percent', $event)"
+                    inputmode="decimal"
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    class="btn btn--ghost"
+                    [disabled]="zoneRows().length <= 1"
+                    (click)="removeZoneRow(i)"
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <div class="actions">
+        <a routerLink="/app/rate-cards" class="btn btn--ghost">Cancel</a>
+        <button type="submit" class="btn btn--primary" [disabled]="submitting()">
+          @if (submitting()) {
+            Saving…
+          } @else if (isEdit()) {
+            Save changes
+          } @else {
+            Save rate card
+          }
+        </button>
+      </div>
+    </form>
+  }
+</section>

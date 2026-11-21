@@ -56,11 +56,16 @@ use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\UpdatePasswordController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CreateAddressController;
+use App\Http\Controllers\CreateRateCardController;
 use App\Http\Controllers\DeleteAddressController;
 use App\Http\Controllers\FeatureFlagsController;
+use App\Http\Controllers\RateCardCompanyOptionsController;
+use App\Http\Controllers\RateCardListController;
 use App\Http\Controllers\RegistrationCompaniesController;
 use App\Http\Controllers\ShowAddressController;
+use App\Http\Controllers\ShowRateCardController;
 use App\Http\Controllers\UpdateAddressController;
+use App\Http\Controllers\UpdateRateCardController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -107,6 +112,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/addresses/{address}', ShowAddressController::class);
     Route::put('/addresses/{address}', UpdateAddressController::class);
     Route::delete('/addresses/{address}', DeleteAddressController::class);
+
+    Route::get('/rate-cards/company-options', RateCardCompanyOptionsController::class);
+    Route::get('/rate-cards', RateCardListController::class);
+    Route::post('/rate-cards', CreateRateCardController::class);
+    Route::get('/rate-cards/{rateCard}', ShowRateCardController::class);
+    Route::put('/rate-cards/{rateCard}', UpdateRateCardController::class);
 });
 
 Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->prefix('admin')->group(function () {

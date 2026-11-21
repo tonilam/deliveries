@@ -1,0 +1,66 @@
+.rate-cards-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.rate-cards-header .lede {
+  margin-bottom: 1.25rem;
+}
+
+.rate-cards-error {
+  margin: 0 0 0.75rem;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.rate-cards-grid {
+  display: block;
+  width: 100%;
+}
+
+:host ::ng-deep .rate-cards-grid__actions-cell {
+  overflow: visible;
+}
+
+:host ::ng-deep .rate-cards-grid__linked-cell {
+  white-space: pre-line;
+  line-height: 1.4;
+  align-content: center;
+}
+
+:host ::ng-deep .data-list__field dd {
+  white-space: pre-line;
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+.pagination__summary {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.pagination__size {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination__nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pagination__page {
+  color: #475569;
+}

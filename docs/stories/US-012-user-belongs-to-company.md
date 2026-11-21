@@ -8,6 +8,7 @@ As a customer user, I belong to one company, so that my work (addresses, loads) 
 - [x] A user belongs to at most one company; a company has many users
 - [x] **Admin users do not belong to a company** (`company_id` is always null)
 - [x] Customer address APIs use the signed-in user’s company ([US-010](US-010-customer-address-management.md))
+- [x] Customer rate card APIs use the signed-in user’s company ([US-018](US-018-customer-rate-cards.md))
 
 ## Notes
 - Assigning a customer to a company on create/invite (and domain rules) is covered by [US-013](US-013-admin-company-management.md) and [US-007](US-007-admin-create-and-invite-users.md).

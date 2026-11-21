@@ -1,0 +1,92 @@
+<section class="portal portal--wide">
+  <div class="rate-cards-header">
+    <div>
+      <h1>Rate cards</h1>
+      <p class="lede">Manage lane pricing profiles for your company.</p>
+    </div>
+    <a routerLink="/app/rate-cards/create" class="btn btn--primary">Create rate card</a>
+  </div>
+
+  @if (error()) {
+    <p class="rate-cards-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (compact()) {
+    <app-data-list
+      [loading]="loading()"
+      [rows]="rateCards()"
+      [titleFor]="listTitle"
+      [columns]="listColumns"
+      [actionsFor]="actionsForList"
+      [searchValue]="searchQuery()"
+      searchPlaceholder="Search rate cards…"
+      [sortOptions]="sortOptions"
+      [sortField]="sortField"
+      [sortDirection]="sortDirection"
+      (searchChange)="onListSearch($event)"
+      (sortFieldChange)="onListSortField($event)"
+      (sortDirectionChange)="onListSortDirection($event)"
+    />
+  } @else {
+    <ag-grid-angular
+      class="rate-cards-grid"
+      [theme]="theme"
+      [rowData]="rateCards()"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [loading]="loading()"
+      [suppressMultiSort]="true"
+      domLayout="autoHeight"
+      (gridReady)="onGridReady($event)"
+      (filterChanged)="onFilterChanged($event)"
+      (sortChanged)="onSortChanged($event)"
+    />
+  }
+
+  @if (meta(); as pagination) {
+    <div class="pagination" aria-label="Rate cards pagination">
+      <p class="pagination__summary">
+        @if (pagination.total === 0) {
+          No rate cards
+        } @else {
+          Showing {{ pagination.from }}–{{ pagination.to }} of {{ pagination.total }}
+        }
+      </p>
+
+      <label class="pagination__size">
+        <span>Rows per page</span>
+        <select
+          [ngModel]="pageSize()"
+          (ngModelChange)="onPageSizeChange($event)"
+          [disabled]="loading()"
+        >
+          @for (size of pageSizeOptions; track size) {
+            <option [ngValue]="size">{{ size }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="pagination__nav">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page <= 1"
+          (click)="goToPage(pagination.current_page - 1)"
+        >
+          Previous
+        </button>
+        <span class="pagination__page">
+          Page {{ pagination.current_page }} of {{ pagination.last_page }}
+        </span>
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loading() || pagination.current_page >= pagination.last_page"
+          (click)="goToPage(pagination.current_page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  }
+</section>

@@ -63,6 +63,14 @@ class Company extends Model
     }
 
     /**
+     * @return HasMany<RateCard, $this>
+     */
+    public function rateCards(): HasMany
+    {
+        return $this->hasMany(RateCard::class);
+    }
+
+    /**
      * @return HasMany<CompanyAllowedDomain, $this>
      */
     public function allowedDomainRows(): HasMany

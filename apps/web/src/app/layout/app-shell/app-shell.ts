@@ -51,6 +51,7 @@ export class AppShell {
           { label: 'Dashboard', path: '/app', exact: true },
           { label: 'Deliveries', path: '/app/deliveries' },
           { label: 'Addresses', path: '/app/addresses' },
+          { label: 'Rate cards', path: '/app/rate-cards' },
         ];
   });
 

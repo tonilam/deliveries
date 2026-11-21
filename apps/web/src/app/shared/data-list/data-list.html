@@ -46,7 +46,7 @@
           <dl class="data-list__fields">
             @for (column of columns(); track column.field) {
               <div class="data-list__field">
-                <dt>{{ column.label }}</dt>
+                <dt>{{ column.labelFor ? column.labelFor(row) : column.label }}</dt>
                 @if (column.booleanCheckbox) {
                   <dd>
                     <input

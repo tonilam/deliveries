@@ -71,6 +71,21 @@ export const routes: Routes = [
           import('./pages/customer/addresses/address-form').then((m) => m.CustomerAddressForm),
       },
       {
+        path: 'rate-cards',
+        loadComponent: () =>
+          import('./pages/customer/rate-cards/rate-cards').then((m) => m.CustomerRateCards),
+      },
+      {
+        path: 'rate-cards/create',
+        loadComponent: () =>
+          import('./pages/customer/rate-cards/rate-card-form').then((m) => m.CustomerRateCardForm),
+      },
+      {
+        path: 'rate-cards/:id/edit',
+        loadComponent: () =>
+          import('./pages/customer/rate-cards/rate-card-form').then((m) => m.CustomerRateCardForm),
+      },
+      {
         path: 'profile',
         loadComponent: () => import('./pages/profile/profile').then((m) => m.Profile),
       },
