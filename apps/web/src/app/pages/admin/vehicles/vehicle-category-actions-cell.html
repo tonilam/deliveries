@@ -1,12 +1,31 @@
-<div class="grid-actions">
-  @for (action of actions(); track action.id) {
+@if (actions().length === 1) {
+  <button type="button" class="grid-action-link" (click)="runAction(actions()[0], $event)">
+    {{ actions()[0].label }}
+  </button>
+} @else if (actions().length > 1) {
+  <div class="grid-actions">
     <button
       type="button"
-      class="btn btn--ghost"
-      [class.btn--danger]="action.danger"
-      (click)="runAction(action, $event)"
+      class="grid-actions__trigger"
+      [attr.aria-expanded]="menuOpen()"
+      aria-haspopup="menu"
+      (click)="toggleMenu($event)"
     >
-      {{ action.label }}
+      Actions
     </button>
-  }
-</div>
+    @if (menuOpen()) {
+      <div class="grid-actions__menu" role="menu">
+        @for (action of actions(); track action.id) {
+          <button
+            type="button"
+            class="grid-actions__item"
+            role="menuitem"
+            (click)="runAction(action, $event)"
+          >
+            {{ action.label }}
+          </button>
+        }
+      </div>
+    }
+  </div>
+}

@@ -161,11 +161,15 @@ export class AdminVehicleBodyTypes implements OnInit {
     {
       headerName: 'Actions',
       flex: 0,
-      minWidth: 220,
-      width: 220,
+      width: 100,
+      minWidth: 100,
+      maxWidth: 100,
       sortable: false,
       filter: false,
       floatingFilter: false,
+      resizable: false,
+      suppressSizeToFit: true,
+      cellClass: 'body-types-grid__actions-cell',
       cellRenderer: VehicleCategoryActionsCell,
       cellRendererParams: {
         actionsFor: (data: VehicleCategoryActionsCellRow) => this.gridActionsFor(data),

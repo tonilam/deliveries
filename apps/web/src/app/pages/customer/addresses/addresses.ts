@@ -274,11 +274,15 @@ export class CustomerAddresses implements OnInit {
     },
     {
       headerName: 'Actions',
-      flex: 0.8,
-      minWidth: 120,
+      flex: 0,
+      width: 100,
+      minWidth: 100,
+      maxWidth: 100,
       sortable: false,
       filter: false,
       floatingFilter: false,
+      resizable: false,
+      suppressSizeToFit: true,
       cellClass: 'addresses-grid__actions-cell',
       cellRenderer: AddressActionsCell,
       cellRendererParams: {

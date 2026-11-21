@@ -1,8 +1,4 @@
-@if (actions().length === 1) {
-  <button type="button" class="grid-action-link" (click)="runAction(actions()[0], $event)">
-    {{ actions()[0].label }}
-  </button>
-} @else if (actions().length > 1) {
+@if (actions().length > 0) {
   <div class="grid-actions">
     <button
       type="button"

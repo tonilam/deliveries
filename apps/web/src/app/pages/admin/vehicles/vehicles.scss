@@ -94,6 +94,15 @@
 
 :host ::ng-deep .body-types-grid__actions-cell {
   overflow: visible;
+  text-align: center;
+}
+
+:host ::ng-deep .ag-row {
+  z-index: 0;
+}
+
+:host ::ng-deep .ag-row:has(.grid-actions__menu) {
+  z-index: 2;
 }
 
 .visually-hidden {
