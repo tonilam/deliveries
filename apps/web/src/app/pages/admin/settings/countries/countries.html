@@ -50,44 +50,20 @@
         @if (country.states.length === 0) {
           <p class="countries-status">No states yet.</p>
         } @else {
-          <table class="states-table">
-            <thead>
-              <tr>
-                <th scope="col">Code</th>
-                <th scope="col">Name</th>
-                <th scope="col"><span class="visually-hidden">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (state of country.states; track state.id) {
-                <tr>
-                  <td>{{ state.code }}</td>
-                  <td>{{ state.name }}</td>
-                  <td class="states-table__actions">
-                    <a
-                      [routerLink]="[
-                        '/admin/settings/countries',
-                        country.id,
-                        'states',
-                        state.id,
-                        'edit',
-                      ]"
-                    >
-                      Edit
-                    </a>
-                    <button
-                      type="button"
-                      class="link-button"
-                      [disabled]="deleting()"
-                      (click)="requestDeleteState(country, state)"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+          <ag-grid-angular
+            class="states-grid"
+            [theme]="theme"
+            [rowData]="statesForGrid(country)"
+            [getRowId]="stateRowId"
+            [columnDefs]="stateColumnsFor(country.id)"
+            [defaultColDef]="stateDefaultsByCountry().get(country.id)"
+            [pagination]="true"
+            [paginationPageSize]="statePageSize"
+            [paginationPageSizeSelector]="statePageSizeSelector"
+            domLayout="autoHeight"
+            [rowHeight]="stateRowHeight"
+            [suppressCellFocus]="true"
+          />
         }
       </li>
     }
