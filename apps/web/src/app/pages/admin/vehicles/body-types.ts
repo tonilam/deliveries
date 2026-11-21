@@ -19,6 +19,7 @@ import {
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import { VehicleBodyType, VehicleCategory } from '../../../core/vehicle/vehicle.model';
 import { createCompactViewportSignal } from '../../../shared/compact-viewport';
 import { DataListComponent } from '../../../shared/data-list/data-list';
@@ -78,6 +79,7 @@ const serverSideTextFilterParams: ITextFilterParams = {
 export class AdminVehicleBodyTypes implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly load$ = new Subject<void>();
@@ -355,9 +357,12 @@ export class AdminVehicleBodyTypes implements OnInit {
           this.pendingDelete.set(null);
           this.deleting.set(false);
           this.loadRows();
+          this.toastr.success('Body type deleted.');
         },
         error: () => {
-          this.error.set('Unable to delete body type.');
+          const message = 'Unable to delete body type.';
+          this.error.set(message);
+          this.toastr.error(message);
           this.deleting.set(false);
         },
       });

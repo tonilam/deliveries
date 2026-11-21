@@ -25,6 +25,7 @@ import {
   themeQuartz,
 } from 'ag-grid-community';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import { Company, CompanyType } from '../../../core/company/company.model';
 import { createCompactViewportSignal } from '../../../shared/compact-viewport';
 import { DataListComponent } from '../../../shared/data-list/data-list';
@@ -90,6 +91,7 @@ const serverSideTextFilterParams: ITextFilterParams = {
 export class CustomerNetwork implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly load$ = new Subject<void>();
@@ -421,13 +423,16 @@ export class CustomerNetwork implements OnInit {
       .pipe(switchMap(() => this.http.delete(`/api/network/companies/${target.id}`)))
       .subscribe({
         next: () => {
+          this.toastr.success('Company removed from network.');
           this.deleting.set(false);
           this.deleteTarget.set(null);
           this.loadCompanies();
         },
         error: (err: { error?: { message?: string } }) => {
           this.deleting.set(false);
-          this.error.set(err.error?.message ?? 'Could not delete company.');
+          const message = err.error?.message ?? 'Could not delete company.';
+          this.error.set(message);
+          this.toastr.error(message);
           this.deleteTarget.set(null);
         },
       });

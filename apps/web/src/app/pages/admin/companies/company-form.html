@@ -15,10 +15,6 @@
     <p class="form-error" role="alert">{{ error() }}</p>
   }
 
-  @if (financeSuccess()) {
-    <p class="form-success" role="status">{{ financeSuccess() }}</p>
-  }
-
   @if (loading()) {
     <p>Loading…</p>
   } @else {

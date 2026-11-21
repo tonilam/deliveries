@@ -38,6 +38,7 @@ import {
 } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import { Company, CompanyType } from '../../../core/company/company.model';
 import { createCompactViewportSignal } from '../../../shared/compact-viewport';
 import { DataListComponent } from '../../../shared/data-list/data-list';
@@ -105,6 +106,7 @@ export class AdminCompanyNetwork implements OnInit {
 
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly load$ = new Subject<void>();
   private readonly candidateSearch$ = new Subject<string>();
@@ -440,14 +442,16 @@ export class AdminCompanyNetwork implements OnInit {
           this.linking.set(false);
           this.addModalOpen.set(false);
           this.loadCompanies();
+          this.toastr.success('Company linked to network.');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.linking.set(false);
-          this.linkError.set(
+          const message =
             err.error?.errors?.['company_id']?.[0] ??
-              err.error?.message ??
-              'Could not link company.',
-          );
+            err.error?.message ??
+            'Could not link company.';
+          this.linkError.set(message);
+          this.toastr.error(message);
         },
       });
   }

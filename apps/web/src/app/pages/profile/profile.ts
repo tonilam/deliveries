@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastrService } from '../../core/feedback/toastr.service';
 
 @Component({
   selector: 'app-profile',
@@ -13,12 +14,12 @@ import { AuthService } from '../../core/auth/auth.service';
 export class Profile {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+  private readonly toastr = inject(ToastrService);
 
   protected readonly user = this.auth.user;
   protected readonly canChangePassword = computed(() => this.user()?.has_password === true);
 
   protected readonly error = signal<string | null>(null);
-  protected readonly success = signal<string | null>(null);
   protected readonly submitting = signal(false);
 
   protected readonly form = this.fb.nonNullable.group({
@@ -39,20 +40,23 @@ export class Profile {
 
     this.submitting.set(true);
     this.error.set(null);
-    this.success.set(null);
 
     this.auth.updatePassword(this.form.getRawValue()).subscribe({
       next: () => {
         this.submitting.set(false);
         this.form.reset();
-        this.success.set('Password updated.');
+        this.toastr.success('Password updated.');
       },
       error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);
         const errors = err.error?.errors;
-        const first =
-          errors?.['current_password']?.[0] ?? errors?.['password']?.[0] ?? err.error?.message;
-        this.error.set(first ?? 'Could not update password');
+        const message =
+          errors?.['current_password']?.[0] ??
+          errors?.['password']?.[0] ??
+          err.error?.message ??
+          'Could not update password';
+        this.error.set(message);
+        this.toastr.error(message);
       },
     });
   }

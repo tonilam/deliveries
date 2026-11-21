@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, switchMap, of, catchError } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastrService } from '../../core/feedback/toastr.service';
 import { SsoProvider } from '../../core/auth/user.model';
 
 interface CompanyChoice {
@@ -21,6 +22,7 @@ interface CompanyChoice {
 })
 export class Register implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -107,6 +109,7 @@ export class Register implements OnInit {
       .subscribe({
         next: (user) => {
           this.submitting.set(false);
+          this.toastr.success('Account created.');
           void this.router.navigateByUrl(this.auth.homePathFor(user));
         },
         error: (err: {
@@ -121,13 +124,15 @@ export class Register implements OnInit {
             this.applyCompanyChoices(err.error.companies);
           }
           const errors = err.error?.errors;
-          const first =
+          const message =
             errors?.['company_id']?.[0] ??
             errors?.['email']?.[0] ??
             errors?.['password']?.[0] ??
             errors?.['name']?.[0] ??
-            err.error?.message;
-          this.error.set(first ?? 'Registration failed');
+            err.error?.message ??
+            'Registration failed';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }

@@ -29,6 +29,7 @@ import {
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import {
   AddressActionItem,
   AddressActionsCell,
@@ -144,6 +145,7 @@ function postcodeAsNumber(postcode: string | undefined | null): number | null {
 export class CustomerAddresses implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
   private gridApi: GridApi<AddressRow> | null = null;
@@ -473,9 +475,12 @@ export class CustomerAddresses implements OnInit {
             this.page.set(this.page() - 1);
           }
           this.loadAddresses();
+          this.toastr.success('Address deleted.');
         },
         error: () => {
-          this.error.set('Unable to delete address. Please try again.');
+          const message = 'Unable to delete address. Please try again.';
+          this.error.set(message);
+          this.toastr.error(message);
           this.deleting.set(false);
         },
       });

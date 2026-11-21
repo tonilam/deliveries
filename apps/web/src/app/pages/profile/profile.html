@@ -30,10 +30,6 @@
         @if (error()) {
           <p class="error" role="alert">{{ error() }}</p>
         }
-        @if (success()) {
-          <p class="success" role="status">{{ success() }}</p>
-        }
-
         <form [formGroup]="form" (ngSubmit)="submitPassword()">
           <label>
             Current password

@@ -20,6 +20,7 @@ import {
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../../core/auth/auth.service';
+import { ToastrService } from '../../../../core/feedback/toastr.service';
 import { Country, CountryState } from '../../../../core/country/country.model';
 import {
   VehicleCategoryActionItem,
@@ -46,6 +47,7 @@ type PendingDelete =
 export class AdminCountries implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
 
   protected readonly loading = signal(false);
@@ -203,13 +205,16 @@ export class AdminCountries implements OnInit {
           this.pending.set(null);
           this.deleting.set(false);
           this.loadCountries();
+          const label = pending.kind === 'country' ? 'Country' : 'State';
+          this.toastr.success(`${label} deleted.`);
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.error.set(
+          const message =
             err.error?.errors?.['country']?.[0] ??
-              err.error?.message ??
-              'Unable to delete. Please try again.',
-          );
+            err.error?.message ??
+            'Unable to delete. Please try again.';
+          this.error.set(message);
+          this.toastr.error(message);
           this.deleting.set(false);
         },
       });

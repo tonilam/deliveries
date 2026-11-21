@@ -21,6 +21,7 @@ import {
 import { catchError, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import { VehicleBodyType, VehicleCategory } from '../../../core/vehicle/vehicle.model';
 import {
   VehicleCategoryActionItem,
@@ -48,6 +49,7 @@ type PendingDelete =
 export class AdminVehicles implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
 
@@ -278,15 +280,17 @@ export class AdminVehicles implements OnInit {
           this.categoryEditOpen.set(false);
           this.editingCategoryId.set(null);
           this.loadCatalogue();
+          this.toastr.success('Vehicle category updated.');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           const messages = err.error?.errors;
-          this.categoryEditError.set(
+          const message =
             messages?.['code']?.[0] ??
-              messages?.['name']?.[0] ??
-              err.error?.message ??
-              'Unable to save category.',
-          );
+            messages?.['name']?.[0] ??
+            err.error?.message ??
+            'Unable to save category.';
+          this.categoryEditError.set(message);
+          this.toastr.error(message);
           this.savingCategory.set(false);
         },
       });
@@ -330,11 +334,14 @@ export class AdminVehicles implements OnInit {
           this.pendingDelete.set(null);
           this.deleting.set(false);
           this.loadCatalogue();
+          const label = pending.kind === 'category' ? 'Vehicle category' : 'Body type';
+          this.toastr.success(`${label} deleted.`);
         },
         error: (err: { error?: { errors?: Record<string, string[]> } }) => {
-          this.error.set(
-            err.error?.errors?.['vehicle_category']?.[0] ?? 'Unable to delete. Please try again.',
-          );
+          const message =
+            err.error?.errors?.['vehicle_category']?.[0] ?? 'Unable to delete. Please try again.';
+          this.error.set(message);
+          this.toastr.error(message);
           this.deleting.set(false);
         },
       });

@@ -12,6 +12,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import {
   RadioCardGroupComponent,
   RadioCardOption,
@@ -47,6 +48,7 @@ const ZONE_SUGGESTION_LIMIT = 200;
 export class CustomerAddressForm implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -292,11 +294,15 @@ export class CustomerAddressForm implements OnInit {
       .subscribe({
         next: () => {
           this.submitting.set(false);
+          const created = addressId === null;
+          this.toastr.success(created ? 'Address created.' : 'Address updated.');
           void this.router.navigateByUrl('/app/addresses');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.submitting.set(false);
-          this.error.set(this.firstError(err) ?? 'Could not save address');
+          const message = this.firstError(err) ?? 'Could not save address';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }

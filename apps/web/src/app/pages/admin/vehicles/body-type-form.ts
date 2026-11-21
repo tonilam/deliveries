@@ -12,6 +12,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import {
   VEHICLE_CAPACITY_UNITS,
   VehicleBodyType,
@@ -30,6 +31,7 @@ import {
 export class AdminVehicleBodyTypeForm implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
 
@@ -173,9 +175,14 @@ export class AdminVehicleBodyTypeForm implements OnInit {
         next: () => {
           this.optionFormOpen.set(false);
           this.reloadBodyType();
+          this.toastr.success(
+            editingId ? 'Option definition updated.' : 'Option definition created.',
+          );
         },
         error: (err: { error?: { errors?: Record<string, string[]> } }) => {
-          this.error.set(err.error?.errors?.['key']?.[0] ?? 'Unable to save option definition.');
+          const message = err.error?.errors?.['key']?.[0] ?? 'Unable to save option definition.';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }
@@ -197,8 +204,15 @@ export class AdminVehicleBodyTypeForm implements OnInit {
         ),
       )
       .subscribe({
-        next: () => this.reloadBodyType(),
-        error: () => this.error.set('Unable to delete option.'),
+        next: () => {
+          this.reloadBodyType();
+          this.toastr.success('Option definition deleted.');
+        },
+        error: () => {
+          const message = 'Unable to delete option.';
+          this.error.set(message);
+          this.toastr.error(message);
+        },
       });
   }
 
@@ -247,11 +261,14 @@ export class AdminVehicleBodyTypeForm implements OnInit {
               res.vehicle_body_type.option_values ?? {},
             );
           }
+          this.toastr.success(bodyTypeId ? 'Body type updated.' : 'Body type created.');
         },
         error: (err: { error?: { errors?: Record<string, string[]> } }) => {
           const first =
             err.error?.errors?.['option_values.mezzanine']?.[0] ?? err.error?.errors?.['code']?.[0];
-          this.error.set(first ?? 'Unable to save body type.');
+          const message = first ?? 'Unable to save body type.';
+          this.error.set(message);
+          this.toastr.error(message);
           this.submitting.set(false);
         },
       });

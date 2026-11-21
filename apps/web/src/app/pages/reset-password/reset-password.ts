@@ -5,6 +5,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastrService } from '../../core/feedback/toastr.service';
 
 @Component({
   selector: 'app-reset-password',
@@ -19,6 +20,7 @@ export class ResetPassword {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly toastr = inject(ToastrService);
 
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
@@ -60,16 +62,19 @@ export class ResetPassword {
         next: () => {
           this.submitting.set(false);
           this.success.set(true);
+          this.toastr.success('Password reset. You can sign in with your new password.');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.submitting.set(false);
           const errors = err.error?.errors;
-          const first =
+          const message =
             errors?.['email']?.[0] ??
             errors?.['password']?.[0] ??
             errors?.['token']?.[0] ??
-            err.error?.message;
-          this.error.set(first ?? 'Could not reset password');
+            err.error?.message ??
+            'Could not reset password';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }

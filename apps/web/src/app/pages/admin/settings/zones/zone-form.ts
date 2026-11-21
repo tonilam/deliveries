@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../../core/auth/auth.service';
+import { ToastrService } from '../../../../core/feedback/toastr.service';
 import { Country } from '../../../../core/country/country.model';
 import { Zone, ZonePayload } from '../../../../core/zone/zone.model';
 
@@ -20,6 +21,7 @@ export class AdminZoneForm implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly toastr = inject(ToastrService);
 
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
@@ -75,11 +77,14 @@ export class AdminZoneForm implements OnInit {
       .subscribe({
         next: () => {
           this.submitting.set(false);
+          this.toastr.success('Zone created.');
           void this.router.navigateByUrl('/admin/settings/zones');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.submitting.set(false);
-          this.error.set(this.firstError(err) ?? 'Could not save zone');
+          const message = this.firstError(err) ?? 'Could not save zone';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }

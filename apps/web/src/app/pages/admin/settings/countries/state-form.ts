@@ -12,6 +12,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../../core/auth/auth.service';
+import { ToastrService } from '../../../../core/feedback/toastr.service';
 import { Country, CountryState, CountryStatePayload } from '../../../../core/country/country.model';
 
 @Component({
@@ -24,6 +25,7 @@ import { Country, CountryState, CountryStatePayload } from '../../../../core/cou
 export class AdminStateForm implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -123,11 +125,14 @@ export class AdminStateForm implements OnInit {
       .subscribe({
         next: () => {
           this.submitting.set(false);
+          this.toastr.success(this.stateId() === null ? 'State created.' : 'State updated.');
           void this.router.navigateByUrl('/admin/settings/countries');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.submitting.set(false);
-          this.error.set(this.firstError(err) ?? 'Could not save state');
+          const message = this.firstError(err) ?? 'Could not save state';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }

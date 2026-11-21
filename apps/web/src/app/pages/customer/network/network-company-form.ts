@@ -13,6 +13,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import {
   normalizeBusinessName,
   normalizeDomains,
@@ -56,9 +57,9 @@ export class NetworkCompanyForm implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
+  private readonly toastr = inject(ToastrService);
 
   protected readonly error = signal<string | null>(null);
-  protected readonly financeSuccess = signal<string | null>(null);
   protected readonly submitting = signal(false);
   protected readonly financeSubmitting = signal(false);
   protected readonly loading = signal(false);
@@ -185,7 +186,6 @@ export class NetworkCompanyForm implements OnInit {
   protected selectTab(tab: EditTab): void {
     this.activeTab.set(tab);
     this.error.set(null);
-    this.financeSuccess.set(null);
   }
 
   protected submitDetails(): void {
@@ -227,8 +227,6 @@ export class NetworkCompanyForm implements OnInit {
 
     this.financeSubmitting.set(true);
     this.error.set(null);
-    this.financeSuccess.set(null);
-
     this.auth
       .ensureCsrf()
       .pipe(
@@ -243,11 +241,13 @@ export class NetworkCompanyForm implements OnInit {
         next: ({ company }) => {
           this.patchFinance(company);
           this.financeSubmitting.set(false);
-          this.financeSuccess.set('Finance details saved.');
+          this.toastr.success('Finance details saved.');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.financeSubmitting.set(false);
-          this.error.set(this.firstError(err) ?? 'Could not save finance details');
+          const message = this.firstError(err) ?? 'Could not save finance details';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }
@@ -311,6 +311,7 @@ export class NetworkCompanyForm implements OnInit {
         this.confirmOpen.set(false);
         this.pendingPayload.set(null);
         if (id === null) {
+          this.toastr.success('Company created.');
           void this.router.navigateByUrl(this.listPath());
           return;
         }
@@ -319,6 +320,7 @@ export class NetworkCompanyForm implements OnInit {
         this.financeForm.enable({ emitEvent: false });
         this.syncCountryControlLock();
         this.fieldChecks.set({ ...EMPTY_CHECKS });
+        this.toastr.success('Company details saved.');
       },
       error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);
@@ -328,7 +330,9 @@ export class NetworkCompanyForm implements OnInit {
         this.detailsForm.enable({ emitEvent: false });
         this.financeForm.enable({ emitEvent: false });
         this.syncCountryControlLock();
-        this.error.set(this.firstError(err) ?? 'Could not save company');
+        const message = this.firstError(err) ?? 'Could not save company';
+        this.error.set(message);
+        this.toastr.error(message);
       },
     });
   }

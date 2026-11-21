@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 
 @Component({
   selector: 'app-admin-vehicle-category-form',
@@ -18,6 +19,7 @@ export class AdminVehicleCategoryForm {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly toastr = inject(ToastrService);
 
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
@@ -45,16 +47,18 @@ export class AdminVehicleCategoryForm {
       .subscribe({
         next: () => {
           this.submitting.set(false);
+          this.toastr.success('Vehicle category created.');
           void this.router.navigateByUrl('/admin/vehicles');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           const messages = err.error?.errors;
-          this.error.set(
+          const message =
             messages?.['code']?.[0] ??
-              messages?.['name']?.[0] ??
-              err.error?.message ??
-              'Unable to save category.',
-          );
+            messages?.['name']?.[0] ??
+            err.error?.message ??
+            'Unable to save category.';
+          this.error.set(message);
+          this.toastr.error(message);
           this.submitting.set(false);
         },
       });

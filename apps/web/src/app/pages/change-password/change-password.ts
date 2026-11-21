@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastrService } from '../../core/feedback/toastr.service';
 
 @Component({
   selector: 'app-change-password',
@@ -15,6 +16,7 @@ export class ChangePassword implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
+  private readonly toastr = inject(ToastrService);
 
   protected readonly error = signal<string | null>(null);
   protected readonly submitting = signal(false);
@@ -57,14 +59,19 @@ export class ChangePassword implements OnInit {
     this.auth.updatePassword(this.form.getRawValue()).subscribe({
       next: (user) => {
         this.submitting.set(false);
+        this.toastr.success('Password updated.');
         void this.router.navigateByUrl(this.auth.homePathFor(user));
       },
       error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);
         const errors = err.error?.errors;
-        const first =
-          errors?.['current_password']?.[0] ?? errors?.['password']?.[0] ?? err.error?.message;
-        this.error.set(first ?? 'Could not update password');
+        const message =
+          errors?.['current_password']?.[0] ??
+          errors?.['password']?.[0] ??
+          err.error?.message ??
+          'Could not update password';
+        this.error.set(message);
+        this.toastr.error(message);
       },
     });
   }

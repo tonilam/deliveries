@@ -14,6 +14,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, map, of, Subject, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import { User, UserRole } from '../../../core/auth/user.model';
 import { Company } from '../../../core/company/company.model';
 
@@ -33,6 +34,7 @@ const COMPANY_SEARCH_PAGE_SIZE = 200;
 export class AdminCreateUser implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -327,11 +329,14 @@ export class AdminCreateUser implements OnInit {
         .subscribe({
           next: () => {
             this.submitting.set(false);
+            this.toastr.success('User created.');
             void this.router.navigateByUrl('/admin/users');
           },
           error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
             this.submitting.set(false);
-            this.error.set(this.firstError(err) ?? 'Could not create user');
+            const message = this.firstError(err) ?? 'Could not create user';
+            this.error.set(message);
+            this.toastr.error(message);
           },
         });
       return;
@@ -352,13 +357,16 @@ export class AdminCreateUser implements OnInit {
       .subscribe({
         next: () => {
           this.submitting.set(false);
+          this.toastr.success('Invitation sent.');
           void this.router.navigate(['/admin/users'], {
             queryParams: { invited: raw.email },
           });
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.submitting.set(false);
-          this.error.set(this.firstError(err) ?? 'Could not send invitation');
+          const message = this.firstError(err) ?? 'Could not send invitation';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }

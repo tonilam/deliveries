@@ -12,6 +12,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import { UserRole } from '../../../core/auth/user.model';
 
 interface ManagedUserDetail {
@@ -33,6 +34,7 @@ interface ManagedUserDetail {
 export class AdminResetPassword implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -123,13 +125,16 @@ export class AdminResetPassword implements OnInit {
       .subscribe({
         next: () => {
           this.settingPassword.set(false);
+          this.toastr.success('Password updated.');
           void this.router.navigate(['/admin/users'], {
             queryParams: { passwordReset: u.email, tab: u.role },
           });
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.settingPassword.set(false);
-          this.error.set(this.firstError(err) ?? 'Could not update password');
+          const message = this.firstError(err) ?? 'Could not update password';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }
@@ -158,11 +163,15 @@ export class AdminResetPassword implements OnInit {
       .subscribe({
         next: (res) => {
           this.sendingEmail.set(false);
-          this.notice.set(`Password reset email sent to ${res.email}.`);
+          const message = `Password reset email sent to ${res.email}.`;
+          this.notice.set(message);
+          this.toastr.success(message);
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
           this.sendingEmail.set(false);
-          this.error.set(this.firstError(err) ?? 'Could not send reset email');
+          const message = this.firstError(err) ?? 'Could not send reset email';
+          this.error.set(message);
+          this.toastr.error(message);
         },
       });
   }

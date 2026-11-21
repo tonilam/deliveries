@@ -9,6 +9,7 @@ import {
 import { FormsModule } from '@angular/forms';
 
 import { AdminFeature } from '../../../core/features/feature.model';
+import { ToastrService } from '../../../core/feedback/toastr.service';
 import { FeatureService } from '../../../core/features/feature.service';
 
 interface PendingToggle {
@@ -25,6 +26,7 @@ interface PendingToggle {
 })
 export class AdminFeatures implements OnInit {
   private readonly featuresApi = inject(FeatureService);
+  private readonly toastr = inject(ToastrService);
 
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
@@ -89,9 +91,13 @@ export class AdminFeatures implements OnInit {
         );
         this.pending.set(null);
         this.saving.set(false);
+        const action = updated.enabled ? 'enabled' : 'disabled';
+        this.toastr.success(`Feature ${action}.`);
       },
       error: () => {
-        this.error.set('Unable to update feature. Please try again.');
+        const message = 'Unable to update feature. Please try again.';
+        this.error.set(message);
+        this.toastr.error(message);
         this.saving.set(false);
       },
     });

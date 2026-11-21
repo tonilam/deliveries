@@ -19,6 +19,7 @@ import {
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
 import { AuthService } from '../../../../core/auth/auth.service';
+import { ToastrService } from '../../../../core/feedback/toastr.service';
 import { Country } from '../../../../core/country/country.model';
 import { Zone } from '../../../../core/zone/zone.model';
 import { createCompactViewportSignal } from '../../../../shared/compact-viewport';
@@ -92,6 +93,7 @@ function countryName(zone: Zone): string {
 export class AdminZones implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly load$ = new Subject<void>();
   private gridApi: GridApi<Zone> | null = null;
   private suppressGridEvents = false;
@@ -332,9 +334,12 @@ export class AdminZones implements OnInit {
           this.editOpen.set(false);
           this.editingId.set(null);
           this.loadZones();
+          this.toastr.success('Zone updated.');
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.editError.set(this.firstError(err) ?? 'Unable to save zone.');
+          const message = this.firstError(err) ?? 'Unable to save zone.';
+          this.editError.set(message);
+          this.toastr.error(message);
           this.saving.set(false);
         },
       });
@@ -365,10 +370,13 @@ export class AdminZones implements OnInit {
           this.deleting.set(false);
           this.pendingDelete.set(null);
           this.loadZones();
+          this.toastr.success('Zone deleted.');
         },
         error: () => {
           this.deleting.set(false);
-          this.error.set('Unable to delete zone.');
+          const message = 'Unable to delete zone.';
+          this.error.set(message);
+          this.toastr.error(message);
           this.pendingDelete.set(null);
         },
       });

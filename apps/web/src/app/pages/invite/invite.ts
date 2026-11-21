@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastrService } from '../../core/feedback/toastr.service';
 import { PendingInvitation, SsoProvider } from '../../core/auth/user.model';
 
 @Component({
@@ -14,6 +15,7 @@ import { PendingInvitation, SsoProvider } from '../../core/auth/user.model';
 })
 export class Invite implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -70,17 +72,20 @@ export class Invite implements OnInit {
     this.auth.acceptInvitation(this.token(), this.form.getRawValue()).subscribe({
       next: (user) => {
         this.submitting.set(false);
+        this.toastr.success('Account created.');
         void this.router.navigateByUrl(this.auth.homePathFor(user));
       },
       error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
         this.submitting.set(false);
         const errors = err.error?.errors;
-        const first =
+        const message =
           errors?.['password']?.[0] ??
           errors?.['token']?.[0] ??
           errors?.['email']?.[0] ??
-          err.error?.message;
-        this.error.set(first ?? 'Could not complete invitation');
+          err.error?.message ??
+          'Could not complete invitation';
+        this.error.set(message);
+        this.toastr.error(message);
       },
     });
   }
