@@ -18,7 +18,7 @@ class LeaveImpersonationController extends Controller
         $admin = $this->impersonation->leave($request);
 
         return response()->json([
-            'user' => $admin,
+            'user' => $admin->toAuthPayload(),
             'impersonating' => false,
             'impersonator' => null,
             'message' => 'Returned to admin session',

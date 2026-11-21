@@ -17,7 +17,7 @@ class CreateCountryStateController extends Controller
         ]);
 
         return response()->json([
-            'state' => $state,
+            'state' => $state->toAdminPayload(),
         ], 201);
     }
 }

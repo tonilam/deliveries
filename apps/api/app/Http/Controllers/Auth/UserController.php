@@ -18,7 +18,7 @@ class UserController extends Controller
         $impersonating = $this->impersonation->isImpersonating($request);
 
         return response()->json([
-            'user' => $request->user(),
+            'user' => $request->user()?->toAuthPayload(),
             'impersonating' => $impersonating,
             'impersonator' => $impersonating
                 ? $this->impersonation->impersonatorPayload($request)

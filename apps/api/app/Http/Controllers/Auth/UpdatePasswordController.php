@@ -16,7 +16,7 @@ class UpdatePasswordController extends Controller
         $user->save();
 
         return response()->json([
-            'user' => $user->fresh(),
+            'user' => $user->fresh()->toAuthPayload(),
             'message' => 'Password updated',
         ]);
     }

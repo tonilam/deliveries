@@ -42,7 +42,7 @@ class CreateUserController extends Controller
         ]);
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->toAuthPayload(),
         ], 201);
     }
 }

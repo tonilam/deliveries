@@ -12,14 +12,7 @@ class ShowUserController extends Controller
     public function __invoke(AdminRequest $request, User $user): JsonResponse
     {
         return response()->json([
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role->value,
-                'is_active' => $user->is_active,
-                'has_password' => $user->has_password,
-            ],
+            'user' => $user->toAdminPayload(),
         ]);
     }
 }

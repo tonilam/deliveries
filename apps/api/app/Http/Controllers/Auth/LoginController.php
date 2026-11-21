@@ -31,7 +31,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         return response()->json([
-            'user' => $request->user(),
+            'user' => $user?->toAuthPayload(),
         ]);
     }
 }

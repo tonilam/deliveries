@@ -19,7 +19,7 @@ class ImpersonateUserController extends Controller
         $target = $this->impersonation->start($request, $user);
 
         return response()->json([
-            'user' => $target,
+            'user' => $target->toAuthPayload(),
             'impersonating' => true,
             'impersonator' => $this->impersonation->impersonatorPayload($request),
             'message' => 'Now impersonating user',

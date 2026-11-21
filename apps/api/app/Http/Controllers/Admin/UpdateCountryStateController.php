@@ -21,7 +21,7 @@ class UpdateCountryStateController extends Controller
         ]);
 
         return response()->json([
-            'state' => $state->fresh(),
+            'state' => $state->fresh()->toAdminPayload(),
         ]);
     }
 }

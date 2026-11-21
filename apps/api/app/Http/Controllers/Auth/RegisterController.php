@@ -56,7 +56,7 @@ class RegisterController extends Controller
         $request->session()->regenerate();
 
         return response()->json([
-            'user' => $user,
+            'user' => $user->toAuthPayload(),
         ], 201);
     }
 }

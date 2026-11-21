@@ -26,12 +26,7 @@ class ResetUserPasswordController extends Controller
 
         return response()->json([
             'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role->value,
-                'is_active' => $user->is_active,
-                'has_password' => true,
+                ...$user->toAdminPayload(),
                 'must_change_password' => $user->must_change_password,
             ],
             'message' => 'Password updated',
