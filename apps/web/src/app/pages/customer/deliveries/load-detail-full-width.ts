@@ -4,7 +4,7 @@ import { ICellRendererParams } from 'ag-grid-community';
 
 import { LoadChildrenFullWidth, LoadChildrenFullWidthParams } from './load-children-full-width';
 import { LoadItemsFullWidth, LoadItemsFullWidthParams } from './load-items-full-width';
-import { isLoadChildrenDetail, isLoadDetailRow, LoadGridRow } from './load.types';
+import { isLoadChildrenDetail, isLoadDetailRow, LoadGridRow, LoadRow } from './load.types';
 
 export type LoadDetailFullWidthParams = LoadChildrenFullWidthParams & LoadItemsFullWidthParams;
 
@@ -26,6 +26,7 @@ type Params = ICellRendererParams<LoadGridRow> & LoadDetailFullWidthParams;
 })
 export class LoadDetailFullWidth implements ICellRendererAngularComp {
   private readonly cdr = inject(ChangeDetectorRef);
+  private lastChildrenList: LoadRow[] | null = null;
 
   protected cellParams: Params | null = null;
   protected readonly isLoadDetailRow = isLoadDetailRow;
@@ -36,6 +37,28 @@ export class LoadDetailFullWidth implements ICellRendererAngularComp {
   }
 
   refresh(params: Params): boolean {
+    const current = this.cellParams;
+    if (current?.data != null && current.data === params.data) {
+      const nodeOrApiChanged = current.node !== params.node || current.api !== params.api;
+      const childrenList =
+        params.data && isLoadDetailRow(params.data) && isLoadChildrenDetail(params.data)
+          ? params.data.children
+          : null;
+      const childrenListChanged = childrenList !== null && this.lastChildrenList !== childrenList;
+      if (childrenList !== null) {
+        this.lastChildrenList = childrenList;
+      }
+      if (nodeOrApiChanged || childrenListChanged) {
+        this.cellParams = params;
+        this.cdr.markForCheck();
+      }
+      return true;
+    }
+    if (params.data && isLoadDetailRow(params.data) && isLoadChildrenDetail(params.data)) {
+      this.lastChildrenList = params.data.children;
+    } else {
+      this.lastChildrenList = null;
+    }
     this.cellParams = params;
     this.cdr.markForCheck();
     return true;

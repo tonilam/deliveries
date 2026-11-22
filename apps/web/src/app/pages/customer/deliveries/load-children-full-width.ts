@@ -1,7 +1,7 @@
 import {
+  afterEveryRender,
   ChangeDetectionStrategy,
   Component,
-  computed,
   effect,
   ElementRef,
   input,
@@ -33,6 +33,7 @@ import {
   isLoadChildrenDetail,
   isLoadDetailRow,
   LoadChildGridRow,
+  LoadChildItemDetailRow,
   LoadGridRow,
   LoadRow,
 } from './load.types';
@@ -134,21 +135,11 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
   protected readonly expandedChildLoadIds = signal<Set<number>>(new Set());
   protected readonly childItemDetailHeights = signal<Record<number, number>>({});
 
-  protected readonly gridRowData = computed<LoadChildGridRow[]>(() => {
-    const rows: LoadChildGridRow[] = [];
-    const expanded = this.expandedChildLoadIds();
-    for (const child of this.children()) {
-      rows.push(child);
-      if (expanded.has(child.id) && child.item_count > 0) {
-        rows.push({
-          childDetailRow: true,
-          loadId: child.id,
-          itemCount: child.item_count,
-        });
-      }
-    }
-    return rows;
-  });
+  private childDetailCache = new Map<number, LoadChildItemDetailRow>();
+  private childRowsNeedLayout = false;
+  private columnsBuilt = false;
+
+  protected readonly gridRowData = signal<LoadChildGridRow[]>([]);
 
   protected readonly itemsFullWidthRenderer = LoadItemsFullWidth;
 
@@ -179,15 +170,35 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
       }
     });
 
+    afterEveryRender(() => {
+      if (!this.childRowsNeedLayout || !this.childGridApi) {
+        return;
+      }
+      this.childRowsNeedLayout = false;
+      this.childGridApi.refreshCells({ columns: ['expand'], force: true });
+      this.childGridApi.resetRowHeights();
+      this.syncDetailHeight();
+    });
+
     effect(() => {
-      this.children();
-      this.gridRowData();
-      this.childItemDetailHeights();
-      this.expandedChildLoadIds();
-      queueMicrotask(() => {
-        this.childGridApi?.refreshCells({ columns: ['expand'], force: true });
-        this.syncDetailHeight();
-      });
+      const expanded = this.expandedChildLoadIds();
+      const rows: LoadChildGridRow[] = [];
+      const nextCache = new Map<number, LoadChildItemDetailRow>();
+      for (const child of this.children()) {
+        rows.push(child);
+        if (!expanded.has(child.id) || child.item_count <= 0) {
+          continue;
+        }
+        const cached = this.childDetailCache.get(child.id);
+        const detail: LoadChildItemDetailRow =
+          cached && cached.itemCount === child.item_count
+            ? cached
+            : { childDetailRow: true, loadId: child.id, itemCount: child.item_count };
+        nextCache.set(child.id, detail);
+        rows.push(detail);
+      }
+      this.childDetailCache = nextCache;
+      this.gridRowData.set(rows);
     });
   }
 
@@ -259,11 +270,16 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
       this.children.set([]);
     }
     this.actionsFor = params.onActionsFor ?? (() => []);
-    this.columnDefs = this.buildColumns();
+    if (!this.columnsBuilt) {
+      this.columnDefs = this.buildColumns();
+      this.columnsBuilt = true;
+    }
+    this.childRowsNeedLayout = true;
     queueMicrotask(() => this.syncDetailHeight());
   }
 
   private toggleChildExpand(loadId: number): void {
+    this.childRowsNeedLayout = true;
     this.expandedChildLoadIds.update((current) => {
       const next = new Set(current);
       if (next.has(loadId)) {

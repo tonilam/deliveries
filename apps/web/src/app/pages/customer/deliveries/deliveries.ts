@@ -3,7 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
-  computed,
+  afterEveryRender,
   effect,
   inject,
   signal,
@@ -66,6 +66,8 @@ import {
   directLoadCanExpand,
   isLoadChildrenDetail,
   isLoadDetailRow,
+  isLoadItemsDetail,
+  LoadDetailGridRow,
   LoadGridRow,
   LoadRow,
   OwnerCompanyType,
@@ -99,6 +101,13 @@ type SortDirection = 'asc' | 'desc';
 
 const DEFAULT_SORT: SortableField = 'customer';
 const DEFAULT_DIRECTION: SortDirection = 'asc';
+
+function childLoadsEquivalent(previous: LoadRow[], next: LoadRow[]): boolean {
+  if (previous.length !== next.length) {
+    return false;
+  }
+  return previous.every((row, index) => row.id === next[index]?.id);
+}
 
 const serverSideSortComparator = (): number => 0;
 
@@ -192,6 +201,8 @@ export class CustomerDeliveries implements OnInit {
   private suppressGridEvents = false;
   private lastCompactView: boolean | null = null;
   private filterModel: FilterModel = {};
+  private rowsNeedLayout = false;
+  private detailRowCache = new Map<string, LoadDetailGridRow>();
 
   constructor() {
     effect(() => {
@@ -215,15 +226,79 @@ export class CustomerDeliveries implements OnInit {
     });
 
     effect(() => {
-      this.gridRowData();
-      this.expandedLoadIds();
       this.detailRowHeights();
-      if (this.gridApi) {
-        queueMicrotask(() => {
-          this.gridApi?.refreshCells({ columns: ['expand'], force: true });
-          this.gridApi?.resetRowHeights();
-          this.gridApi?.onRowHeightChanged();
-        });
+      if (!this.gridApi) {
+        return;
+      }
+      queueMicrotask(() => {
+        this.gridApi?.resetRowHeights();
+        this.gridApi?.onRowHeightChanged();
+      });
+    });
+
+    afterEveryRender(() => {
+      if (!this.rowsNeedLayout || !this.gridApi) {
+        return;
+      }
+      this.rowsNeedLayout = false;
+      this.gridApi.refreshCells({ columns: ['expand'], force: true });
+      this.gridApi.resetRowHeights();
+      this.gridApi.onRowHeightChanged();
+    });
+
+    effect(() => {
+      const expanded = this.expandedLoadIds();
+      const rows: LoadGridRow[] = [];
+      const nextCache = new Map<string, LoadDetailGridRow>();
+      let detailChildrenSynced = false;
+
+      for (const load of this.loads()) {
+        rows.push(load);
+        if (!expanded.has(load.id)) {
+          continue;
+        }
+        const children = load.children ?? [];
+        if (children.length > 0) {
+          const key = `${load.id}:children`;
+          const cached = this.detailRowCache.get(key);
+          let detail: LoadDetailGridRow;
+          if (
+            cached &&
+            isLoadChildrenDetail(cached) &&
+            childLoadsEquivalent(cached.children, children)
+          ) {
+            if (cached.children !== children) {
+              cached.children = children;
+              detailChildrenSynced = true;
+            }
+            detail = cached;
+          } else {
+            detail = { detailRow: true, kind: 'children', detailParentId: load.id, children };
+          }
+          nextCache.set(key, detail);
+          rows.push(detail);
+        } else if (load.item_count > 0) {
+          const key = `${load.id}:items`;
+          const cached = this.detailRowCache.get(key);
+          const detail: LoadDetailGridRow =
+            cached && isLoadItemsDetail(cached) && cached.itemCount === load.item_count
+              ? cached
+              : {
+                  detailRow: true,
+                  kind: 'items',
+                  detailParentId: load.id,
+                  loadId: load.id,
+                  itemCount: load.item_count,
+                };
+          nextCache.set(key, detail);
+          rows.push(detail);
+        }
+      }
+
+      this.detailRowCache = nextCache;
+      this.gridRowData.set(rows);
+      if (detailChildrenSynced && this.gridApi) {
+        queueMicrotask(() => this.gridApi?.refreshCells({ force: true }));
       }
     });
   }
@@ -238,36 +313,7 @@ export class CustomerDeliveries implements OnInit {
   protected readonly detailRowHeights = signal<Record<number, number>>({});
 
   protected readonly loads = signal<LoadRow[]>([]);
-  protected readonly gridRowData = computed<LoadGridRow[]>(() => {
-    const rows: LoadGridRow[] = [];
-    const expanded = this.expandedLoadIds();
-
-    for (const load of this.loads()) {
-      rows.push(load);
-      if (!expanded.has(load.id)) {
-        continue;
-      }
-      const childCount = load.children?.length ?? 0;
-      if (childCount > 0) {
-        rows.push({
-          detailRow: true,
-          kind: 'children',
-          detailParentId: load.id,
-          children: load.children ?? [],
-        });
-      } else if (load.item_count > 0) {
-        rows.push({
-          detailRow: true,
-          kind: 'items',
-          detailParentId: load.id,
-          loadId: load.id,
-          itemCount: load.item_count,
-        });
-      }
-    }
-
-    return rows;
-  });
+  protected readonly gridRowData = signal<LoadGridRow[]>([]);
 
   protected readonly loadListTitle = (row: LoadRow): string =>
     `${row.customer} → ${row.delivery ?? '—'}`;
@@ -702,6 +748,9 @@ export class CustomerDeliveries implements OnInit {
           return;
         }
         this.loads.set(res.loads);
+        if (this.expandedLoadIds().size > 0) {
+          this.rowsNeedLayout = true;
+        }
         this.meta.set(res.meta);
         this.page.set(res.meta.current_page);
         this.loading.set(false);
@@ -745,6 +794,7 @@ export class CustomerDeliveries implements OnInit {
   }
 
   protected toggleExpand(loadId: number): void {
+    this.rowsNeedLayout = true;
     this.expandedLoadIds.update((current) => {
       const next = new Set(current);
       if (next.has(loadId)) {
