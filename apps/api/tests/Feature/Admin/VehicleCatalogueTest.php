@@ -70,6 +70,64 @@ class VehicleCatalogueTest extends TestCase
             ->assertJsonValidationErrors(['vehicle_category']);
     }
 
+    public function test_admin_body_type_code_preserves_letter_case(): void
+    {
+        $category = VehicleCategory::factory()->create();
+        $this->loginAsAdmin();
+
+        $this->asSpa()->postJson(
+            '/api/admin/vehicle-categories/'.$category->id.'/body-types',
+            [
+                'name' => 'Pantech',
+                'code' => 'PAN',
+                'capacity' => 12,
+                'capacity_unit' => 'pallet',
+            ],
+        )->assertCreated()
+            ->assertJsonPath('vehicle_body_type.code', 'PAN');
+
+        $this->assertDatabaseHas('vehicle_body_types', [
+            'vehicle_category_id' => $category->id,
+            'code' => 'PAN',
+        ]);
+    }
+
+    public function test_admin_body_type_code_preserves_hyphens(): void
+    {
+        $category = VehicleCategory::factory()->create();
+        $this->loginAsAdmin();
+
+        $this->asSpa()->postJson(
+            '/api/admin/vehicle-categories/'.$category->id.'/body-types',
+            [
+                'name' => 'Example',
+                'code' => 'B-Doub-R',
+                'capacity' => 1,
+                'capacity_unit' => 'pallet',
+            ],
+        )->assertCreated()
+            ->assertJsonPath('vehicle_body_type.code', 'B-Doub-R');
+    }
+
+    public function test_admin_body_type_code_allows_special_characters(): void
+    {
+        $category = VehicleCategory::factory()->create();
+        $this->loginAsAdmin();
+
+        $code = 'A*B/C\\D';
+
+        $this->asSpa()->postJson(
+            '/api/admin/vehicle-categories/'.$category->id.'/body-types',
+            [
+                'name' => 'Example',
+                'code' => $code,
+                'capacity' => 1,
+                'capacity_unit' => 'pallet',
+            ],
+        )->assertCreated()
+            ->assertJsonPath('vehicle_body_type.code', $code);
+    }
+
     public function test_admin_can_manage_body_type_options_and_values(): void
     {
         $category = VehicleCategory::factory()->create();

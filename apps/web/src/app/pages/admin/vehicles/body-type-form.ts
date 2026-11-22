@@ -49,7 +49,7 @@ export class AdminVehicleBodyTypeForm implements OnInit {
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(255)]],
-    code: ['', [Validators.required, Validators.maxLength(64), Validators.pattern(/^[a-z0-9_]+$/)]],
+    code: ['', [Validators.required, Validators.maxLength(64)]],
     capacity: [0, [Validators.required, Validators.min(0)]],
     capacity_unit: ['pallet', [Validators.required]],
     pallet_spaces: this.fb.control<number | null>(null),

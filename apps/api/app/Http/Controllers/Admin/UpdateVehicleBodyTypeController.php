@@ -34,7 +34,7 @@ class UpdateVehicleBodyTypeController extends Controller
 
         $bodyType->update([
             'name' => $request->string('name')->toString(),
-            'code' => strtolower($request->string('code')->toString()),
+            'code' => $request->string('code')->toString(),
             'capacity' => $request->input('capacity'),
             'capacity_unit' => $request->input('capacity_unit'),
             'pallet_spaces' => $request->input('pallet_spaces'),

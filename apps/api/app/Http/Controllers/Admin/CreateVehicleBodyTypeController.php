@@ -20,7 +20,7 @@ class CreateVehicleBodyTypeController extends Controller
         $bodyType = new VehicleBodyType([
             'vehicle_category_id' => $vehicleCategory->id,
             'name' => $request->string('name')->toString(),
-            'code' => strtolower($request->string('code')->toString()),
+            'code' => $request->string('code')->toString(),
             'capacity' => $request->input('capacity'),
             'capacity_unit' => $request->input('capacity_unit'),
             'pallet_spaces' => $request->input('pallet_spaces'),

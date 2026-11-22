@@ -16,6 +16,13 @@ class UpdateVehicleBodyTypeRequest extends FormRequest
         return $this->user()?->role === UserRole::Admin;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('code') && is_string($this->input('code'))) {
+            $this->merge(['code' => trim($this->input('code'))]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -32,7 +39,6 @@ class UpdateVehicleBodyTypeRequest extends FormRequest
                 'required',
                 'string',
                 'max:64',
-                'regex:/^[a-z0-9_]+$/',
                 Rule::unique('vehicle_body_types', 'code')
                     ->where('vehicle_category_id', $category->id)
                     ->ignore($bodyType->id),
