@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\LoadType;
+use App\Enums\VehicleBodyTypeOptionVisibility;
 use Database\Factories\LoadFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,6 +27,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'pickup_time',
     'dropoff_date',
     'dropoff_time',
+    'vehicle_body_type_id',
+    'vehicle_option_values',
 ])]
 class Load extends Model
 {
@@ -39,6 +42,7 @@ class Load extends Model
             'pallet_count' => 'integer',
             'pickup_date' => 'date:Y-m-d',
             'dropoff_date' => 'date:Y-m-d',
+            'vehicle_option_values' => 'array',
         ];
     }
 
@@ -138,6 +142,14 @@ class Load extends Model
     }
 
     /**
+     * @return BelongsTo<VehicleBodyType, $this>
+     */
+    public function vehicleBodyType(): BelongsTo
+    {
+        return $this->belongsTo(VehicleBodyType::class, 'vehicle_body_type_id')->withTrashed();
+    }
+
+    /**
      * @return HasMany<Item, $this>
      */
     public function items(): HasMany
@@ -154,6 +166,11 @@ class Load extends Model
             'collectionAddress',
             'deliveryAddress',
             'xdockAddress',
+            'vehicleBodyType.category' => static fn ($query) => $query->withTrashed()->select('id', 'name'),
+            'vehicleBodyType.options' => static fn ($query) => $query
+                ->where('visibility', VehicleBodyTypeOptionVisibility::Public)
+                ->orderBy('sort_order')
+                ->orderBy('id'),
         ]);
         $this->loadCount('items');
     }
@@ -188,6 +205,7 @@ class Load extends Model
             'dropoff_date' => $this->dropoff_date?->format('Y-m-d'),
             'dropoff_time' => $this->formatScheduleTime($this->dropoff_time),
             'item_count' => (int) ($this->items_count ?? $this->items()->count()),
+            ...$this->truckTypePayloadFields(),
         ];
 
         if ($includeChildren && $this->type === LoadType::Direct) {
@@ -262,5 +280,68 @@ class Load extends Model
         }
 
         return strlen($time) >= 5 ? substr($time, 0, 5) : $time;
+    }
+
+    /**
+     * @return array{
+     *     vehicle_body_type_id: ?int,
+     *     truck_type: ?string,
+     *     vehicle_option_values: ?array<string, mixed>
+     * }
+     */
+    private function truckTypePayloadFields(): array
+    {
+        if ($this->type !== LoadType::Direct || $this->parent_load_id !== null) {
+            return [
+                'vehicle_body_type_id' => null,
+                'truck_type' => null,
+                'truck_type_code' => null,
+                'vehicle_option_values' => null,
+                'vehicle_body_type_options' => [],
+            ];
+        }
+
+        $values = $this->vehicle_option_values;
+        if (! is_array($values) || $values === []) {
+            $values = null;
+        }
+
+        $options = $this->vehicleBodyType?->relationLoaded('options')
+            ? $this->vehicleBodyType->options
+                ->map(static fn ($option) => $option->toCustomerOptionDefinition())
+                ->values()
+                ->all()
+            : [];
+
+        return [
+            'vehicle_body_type_id' => $this->vehicle_body_type_id,
+            'truck_type' => $this->truckTypeLabel(),
+            'truck_type_code' => $this->vehicleBodyType?->code,
+            'vehicle_option_values' => $values,
+            'vehicle_body_type_options' => $options ?? [],
+        ];
+    }
+
+    private function truckTypeLabel(): ?string
+    {
+        if ($this->vehicle_body_type_id === null) {
+            return null;
+        }
+
+        $bodyType = $this->vehicleBodyType;
+        if ($bodyType === null) {
+            return null;
+        }
+
+        $categoryName = $bodyType->relationLoaded('category')
+            ? ($bodyType->category?->name ?? '')
+            : '';
+        $name = $bodyType->name;
+
+        if ($categoryName !== '') {
+            return "{$categoryName} \\ {$name}";
+        }
+
+        return $name;
     }
 }

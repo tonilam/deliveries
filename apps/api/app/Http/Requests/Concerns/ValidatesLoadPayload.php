@@ -5,10 +5,14 @@ namespace App\Http\Requests\Concerns;
 use App\Enums\AddressType;
 use App\Enums\CompanyType;
 use App\Enums\LoadType;
+use App\Enums\VehicleBodyTypeOptionVisibility;
 use App\Models\Address;
 use App\Models\Company;
 use App\Models\Load;
+use App\Models\VehicleBodyType;
+use App\Services\VehicleBodyTypeOptionValuesValidator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Validation\Validator;
 
 trait ValidatesLoadPayload
@@ -102,6 +106,8 @@ trait ValidatesLoadPayload
                     'different:collection_address_id',
                 ],
                 'pallet_count' => ['required', 'integer', 'min:0'],
+                'vehicle_body_type_id' => ['nullable', 'integer', Rule::exists('vehicle_body_types', 'id')],
+                'vehicle_option_values' => ['nullable', 'array'],
             ],
             $this->scheduleFieldRules(),
         );
@@ -130,6 +136,10 @@ trait ValidatesLoadPayload
                 'pallet_count' => ['required', 'integer', 'min:0'],
             ],
             $this->scheduleFieldRules(),
+            [
+                'vehicle_body_type_id' => ['prohibited'],
+                'vehicle_option_values' => ['prohibited'],
+            ],
         );
 
         if ($childType === LoadType::XDock) {
@@ -190,6 +200,7 @@ trait ValidatesLoadPayload
             }
 
             $this->assertScheduleOrder($validator);
+            $this->assertDirectTruckType($validator, $existing);
         });
     }
 
@@ -333,6 +344,137 @@ trait ValidatesLoadPayload
                     : 'Address must be a delivery address.',
             );
         }
+    }
+
+    /**
+     * @return array{vehicle_body_type_id: ?int, vehicle_option_values: ?array<string, mixed>}
+     */
+    public function resolvedTruckTypeFields(): array
+    {
+        $rawId = $this->input('vehicle_body_type_id');
+        if ($rawId === null || $rawId === '' || (int) $rawId <= 0) {
+            return [
+                'vehicle_body_type_id' => null,
+                'vehicle_option_values' => null,
+            ];
+        }
+
+        $values = $this->input('vehicle_option_values');
+        if (! is_array($values) || $values === []) {
+            return [
+                'vehicle_body_type_id' => (int) $rawId,
+                'vehicle_option_values' => null,
+            ];
+        }
+
+        return [
+            'vehicle_body_type_id' => (int) $rawId,
+            'vehicle_option_values' => $values,
+        ];
+    }
+
+    private function assertDirectTruckType(Validator $validator, ?Load $existing = null): void
+    {
+        $companyId = $this->user()?->company_id;
+        if ($companyId === null) {
+            return;
+        }
+
+        $rawId = $this->input('vehicle_body_type_id');
+
+        if ($rawId === null || $rawId === '' || (int) $rawId <= 0) {
+            $optionInput = $this->input('vehicle_option_values');
+            if (is_array($optionInput) && $optionInput !== []) {
+                $validator->errors()->add(
+                    'vehicle_option_values',
+                    'Remove truck type option values when no truck type is selected.',
+                );
+            }
+
+            $this->merge([
+                'vehicle_body_type_id' => null,
+                'vehicle_option_values' => null,
+            ]);
+
+            return;
+        }
+
+        $bodyTypeId = (int) $rawId;
+        $isCurrent = $existing !== null && (int) $existing->vehicle_body_type_id === $bodyTypeId;
+
+        $bodyTypeQuery = VehicleBodyType::query();
+        if ($isCurrent) {
+            $bodyTypeQuery->withTrashed();
+        }
+
+        $bodyType = $bodyTypeQuery
+            ->with([
+                'options' => static fn ($query) => $query
+                    ->where('visibility', VehicleBodyTypeOptionVisibility::Public)
+                    ->orderBy('sort_order')
+                    ->orderBy('id'),
+            ])
+            ->whereHas(
+                'category',
+                static function ($query) use ($isCurrent): void {
+                    if ($isCurrent) {
+                        $query->withTrashed();
+                    }
+                },
+            )
+            ->whereKey($bodyTypeId)
+            ->first();
+
+        $optionInput = $this->input('vehicle_option_values');
+        if (! $this->has('vehicle_option_values') && $existing !== null && $isCurrent) {
+            $optionInput = $existing->vehicle_option_values;
+        }
+
+        if ($bodyType === null) {
+            $validator->errors()->add('vehicle_body_type_id', 'Invalid truck type.');
+
+            return;
+        }
+
+        if (! $isCurrent) {
+            if ($bodyType->trashed()) {
+                $validator->errors()->add('vehicle_body_type_id', 'Invalid truck type.');
+
+                return;
+            }
+
+            $company = Company::query()->find($companyId);
+            if ($company === null || ! $company->vehicleBodyTypes()->whereKey($bodyTypeId)->exists()) {
+                $validator->errors()->add(
+                    'vehicle_body_type_id',
+                    'This truck type is not active for your company.',
+                );
+
+                return;
+            }
+        }
+
+        try {
+            $normalized = app(VehicleBodyTypeOptionValuesValidator::class)->validateAndNormalize(
+                $bodyType,
+                is_array($optionInput) ? $optionInput : null,
+                'vehicle_option_values',
+                true,
+            );
+        } catch (ValidationException $exception) {
+            foreach ($exception->errors() as $key => $messages) {
+                foreach ($messages as $message) {
+                    $validator->errors()->add($key, $message);
+                }
+            }
+
+            return;
+        }
+
+        $this->merge([
+            'vehicle_body_type_id' => $bodyTypeId,
+            'vehicle_option_values' => $normalized === [] ? null : $normalized,
+        ]);
     }
 
     /**

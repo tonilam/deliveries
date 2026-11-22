@@ -106,6 +106,12 @@ class VehicleBodyType extends Model
             'capacity_unit' => $this->capacity_unit instanceof VehicleBodyTypeCapacityUnit
                 ? $this->capacity_unit->value
                 : $this->capacity_unit,
+            'options' => $this->relationLoaded('options')
+                ? $this->options
+                    ->map(static fn (VehicleBodyTypeOption $option) => $option->toCustomerOptionDefinition())
+                    ->values()
+                    ->all()
+                : [],
         ];
     }
 

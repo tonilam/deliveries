@@ -12,10 +12,11 @@ As a customer user, I want to choose which vehicle body types my company uses, s
 - [x] `GET /api/vehicles` returns the catalogue with `active` per body type. `PUT /api/vehicles/body-types/{bodyType}` with `{ "active": true|false }` turns a type on or off
 - [x] `GET /api/vehicles/body-type-options` returns only body types **active for the caller’s company** (still excluding soft-deleted types and types in soft-deleted categories). Vehicle pickers and autocomplete fields must use this endpoint
 - [x] Guest **401**. Admin, and a customer with no company, **403**
-- [x] Customer payloads do not include option definitions or `option_values`
+- [x] `GET /api/vehicles` omits option definitions and `option_values`
+- [x] `GET /api/vehicles/body-type-options` includes **public** option definitions only (`key`, `label`, `data_type`, `required`, `sort_order`); it omits catalogue `option_values` and **system** options
 
 ## Notes
 - Activation is the signed-in user’s company, not a network child.
-- No vehicle picker exists on loads or rate cards yet. This story adds the options API those pickers must call. It does not add a vehicle field to loads or rate cards.
+- Load truck type picker: [US-024](US-024-customer-loads.md). Rate cards remain out of scope.
 - Public vs system option visibility remains a later story ([US-016](US-016-admin-vehicle-catalogue.md)).
 - Inactive means no pivot row. Active means a row in `company_vehicle_body_types`. Turning a type off deletes that row. A later admin restore of a soft-deleted body type keeps the company’s previous choice.

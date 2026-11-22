@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\VehicleBodyTypeOptionDataType;
+use App\Enums\VehicleBodyTypeOptionVisibility;
 use App\Models\VehicleBodyType;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -13,11 +14,21 @@ class VehicleBodyTypeOptionValuesValidator
      * @param  array<string, mixed>|null  $optionValues
      * @return array<string, mixed>
      */
-    public function validateAndNormalize(VehicleBodyType $bodyType, ?array $optionValues): array
-    {
+    public function validateAndNormalize(
+        VehicleBodyType $bodyType,
+        ?array $optionValues,
+        string $errorKeyPrefix = 'option_values',
+        bool $publicOnly = false,
+    ): array {
         $definitions = $bodyType->relationLoaded('options')
             ? $bodyType->options
             : $bodyType->options()->get();
+
+        if ($publicOnly) {
+            $definitions = $definitions->filter(
+                static fn ($definition) => $definition->visibility === VehicleBodyTypeOptionVisibility::Public,
+            );
+        }
 
         $values = $optionValues ?? [];
         $normalized = [];
@@ -31,7 +42,7 @@ class VehicleBodyTypeOptionValuesValidator
                 continue;
             }
             if (! $allowedKeys->contains($key)) {
-                $errors["option_values.{$key}"] = ['Unknown option key.'];
+                $errors["{$errorKeyPrefix}.{$key}"] = ['Unknown option key.'];
 
                 continue;
             }
@@ -44,7 +55,7 @@ class VehicleBodyTypeOptionValuesValidator
             try {
                 $normalized[$key] = $this->castValue($definition->data_type, $value);
             } catch (\InvalidArgumentException) {
-                $errors["option_values.{$key}"] = ['Invalid value for this option type.'];
+                $errors["{$errorKeyPrefix}.{$key}"] = ['Invalid value for this option type.'];
             }
         }
 
@@ -53,7 +64,7 @@ class VehicleBodyTypeOptionValuesValidator
                 continue;
             }
             if (! array_key_exists($definition->key, $normalized)) {
-                $errors["option_values.{$definition->key}"] = ['This option is required.'];
+                $errors["{$errorKeyPrefix}.{$definition->key}"] = ['This option is required.'];
             }
         }
 

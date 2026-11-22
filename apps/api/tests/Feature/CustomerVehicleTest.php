@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\VehicleBodyTypeOptionDataType;
+use App\Enums\VehicleBodyTypeOptionVisibility;
 use App\Models\Company;
 use App\Models\User;
 use App\Models\VehicleBodyType;
+use App\Models\VehicleBodyTypeOption;
 use App\Models\VehicleCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -167,6 +170,39 @@ class CustomerVehicleTest extends TestCase
         $this->asSpa()->putJson("/api/vehicles/body-types/{$inactiveType->id}", ['active' => true])
             ->assertOk();
         $this->assertDatabaseCount('company_vehicle_body_types', 1);
+    }
+
+    public function test_body_type_options_include_public_definitions_only(): void
+    {
+        $company = Company::factory()->create();
+        $this->loginAs(User::factory()->for($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]));
+
+        $bodyType = VehicleBodyType::factory()->create();
+        VehicleBodyTypeOption::factory()->create([
+            'vehicle_body_type_id' => $bodyType->id,
+            'key' => 'deck',
+            'visibility' => VehicleBodyTypeOptionVisibility::Public,
+            'data_type' => VehicleBodyTypeOptionDataType::Varchar,
+        ]);
+        VehicleBodyTypeOption::factory()->create([
+            'vehicle_body_type_id' => $bodyType->id,
+            'key' => 'hidden',
+            'visibility' => VehicleBodyTypeOptionVisibility::System,
+        ]);
+
+        $company->vehicleBodyTypes()->attach($bodyType->id);
+
+        $this->asSpa()->getJson('/api/vehicles/body-type-options')
+            ->assertOk()
+            ->assertJsonPath('vehicle_body_types.0.options.0.key', 'deck')
+            ->assertJsonMissingPath('vehicle_body_types.0.option_values');
+
+        $catalogue = $this->asSpa()->getJson('/api/vehicles');
+        $catalogue->assertOk();
+        $this->assertArrayNotHasKey('options', $catalogue->json('vehicle_categories.0.body_types.0') ?? []);
     }
 
     public function test_cannot_activate_soft_deleted_body_type(): void

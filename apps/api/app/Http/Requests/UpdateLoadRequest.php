@@ -36,6 +36,8 @@ class UpdateLoadRequest extends FormRequest
                     'secondary_provider_company_id' => $load->type === LoadType::XDock
                         ? $this->childLoadFieldRules(LoadType::XDock)['secondary_provider_company_id']
                         : ['prohibited'],
+                    'vehicle_body_type_id' => ['prohibited'],
+                    'vehicle_option_values' => ['prohibited'],
                 ],
                 $this->scheduleFieldRules(),
             );

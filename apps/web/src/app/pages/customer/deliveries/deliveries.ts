@@ -273,6 +273,11 @@ export class CustomerDeliveries implements OnInit {
     { field: 'pickup_time', label: 'Pickup time', valueFor: (row) => row.pickup_time },
     { field: 'dropoff_date', label: 'Drop-off date', valueFor: (row) => row.dropoff_date },
     { field: 'dropoff_time', label: 'Drop-off time', valueFor: (row) => row.dropoff_time },
+    {
+      field: 'truck_type',
+      label: 'Truck Type',
+      valueFor: (row) => row.truck_type ?? '',
+    },
     { field: 'pallet_count', label: 'Pallets', valueFor: (row) => String(row.pallet_count) },
     {
       field: 'item_count',
@@ -294,6 +299,7 @@ export class CustomerDeliveries implements OnInit {
     { field: 'pickup_time', label: 'Pickup time' },
     { field: 'dropoff_date', label: 'Drop-off date' },
     { field: 'dropoff_time', label: 'Drop-off time' },
+    { field: 'truck_type', label: 'Truck Type' },
     { field: 'pallet_count', label: 'Pallets' },
     { field: 'item_count', label: 'Items' },
   ];
@@ -481,6 +487,29 @@ export class CustomerDeliveries implements OnInit {
           return '';
         }
         return data.dropoff_time;
+      },
+    },
+    {
+      field: 'truck_type',
+      headerName: 'Truck Type',
+      flex: 1,
+      minWidth: 140,
+      comparator: serverSideSortComparator,
+      filter: 'agTextColumnFilter',
+      filterParams: serverSideTextFilterParams,
+      filterValueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return data.truck_type_code ?? '';
+      },
+      valueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return data.truck_type_code ?? '';
       },
     },
     {

@@ -34,6 +34,7 @@ class LoadListController extends Controller
         $paginator = $query
             ->select('loads.*')
             ->with([
+                'vehicleBodyType.category',
                 'children' => static function ($childQuery): void {
                     $childQuery->with([
                         'customerCompany:id,business_name',
@@ -73,6 +74,8 @@ class LoadListController extends Controller
     {
         $query->leftJoin('companies as load_customer', 'loads.customer_company_id', '=', 'load_customer.id')
             ->leftJoin('companies as load_provider', 'loads.provider_company_id', '=', 'load_provider.id')
+            ->leftJoin('vehicle_body_types as load_vehicle_body_type', 'loads.vehicle_body_type_id', '=', 'load_vehicle_body_type.id')
+            ->leftJoin('vehicle_categories as load_vehicle_category', 'load_vehicle_body_type.vehicle_category_id', '=', 'load_vehicle_category.id')
             ->leftJoin('addresses as load_collection', 'loads.collection_address_id', '=', 'load_collection.id')
             ->leftJoin('addresses as load_delivery', 'loads.delivery_address_id', '=', 'load_delivery.id');
     }
@@ -99,7 +102,9 @@ class LoadListController extends Controller
                 ->orWhere('loads.pickup_date', 'like', $like)
                 ->orWhere('loads.pickup_time', 'like', $like)
                 ->orWhere('loads.dropoff_date', 'like', $like)
-                ->orWhere('loads.dropoff_time', 'like', $like);
+                ->orWhere('loads.dropoff_time', 'like', $like)
+                ->orWhere('load_vehicle_body_type.code', 'like', $like)
+                ->orWhereRaw($this->truckTypeLabelSql().' like ?', [$like]);
         });
     }
 
@@ -148,6 +153,13 @@ class LoadListController extends Controller
         if ($sort === 'dropoff_time') {
             $query->orderBy('loads.dropoff_time', $direction)
                 ->orderBy('loads.dropoff_date', $direction)
+                ->orderBy('loads.id');
+
+            return;
+        }
+
+        if ($sort === 'truck_type') {
+            $query->orderBy('load_vehicle_body_type.code', $direction)
                 ->orderBy('loads.id');
 
             return;
@@ -206,6 +218,12 @@ class LoadListController extends Controller
             'pallet_count' => 'loads.pallet_count',
             default => null,
         };
+
+        if ($column === 'truck_type') {
+            $this->applyTruckTypeFilter($query, $type, $value, $filterTo);
+
+            return;
+        }
 
         if ($dbColumn === null) {
             return;
@@ -373,5 +391,55 @@ class LoadListController extends Controller
     private function escapeLike(string $value): string
     {
         return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+    }
+
+    private function truckTypeLabelSql(): string
+    {
+        return "(load_vehicle_category.name || ' \\ ' || load_vehicle_body_type.name)";
+    }
+
+    /**
+     * @param  Builder<Load>  $query
+     */
+    private function applyTruckTypeFilter(
+        Builder $query,
+        string $type,
+        ?string $value,
+        ?string $filterTo,
+    ): void {
+        if ($type === 'blank') {
+            $query->whereNull('loads.vehicle_body_type_id');
+
+            return;
+        }
+
+        if ($type === 'notBlank') {
+            $query->whereNotNull('loads.vehicle_body_type_id');
+
+            return;
+        }
+
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        $codeColumn = 'load_vehicle_body_type.code';
+        $like = $this->escapeLike($value);
+
+        match ($type) {
+            'equals' => $query->where($codeColumn, $value),
+            'notEqual' => $query->where(function (Builder $inner) use ($codeColumn, $value): void {
+                $inner->whereNull('loads.vehicle_body_type_id')
+                    ->orWhere($codeColumn, '!=', $value);
+            }),
+            'contains' => $query->where($codeColumn, 'like', '%'.$like.'%'),
+            'notContains' => $query->where(function (Builder $inner) use ($codeColumn, $like): void {
+                $inner->whereNull('loads.vehicle_body_type_id')
+                    ->orWhere($codeColumn, 'not like', '%'.$like.'%');
+            }),
+            'startsWith' => $query->where($codeColumn, 'like', $like.'%'),
+            'endsWith' => $query->where($codeColumn, 'like', '%'.$like),
+            default => null,
+        };
     }
 }

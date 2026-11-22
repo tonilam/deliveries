@@ -213,6 +213,80 @@
 
               <app-load-schedule-fields [form]="directForm" />
 
+              <div class="picker">
+                <label>
+                  Truck Type
+                  <span class="picker__field">
+                    <input
+                      type="text"
+                      class="picker__input"
+                      [value]="truckTypePicker().query"
+                      (input)="onTruckTypeQueryInput($event)"
+                      (focus)="onTruckTypeFocus()"
+                      (blur)="onTruckTypeBlur()"
+                      [attr.aria-expanded]="truckTypePicker().menuOpen"
+                      autocomplete="off"
+                      placeholder="Filter truck types"
+                    />
+                    @if (showTruckTypeClear()) {
+                      <button
+                        type="button"
+                        class="picker__clear"
+                        (mousedown)="clearTruckType($event)"
+                        aria-label="Clear truck type"
+                      >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                          <circle cx="12" cy="12" r="9" />
+                          <path d="M15 9 9 15M9 9l6 6" />
+                        </svg>
+                      </button>
+                    }
+                  </span>
+                </label>
+                @if (truckTypePicker().menuOpen && filteredTruckTypes().length > 0) {
+                  <ul class="picker__list" role="listbox">
+                    @for (opt of filteredTruckTypes(); track opt.id) {
+                      <li role="option">
+                        <button
+                          type="button"
+                          class="picker__option"
+                          (mousedown)="selectTruckType(opt)"
+                        >
+                          {{ truckTypeLabel(opt) }}
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              @if (selectedTruckTypeOptions().length > 0) {
+                <fieldset class="load-form__body-options">
+                  <legend>Truck options</legend>
+                  @for (opt of selectedTruckTypeOptions(); track opt.key) {
+                    @if (opt.data_type === 'boolean') {
+                      <label class="load-form__checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="truckTypeValue(opt.key) === true"
+                          (change)="setVehicleOptionBoolean(opt.key, $event)"
+                        />
+                        {{ opt.label }}
+                      </label>
+                    } @else {
+                      <label>
+                        {{ opt.label }}
+                        <input
+                          type="text"
+                          [value]="truckTypeValue(opt.key)"
+                          (input)="setVehicleOptionVarchar(opt.key, $event)"
+                        />
+                      </label>
+                    }
+                  }
+                </fieldset>
+              }
+
               <label>
                 Pallet count
                 <input

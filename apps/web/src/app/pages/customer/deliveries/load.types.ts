@@ -1,3 +1,5 @@
+import { VehicleBodyTypeOptionDefinition } from '../../../core/vehicle/vehicle.model';
+
 export type LoadType = 'direct' | 'add_drop' | 'x_dock';
 export type OwnerCompanyType = 'customer' | 'provider' | 'broker';
 
@@ -30,6 +32,11 @@ export interface LoadRow {
   dropoff_date: string;
   dropoff_time: string;
   item_count: number;
+  vehicle_body_type_id: number | null;
+  truck_type: string | null;
+  truck_type_code: string | null;
+  vehicle_option_values: Record<string, string | boolean> | null;
+  vehicle_body_type_options?: VehicleBodyTypeOptionDefinition[];
   children?: LoadRow[];
 }
 

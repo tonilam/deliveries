@@ -13,6 +13,8 @@ class CreateLoadController extends Controller
     {
         $parties = $request->resolvedPartyIds();
 
+        $truck = $request->resolvedTruckTypeFields();
+
         $load = Load::query()->create([
             'company_id' => $request->user()->company_id,
             'parent_load_id' => null,
@@ -26,6 +28,8 @@ class CreateLoadController extends Controller
             'pickup_time' => $request->string('pickup_time')->toString(),
             'dropoff_date' => $request->string('dropoff_date')->toString(),
             'dropoff_time' => $request->string('dropoff_time')->toString(),
+            'vehicle_body_type_id' => $truck['vehicle_body_type_id'],
+            'vehicle_option_values' => $truck['vehicle_option_values'],
         ]);
 
         return response()->json([

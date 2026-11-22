@@ -18,6 +18,10 @@ import { ToastrService } from '../../../core/feedback/toastr.service';
 import { LoadScheduleFields } from './load-schedule-fields';
 import { loadScheduleControls, loadScheduleOrderValidator } from './load-schedule';
 import { LoadXDockEditModal } from './load-xdock-edit-modal';
+import {
+  VehicleBodyTypeOptionDefinition,
+  VehicleBodyTypeOptionRow,
+} from '../../../core/vehicle/vehicle.model';
 import { LoadRow, LoadType, OwnerCompanyType } from './load.types';
 
 const SEARCH_MIN_CHARS = 2;
@@ -87,6 +91,9 @@ export class CustomerLoadForm implements OnInit {
   protected readonly ownCompanyType = signal<OwnerCompanyType | null>(null);
   protected readonly children = signal<LoadRow[]>([]);
   protected readonly editingXDockChild = signal<LoadRow | null>(null);
+  protected readonly truckTypeCatalogue = signal<VehicleBodyTypeOptionRow[]>([]);
+  protected readonly truckTypePicker = signal<PickerState>(emptyPicker());
+  protected readonly vehicleOptionValues = signal<Record<string, string | boolean>>({});
 
   protected readonly partyPickers = signal<Record<PartyPickerKey, PickerState>>({
     customer: emptyPicker(),
@@ -119,6 +126,28 @@ export class CustomerLoadForm implements OnInit {
     () => this.ownCompanyType() !== 'provider' && !this.isChildEdit(),
   );
   protected readonly showXDockChildForm = computed(() => this.ownCompanyType() !== 'provider');
+  protected readonly filteredTruckTypes = computed(() => {
+    const query = this.truckTypePicker().query.trim().toLowerCase();
+    const rows = this.truckTypeOptions();
+    if (query === '') {
+      return rows;
+    }
+    return rows.filter((row) => this.truckTypeLabel(row).toLowerCase().includes(query));
+  });
+
+  protected readonly selectedTruckTypeOptions = computed((): VehicleBodyTypeOptionDefinition[] => {
+    const id = this.directForm.controls.vehicle_body_type_id.value;
+    if (id === null) {
+      return [];
+    }
+    const row = this.truckTypeOptions().find((item) => item.id === id);
+    return row?.options ?? [];
+  });
+
+  protected readonly showTruckTypeClear = computed(
+    () => this.truckTypePicker().query.trim() !== '',
+  );
+
   protected readonly title = computed(() => {
     if (!this.isEdit()) {
       return 'Create load';
@@ -138,6 +167,7 @@ export class CustomerLoadForm implements OnInit {
       provider_company_id: this.fb.control<number | null>(null),
       collection_address_id: this.fb.control<number | null>(null, [Validators.required]),
       delivery_address_id: this.fb.control<number | null>(null, [Validators.required]),
+      vehicle_body_type_id: this.fb.control<number | null>(null),
       pallet_count: this.fb.nonNullable.control(1, [Validators.required, Validators.min(0)]),
       ...loadScheduleControls(this.fb),
     },
@@ -201,9 +231,13 @@ export class CustomerLoadForm implements OnInit {
       : this.http.get<{ meta: { own_company_type?: OwnerCompanyType } }>('/api/loads', {
           params: new HttpParams().set('page', '1').set('per_page', '10'),
         });
+    const bodyTypes$ = this.http
+      .get<{ vehicle_body_types: VehicleBodyTypeOptionRow[] }>('/api/vehicles/body-type-options')
+      .pipe(catchError(() => of({ vehicle_body_types: [] as VehicleBodyTypeOptionRow[] })));
 
-    forkJoin({ meta: meta$, load: load$ }).subscribe({
-      next: ({ meta, load }) => {
+    forkJoin({ meta: meta$, load: load$, bodyTypes: bodyTypes$ }).subscribe({
+      next: ({ meta, load, bodyTypes }) => {
+        this.truckTypeCatalogue.set(bodyTypes.vehicle_body_types);
         const ownerType = load?.own_company_type ?? meta?.meta.own_company_type ?? null;
         this.ownCompanyType.set(ownerType);
         this.syncDirectValidators(ownerType);
@@ -231,7 +265,9 @@ export class CustomerLoadForm implements OnInit {
               pickup_time: row.pickup_time,
               dropoff_date: row.dropoff_date,
               dropoff_time: row.dropoff_time,
+              vehicle_body_type_id: row.vehicle_body_type_id,
             });
+            this.syncTruckTypeFromLoad(row, bodyTypes.vehicle_body_types);
             this.setPartyLabel('customer', row.customer);
             this.setPartyLabel('provider', row.provider);
             this.setAddressLabel('collection', row.collection);
@@ -269,6 +305,74 @@ export class CustomerLoadForm implements OnInit {
 
   protected addressState(field: AddressField): PickerState {
     return this.addressPickers()[field];
+  }
+
+  protected truckTypeLabel(row: VehicleBodyTypeOptionRow): string {
+    const category = row.category_name?.trim() ?? '';
+    if (category !== '') {
+      return `${category} \\ ${row.name}`;
+    }
+    return row.name;
+  }
+
+  protected truckTypeValue(key: string): string | boolean {
+    return this.vehicleOptionValues()[key] ?? '';
+  }
+
+  protected onTruckTypeQueryInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.truckTypePicker.update((state) => ({ ...state, query: value, menuOpen: true }));
+    if (
+      this.truckTypePicker().selectedLabel !== null &&
+      value !== this.truckTypePicker().selectedLabel
+    ) {
+      this.directForm.controls.vehicle_body_type_id.setValue(null);
+      this.vehicleOptionValues.set({});
+      this.truckTypePicker.update((state) => ({ ...state, selectedLabel: null }));
+    }
+  }
+
+  protected onTruckTypeFocus(): void {
+    this.truckTypePicker.update((state) => ({ ...state, menuOpen: true }));
+  }
+
+  protected onTruckTypeBlur(): void {
+    setTimeout(() => this.truckTypePicker.update((state) => ({ ...state, menuOpen: false })), 150);
+  }
+
+  protected clearTruckType(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.directForm.controls.vehicle_body_type_id.setValue(null);
+    this.vehicleOptionValues.set({});
+    this.truckTypePicker.set(emptyPicker());
+  }
+
+  protected selectTruckType(row: VehicleBodyTypeOptionRow): void {
+    this.directForm.controls.vehicle_body_type_id.setValue(row.id);
+    const initial: Record<string, string | boolean> = {};
+    for (const option of row.options ?? []) {
+      initial[option.key] = option.data_type === 'boolean' ? false : '';
+    }
+    this.vehicleOptionValues.set(initial);
+    const label = this.truckTypeLabel(row);
+    this.truckTypePicker.set({
+      query: label,
+      selectedLabel: label,
+      options: [],
+      menuOpen: false,
+      loading: false,
+    });
+  }
+
+  protected setVehicleOptionVarchar(key: string, event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.vehicleOptionValues.update((current) => ({ ...current, [key]: value }));
+  }
+
+  protected setVehicleOptionBoolean(key: string, event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.vehicleOptionValues.update((current) => ({ ...current, [key]: checked }));
   }
 
   protected onPartyQueryInput(field: PartyPickerKey, event: Event): void {
@@ -369,7 +473,7 @@ export class CustomerLoadForm implements OnInit {
     this.error.set(null);
 
     const id = this.loadId();
-    const payload = this.isChildEdit() ? this.childEditPayload() : this.directForm.getRawValue();
+    const payload = this.isChildEdit() ? this.childEditPayload() : this.directLoadPayload();
 
     const request$ =
       id === null
@@ -416,6 +520,30 @@ export class CustomerLoadForm implements OnInit {
 
   protected submitXDockChild(): void {
     this.submitChild('x_dock');
+  }
+
+  private directLoadPayload(): Record<string, unknown> {
+    const raw = this.directForm.getRawValue();
+    const bodyTypeId = raw.vehicle_body_type_id;
+    let vehicle_option_values: Record<string, string | boolean> | null = null;
+    if (bodyTypeId !== null) {
+      const values = this.vehicleOptionValues();
+      vehicle_option_values = Object.keys(values).length > 0 ? { ...values } : null;
+    }
+
+    return {
+      customer_company_id: raw.customer_company_id,
+      provider_company_id: raw.provider_company_id,
+      collection_address_id: raw.collection_address_id,
+      delivery_address_id: raw.delivery_address_id,
+      pallet_count: raw.pallet_count,
+      pickup_date: raw.pickup_date,
+      pickup_time: raw.pickup_time,
+      dropoff_date: raw.dropoff_date,
+      dropoff_time: raw.dropoff_time,
+      vehicle_body_type_id: bodyTypeId,
+      vehicle_option_values,
+    };
   }
 
   private childEditPayload(): Record<string, number | string | null> {
@@ -687,6 +815,48 @@ export class CustomerLoadForm implements OnInit {
   ): void {
     this.addressControl(field, form)?.setValue(null);
     this.updateAddressPicker(field, { selectedLabel: null });
+  }
+
+  private truckTypeOptions(): VehicleBodyTypeOptionRow[] {
+    return this.truckTypeCatalogue();
+  }
+
+  private syncTruckTypeFromLoad(row: LoadRow, catalogue: VehicleBodyTypeOptionRow[]): void {
+    const id = row.vehicle_body_type_id;
+    if (id === null) {
+      return;
+    }
+    const inCatalogue = catalogue.some((item) => item.id === id);
+    if (!inCatalogue && row.truck_type) {
+      const parts = row.truck_type.split(' \\ ');
+      const name = parts.length > 1 ? parts.slice(1).join(' \\ ') : row.truck_type;
+      const category = parts.length > 1 ? parts[0] : null;
+      this.truckTypeCatalogue.update((list) => [
+        ...list,
+        {
+          id,
+          name,
+          code: '',
+          vehicle_category_id: 0,
+          category_name: category,
+          capacity: 0,
+          capacity_unit: 'pallet',
+          options: row.vehicle_body_type_options ?? [],
+        },
+      ]);
+    }
+    if (row.truck_type) {
+      this.truckTypePicker.set({
+        query: row.truck_type,
+        selectedLabel: row.truck_type,
+        options: [],
+        menuOpen: false,
+        loading: false,
+      });
+    }
+    if (row.vehicle_option_values) {
+      this.vehicleOptionValues.set({ ...row.vehicle_option_values });
+    }
   }
 
   private firstError(err: {

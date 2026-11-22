@@ -61,6 +61,14 @@ export interface CustomerVehicleCategory {
   body_types: CustomerVehicleBodyType[];
 }
 
+export interface VehicleBodyTypeOptionDefinition {
+  key: string;
+  label: string;
+  data_type: VehicleOptionDataType;
+  required: boolean;
+  sort_order: number;
+}
+
 export interface VehicleBodyTypeOptionRow {
   id: number;
   name: string;
@@ -69,6 +77,7 @@ export interface VehicleBodyTypeOptionRow {
   category_name: string | null;
   capacity: number;
   capacity_unit: VehicleCapacityUnit;
+  options?: VehicleBodyTypeOptionDefinition[];
 }
 
 export const VEHICLE_CAPACITY_UNITS: { value: VehicleCapacityUnit; label: string }[] = [

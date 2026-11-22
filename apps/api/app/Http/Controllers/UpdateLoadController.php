@@ -13,6 +13,7 @@ class UpdateLoadController extends Controller
     {
         if ($load->type === LoadType::Direct) {
             $parties = $request->resolvedPartyIds();
+            $truck = $request->resolvedTruckTypeFields();
             $load->fill([
                 'customer_company_id' => $parties['customer_company_id'],
                 'provider_company_id' => $parties['provider_company_id'],
@@ -23,6 +24,8 @@ class UpdateLoadController extends Controller
                 'pickup_time' => $request->string('pickup_time')->toString(),
                 'dropoff_date' => $request->string('dropoff_date')->toString(),
                 'dropoff_time' => $request->string('dropoff_time')->toString(),
+                'vehicle_body_type_id' => $truck['vehicle_body_type_id'],
+                'vehicle_option_values' => $truck['vehicle_option_values'],
             ]);
         } elseif ($load->type === LoadType::AddDrop) {
             $load->fill([

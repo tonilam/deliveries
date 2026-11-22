@@ -4,11 +4,16 @@ namespace Tests\Feature;
 
 use App\Enums\CompanyType;
 use App\Enums\LoadType;
+use App\Enums\VehicleBodyTypeOptionDataType;
+use App\Enums\VehicleBodyTypeOptionVisibility;
 use App\Models\Address;
 use App\Models\Company;
 use App\Models\Item;
 use App\Models\Load;
 use App\Models\User;
+use App\Models\VehicleBodyType;
+use App\Models\VehicleBodyTypeOption;
+use App\Models\VehicleCategory;
 use Database\Seeders\GoodTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -21,6 +26,148 @@ class LoadManagementTest extends TestCase
     {
         parent::setUp();
         $this->seed(GoodTypeSeeder::class);
+    }
+
+    public function test_direct_load_stores_truck_type_and_public_options(): void
+    {
+        [$owner, $customer, $provider, $collection, $delivery, $user] = $this->brokerFixture();
+        $category = VehicleCategory::factory()->create(['name' => 'Rigid']);
+        $bodyType = VehicleBodyType::factory()->create([
+            'vehicle_category_id' => $category->id,
+            'name' => 'Pantech',
+            'code' => 'pantech',
+        ]);
+        VehicleBodyTypeOption::factory()->create([
+            'vehicle_body_type_id' => $bodyType->id,
+            'key' => 'height',
+            'label' => 'Deck height',
+            'data_type' => VehicleBodyTypeOptionDataType::Varchar,
+            'visibility' => VehicleBodyTypeOptionVisibility::Public,
+            'required' => true,
+        ]);
+        VehicleBodyTypeOption::factory()->create([
+            'vehicle_body_type_id' => $bodyType->id,
+            'key' => 'internal',
+            'label' => 'Internal flag',
+            'data_type' => VehicleBodyTypeOptionDataType::Boolean,
+            'visibility' => VehicleBodyTypeOptionVisibility::System,
+            'required' => true,
+        ]);
+        $owner->vehicleBodyTypes()->attach($bodyType->id);
+
+        $this->loginAs($user);
+
+        $create = $this->asSpa()->postJson('/api/loads', array_merge([
+            'customer_company_id' => $customer->id,
+            'provider_company_id' => $provider->id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $delivery->id,
+            'pallet_count' => 2,
+            'vehicle_body_type_id' => $bodyType->id,
+            'vehicle_option_values' => ['height' => '1.2m'],
+        ], $this->schedulePayload()));
+
+        $create->assertCreated()
+            ->assertJsonPath('load.vehicle_body_type_id', $bodyType->id)
+            ->assertJsonPath('load.truck_type', 'Rigid \\ Pantech')
+            ->assertJsonPath('load.truck_type_code', 'pantech')
+            ->assertJsonPath('load.vehicle_option_values.height', '1.2m');
+
+        $loadId = $create->json('load.id');
+
+        $this->asSpa()->getJson('/api/loads?sort=truck_type&direction=asc')
+            ->assertOk()
+            ->assertJsonPath('loads.0.truck_type', 'Rigid \\ Pantech');
+
+        $this->asSpa()->getJson('/api/loads?filter[truck_type][type]=contains&filter[truck_type][filter]=pantech')
+            ->assertOk()
+            ->assertJsonPath('loads.0.id', $loadId);
+
+        $this->asSpa()->putJson("/api/loads/{$loadId}", array_merge([
+            'customer_company_id' => $customer->id,
+            'provider_company_id' => $provider->id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $delivery->id,
+            'pallet_count' => 2,
+            'vehicle_body_type_id' => $bodyType->id,
+            'vehicle_option_values' => ['height' => '1.4m'],
+        ], $this->schedulePayload()))->assertOk()
+            ->assertJsonPath('load.vehicle_option_values.height', '1.4m');
+
+        $this->asSpa()->postJson('/api/loads', array_merge([
+            'customer_company_id' => $customer->id,
+            'provider_company_id' => $provider->id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $delivery->id,
+            'pallet_count' => 1,
+            'vehicle_body_type_id' => $bodyType->id,
+            'vehicle_option_values' => [],
+        ], $this->schedulePayload()))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['vehicle_option_values.height']);
+    }
+
+    public function test_inactive_truck_type_rejected_unless_unchanged_on_update(): void
+    {
+        [$owner, $customer, $provider, $collection, $delivery, $user] = $this->brokerFixture();
+        $bodyType = VehicleBodyType::factory()->create();
+        $owner->vehicleBodyTypes()->attach($bodyType->id);
+
+        $this->loginAs($user);
+
+        $loadId = $this->asSpa()->postJson('/api/loads', array_merge([
+            'customer_company_id' => $customer->id,
+            'provider_company_id' => $provider->id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $delivery->id,
+            'pallet_count' => 1,
+            'vehicle_body_type_id' => $bodyType->id,
+        ], $this->schedulePayload()))
+            ->assertCreated()
+            ->json('load.id');
+
+        $owner->vehicleBodyTypes()->detach($bodyType->id);
+
+        $this->asSpa()->postJson('/api/loads', array_merge([
+            'customer_company_id' => $customer->id,
+            'provider_company_id' => $provider->id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $delivery->id,
+            'pallet_count' => 1,
+            'vehicle_body_type_id' => $bodyType->id,
+        ], $this->schedulePayload()))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['vehicle_body_type_id']);
+
+        $this->asSpa()->putJson("/api/loads/{$loadId}", array_merge([
+            'customer_company_id' => $customer->id,
+            'provider_company_id' => $provider->id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $delivery->id,
+            'pallet_count' => 1,
+            'vehicle_body_type_id' => $bodyType->id,
+        ], $this->schedulePayload()))->assertOk()
+            ->assertJsonPath('load.vehicle_body_type_id', $bodyType->id);
+    }
+
+    public function test_child_load_rejects_truck_type_fields(): void
+    {
+        [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();
+        $load = $this->createDirectLoad($owner, $collection, $delivery);
+        $childDelivery = Address::factory()->for($owner)->delivery()->create();
+        $bodyType = VehicleBodyType::factory()->create();
+        $owner->vehicleBodyTypes()->attach($bodyType->id);
+
+        $this->loginAs($user);
+
+        $this->asSpa()->postJson("/api/loads/{$load->id}/children", array_merge([
+            'type' => 'add_drop',
+            'delivery_address_id' => $childDelivery->id,
+            'pallet_count' => 1,
+            'vehicle_body_type_id' => $bodyType->id,
+        ], $this->schedulePayload()))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['vehicle_body_type_id']);
     }
 
     public function test_guest_cannot_list_loads(): void

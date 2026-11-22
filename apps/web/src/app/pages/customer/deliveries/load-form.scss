@@ -60,6 +60,49 @@
   gap: 0.35rem;
 }
 
+.picker__field {
+  position: relative;
+  display: block;
+}
+
+.picker__field .picker__input {
+  padding-right: 2.5rem;
+}
+
+.picker__clear {
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.picker__clear:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.picker__clear svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  stroke: currentcolor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .picker__list {
   position: absolute;
   z-index: 5;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\VehicleBodyTypeOptionVisibility;
 use App\Http\Requests\VehicleBodyTypeOptionsRequest;
 use Illuminate\Http\JsonResponse;
 
@@ -26,6 +27,10 @@ class VehicleBodyTypeOptionsController extends Controller
             ])
             ->with([
                 'category' => static fn ($query) => $query->select('id', 'name', 'sort_order'),
+                'options' => static fn ($query) => $query
+                    ->where('visibility', VehicleBodyTypeOptionVisibility::Public)
+                    ->orderBy('sort_order')
+                    ->orderBy('id'),
             ])
             ->whereHas('category')
             ->get()

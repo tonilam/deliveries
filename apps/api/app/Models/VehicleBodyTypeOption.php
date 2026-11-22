@@ -47,6 +47,25 @@ class VehicleBodyTypeOption extends Model
     /**
      * @return array<string, mixed>
      */
+    /**
+     * @return array<string, mixed>
+     */
+    public function toCustomerOptionDefinition(): array
+    {
+        return [
+            'key' => $this->key,
+            'label' => $this->label,
+            'data_type' => $this->data_type instanceof VehicleBodyTypeOptionDataType
+                ? $this->data_type->value
+                : $this->data_type,
+            'required' => $this->required,
+            'sort_order' => $this->sort_order,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function toAdminPayload(): array
     {
         return [
