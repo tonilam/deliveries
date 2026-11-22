@@ -23,6 +23,7 @@ import {
   ItemRow,
   weightInputToTonnes,
 } from './item-format';
+import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 import { LoadScheduleFields } from './load-schedule-fields';
 import {
   defaultLoadSchedule,
@@ -80,7 +81,7 @@ interface GoodTypeOption {
 
 @Component({
   selector: 'app-load-items-slider',
-  imports: [ReactiveFormsModule, LoadScheduleFields],
+  imports: [ReactiveFormsModule, LoadScheduleFields, UiAutocompleteFieldComponent],
   templateUrl: './load-items-slider.html',
   styleUrl: './load-items-slider.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -254,6 +255,11 @@ export class LoadItemsSlider {
     setTimeout(() => this.partyPicker.update((s) => ({ ...s, menuOpen: false })), 150);
   }
 
+  protected clearPartyPicker(): void {
+    this.moveXDockForm.controls.secondary_provider_company_id.setValue(null);
+    this.partyPicker.set(emptyPicker());
+  }
+
   protected selectParty(option: PartyOption): void {
     this.moveXDockForm.controls.secondary_provider_company_id.setValue(option.id);
     this.partyPicker.set({
@@ -286,6 +292,11 @@ export class LoadItemsSlider {
 
   protected onAddressBlur(field: MoveAddressField): void {
     setTimeout(() => this.updateAddressPicker(field, { menuOpen: false }), 150);
+  }
+
+  protected clearAddressPicker(field: MoveAddressField, form: 'add_drop' | 'x_dock'): void {
+    this.addressControl(field, form)?.setValue(null);
+    this.updateAddressPicker(field, emptyPicker());
   }
 
   protected selectAddress(

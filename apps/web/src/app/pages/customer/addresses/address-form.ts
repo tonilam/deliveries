@@ -13,6 +13,7 @@ import { forkJoin, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
+import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 import {
   RadioCardGroupComponent,
   RadioCardOption,
@@ -40,7 +41,7 @@ const ZONE_SUGGESTION_LIMIT = 200;
 
 @Component({
   selector: 'app-customer-address-form',
-  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent],
+  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent, UiAutocompleteFieldComponent],
   templateUrl: './address-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './address-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -203,6 +204,18 @@ export class CustomerAddressForm implements OnInit {
       this.activeZoneSuggestionIndex.set(-1);
     }, 150);
   }
+
+  protected clearZoneQuery(): void {
+    this.form.controls.zone_id.setValue(null);
+    this.selectedZoneName.set(null);
+    this.zoneQuery.set('');
+    this.zoneSuggestions.set([]);
+    this.zoneMenuOpen.set(false);
+    this.activeZoneSuggestionIndex.set(-1);
+  }
+
+  protected zoneOptionId = (option: unknown, _index: number): string =>
+    `zone-option-${(option as ZoneOption).id}`;
 
   protected onZoneKeydown(event: KeyboardEvent): void {
     const suggestions = this.zoneSuggestions();

@@ -7,96 +7,50 @@
   }
 
   <form [formGroup]="form" (ngSubmit)="submit()" class="form-stack">
-    <div class="picker">
-      <label>
-        X dock address
-        <input
-          type="text"
-          [value]="addressState('x_dock_xdock').query"
-          (input)="onAddressQueryInput('x_dock_xdock', $event)"
-          (focus)="onAddressFocus('x_dock_xdock')"
-          (blur)="onAddressBlur('x_dock_xdock')"
-          autocomplete="off"
-          placeholder="Search or pick from list"
-        />
-      </label>
-      @if (
-        addressState('x_dock_xdock').menuOpen && addressState('x_dock_xdock').options.length > 0
-      ) {
-        <ul class="picker__list" role="listbox">
-          @for (opt of $any(addressState('x_dock_xdock').options); track opt.id) {
-            <li role="option">
-              <button
-                type="button"
-                class="picker__option"
-                (mousedown)="selectAddress('x_dock_xdock', opt)"
-              >
-                {{ opt.label }}
-              </button>
-            </li>
-          }
-        </ul>
-      }
-    </div>
+    <ui-autocomplete-field
+      label="X dock address"
+      [query]="addressState('x_dock_xdock').query"
+      [menuOpen]="addressState('x_dock_xdock').menuOpen"
+      [options]="addressState('x_dock_xdock').options"
+      optionLabelKey="label"
+      clearAriaLabel="Clear X dock address"
+      placeholder="Search or pick from list"
+      (queryInput)="onAddressQueryInput('x_dock_xdock', $event)"
+      (fieldFocus)="onAddressFocus('x_dock_xdock')"
+      (fieldBlur)="onAddressBlur('x_dock_xdock')"
+      (cleared)="clearAddressPicker('x_dock_xdock')"
+      (optionSelected)="selectAddress('x_dock_xdock', $any($event))"
+    />
 
-    <div class="picker">
-      <label>
-        Final delivery address
-        <input
-          type="text"
-          [value]="addressState('x_dock_delivery').query"
-          (input)="onAddressQueryInput('x_dock_delivery', $event)"
-          (focus)="onAddressFocus('x_dock_delivery')"
-          (blur)="onAddressBlur('x_dock_delivery')"
-          autocomplete="off"
-          placeholder="Search or pick from list"
-        />
-      </label>
-      @if (
-        addressState('x_dock_delivery').menuOpen &&
-        addressState('x_dock_delivery').options.length > 0
-      ) {
-        <ul class="picker__list" role="listbox">
-          @for (opt of $any(addressState('x_dock_delivery').options); track opt.id) {
-            <li role="option">
-              <button
-                type="button"
-                class="picker__option"
-                (mousedown)="selectAddress('x_dock_delivery', opt)"
-              >
-                {{ opt.label }}
-              </button>
-            </li>
-          }
-        </ul>
-      }
-    </div>
+    <ui-autocomplete-field
+      label="Final delivery address"
+      [query]="addressState('x_dock_delivery').query"
+      [menuOpen]="addressState('x_dock_delivery').menuOpen"
+      [options]="addressState('x_dock_delivery').options"
+      optionLabelKey="label"
+      clearAriaLabel="Clear final delivery address"
+      placeholder="Search or pick from list"
+      (queryInput)="onAddressQueryInput('x_dock_delivery', $event)"
+      (fieldFocus)="onAddressFocus('x_dock_delivery')"
+      (fieldBlur)="onAddressBlur('x_dock_delivery')"
+      (cleared)="clearAddressPicker('x_dock_delivery')"
+      (optionSelected)="selectAddress('x_dock_delivery', $any($event))"
+    />
 
-    <div class="picker">
-      <label>
-        Secondary provider
-        <input
-          type="text"
-          [value]="partyState().query"
-          (input)="onPartyQueryInput($event)"
-          (focus)="onPartyFocus()"
-          (blur)="onPartyBlur()"
-          autocomplete="off"
-          placeholder="Search or pick from list"
-        />
-      </label>
-      @if (partyState().menuOpen && partyState().options.length > 0) {
-        <ul class="picker__list" role="listbox">
-          @for (opt of $any(partyState().options); track opt.id) {
-            <li role="option">
-              <button type="button" class="picker__option" (mousedown)="selectParty(opt)">
-                {{ opt.business_name }}
-              </button>
-            </li>
-          }
-        </ul>
-      }
-    </div>
+    <ui-autocomplete-field
+      label="Secondary provider"
+      [query]="partyState().query"
+      [menuOpen]="partyState().menuOpen"
+      [options]="partyState().options"
+      optionLabelKey="business_name"
+      clearAriaLabel="Clear secondary provider"
+      placeholder="Search or pick from list"
+      (queryInput)="onPartyQueryInput($event)"
+      (fieldFocus)="onPartyFocus()"
+      (fieldBlur)="onPartyBlur()"
+      (cleared)="clearPartyPicker()"
+      (optionSelected)="selectParty($any($event))"
+    />
 
     <app-load-schedule-fields [form]="form" />
 

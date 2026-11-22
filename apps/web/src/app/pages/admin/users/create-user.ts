@@ -17,6 +17,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { User, UserRole } from '../../../core/auth/user.model';
 import { Company } from '../../../core/company/company.model';
+import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 
 type CreateMode = 'password' | 'invite';
 
@@ -26,7 +27,7 @@ const COMPANY_SEARCH_PAGE_SIZE = 200;
 
 @Component({
   selector: 'app-admin-create-user',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, UiAutocompleteFieldComponent],
   templateUrl: './create-user.html',
   styleUrls: ['../../../shared/portal-shell.scss', './create-user.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -207,6 +208,23 @@ export class AdminCreateUser implements OnInit {
       this.activeSuggestionIndex.set(-1);
     }, 150);
   }
+
+  protected clearCompanyQuery(): void {
+    if (this.companyLocked()) {
+      return;
+    }
+    this.form.controls.company_id.setValue(null);
+    this.selectedCompanyName.set(null);
+    this.companyQuery.set('');
+    this.companySuggestions.set([]);
+    this.companyMenuOpen.set(false);
+    this.activeSuggestionIndex.set(-1);
+    this.companySearchError.set(null);
+    this.companiesLoading.set(false);
+  }
+
+  protected companyOptionId = (option: unknown, _index: number): string =>
+    `company-option-${(option as Company).id}`;
 
   protected onCompanyKeydown(event: KeyboardEvent): void {
     if (this.companyLocked()) {

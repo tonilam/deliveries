@@ -127,42 +127,39 @@
     <h2 id="add-network-company-title">{{ addButtonLabel() }}</h2>
     <p>Search for a root company with no parent and no linked children.</p>
 
-    <label class="company-picker">
-      <span class="company-picker__label">Business name</span>
-      <input
-        type="text"
-        [value]="candidateQuery()"
-        (input)="onCandidateQueryInput($any($event.target).value)"
-        autocomplete="off"
-        aria-autocomplete="list"
-      />
-    </label>
-
-    @if (candidatesLoading()) {
-      <p class="company-picker__status">Searching…</p>
-    } @else if (candidateQuery().trim().length > 0 && candidateQuery().trim().length < 2) {
-      <p class="company-picker__status">Type at least 2 characters to search.</p>
-    }
-
-    @if (candidateSuggestions().length > 0) {
-      <ul class="company-picker__list" role="listbox">
-        @for (candidate of candidateSuggestions(); track candidate.id) {
-          <li role="option">
-            <button
-              type="button"
-              class="company-picker__option"
-              [disabled]="linking()"
-              (click)="linkCandidate(candidate)"
-            >
-              <span class="company-picker__name">{{ candidate.business_name }}</span>
-              <span class="company-picker__meta"
-                >{{ candidate.reg_number }} · {{ candidate.email }}</span
-              >
-            </button>
-          </li>
+    <ui-autocomplete-field
+      label="Business name"
+      [query]="candidateQuery()"
+      [menuOpen]="candidateSuggestions().length > 0"
+      [options]="candidateSuggestions()"
+      optionLabelKey="business_name"
+      clearAriaLabel="Clear business name search"
+      optionMouseEvent="click"
+      (queryInput)="onCandidateQueryInput($event)"
+      (cleared)="clearCandidateQuery()"
+    >
+      <div uiAutocompleteAfter>
+        @if (candidatesLoading()) {
+          <p class="ui-autocomplete__status">Searching…</p>
+        } @else if (candidateQuery().trim().length > 0 && candidateQuery().trim().length < 2) {
+          <p class="ui-autocomplete__status">Type at least 2 characters to search.</p>
         }
-      </ul>
-    }
+      </div>
+
+      <ng-template uiAutocompleteOption let-candidate>
+        <button
+          type="button"
+          class="ui-autocomplete__option ui-autocomplete__option--spread"
+          [disabled]="linking()"
+          (click)="linkCandidate($any(candidate))"
+        >
+          <span>{{ candidate.business_name }}</span>
+          <span class="ui-autocomplete__code"
+            >{{ candidate.reg_number }} · {{ candidate.email }}</span
+          >
+        </button>
+      </ng-template>
+    </ui-autocomplete-field>
 
     @if (linkError()) {
       <p class="company-network__error" role="alert">{{ linkError() }}</p>

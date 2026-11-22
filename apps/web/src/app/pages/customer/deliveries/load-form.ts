@@ -17,6 +17,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { LoadScheduleFields } from './load-schedule-fields';
 import { loadScheduleControls, loadScheduleOrderValidator } from './load-schedule';
+import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 import { LoadXDockEditModal } from './load-xdock-edit-modal';
 import {
   VehicleBodyTypeOptionDefinition,
@@ -62,7 +63,13 @@ const emptyPicker = (): PickerState => ({
 
 @Component({
   selector: 'app-customer-load-form',
-  imports: [ReactiveFormsModule, RouterLink, LoadScheduleFields, LoadXDockEditModal],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    LoadScheduleFields,
+    LoadXDockEditModal,
+    UiAutocompleteFieldComponent,
+  ],
   templateUrl: './load-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './load-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -143,10 +150,6 @@ export class CustomerLoadForm implements OnInit {
     const row = this.truckTypeOptions().find((item) => item.id === id);
     return row?.options ?? [];
   });
-
-  protected readonly showTruckTypeClear = computed(
-    () => this.truckTypePicker().query.trim() !== '',
-  );
 
   protected readonly title = computed(() => {
     if (!this.isEdit()) {
@@ -307,6 +310,9 @@ export class CustomerLoadForm implements OnInit {
     return this.addressPickers()[field];
   }
 
+  protected truckTypeOptionLabel = (option: unknown): string =>
+    this.truckTypeLabel(option as VehicleBodyTypeOptionRow);
+
   protected truckTypeLabel(row: VehicleBodyTypeOptionRow): string {
     const category = row.category_name?.trim() ?? '';
     if (category !== '') {
@@ -340,9 +346,7 @@ export class CustomerLoadForm implements OnInit {
     setTimeout(() => this.truckTypePicker.update((state) => ({ ...state, menuOpen: false })), 150);
   }
 
-  protected clearTruckType(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
+  protected clearTruckType(): void {
     this.directForm.controls.vehicle_body_type_id.setValue(null);
     this.vehicleOptionValues.set({});
     this.truckTypePicker.set(emptyPicker());
@@ -396,6 +400,22 @@ export class CustomerLoadForm implements OnInit {
     setTimeout(() => this.updatePartyPicker(field, { menuOpen: false }), 150);
   }
 
+  protected clearPartyPicker(
+    field: PartyPickerKey,
+    target: 'direct' | 'child' | 'x_dock' = 'direct',
+  ): void {
+    const control =
+      field === 'customer'
+        ? this.directForm.controls.customer_company_id
+        : field === 'provider'
+          ? this.directForm.controls.provider_company_id
+          : target === 'x_dock' || field === 'x_dock_secondary'
+            ? this.xDockForm.controls.secondary_provider_company_id
+            : this.childEditForm.controls.secondary_provider_company_id;
+    control.setValue(null);
+    this.updatePartyPicker(field, emptyPicker());
+  }
+
   protected selectParty(
     field: PartyPickerKey,
     option: PartyOption,
@@ -442,6 +462,14 @@ export class CustomerLoadForm implements OnInit {
 
   protected onAddressBlur(field: AddressField): void {
     setTimeout(() => this.updateAddressPicker(field, { menuOpen: false }), 150);
+  }
+
+  protected clearAddressPicker(
+    field: AddressField,
+    form: 'direct' | 'child' | 'add_drop' | 'x_dock',
+  ): void {
+    this.addressControl(field, form)?.setValue(null);
+    this.updateAddressPicker(field, emptyPicker());
   }
 
   protected selectAddress(

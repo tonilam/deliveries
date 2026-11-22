@@ -15,6 +15,7 @@ import { catchError, debounceTime, of, Subject, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
+import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 import { LoadScheduleFields } from './load-schedule-fields';
 import { loadScheduleControls, loadScheduleOrderValidator } from './load-schedule';
 import { LoadRow } from './load.types';
@@ -54,7 +55,7 @@ const emptyPicker = (): PickerState => ({
 
 @Component({
   selector: 'app-load-xdock-edit-modal',
-  imports: [ReactiveFormsModule, LoadScheduleFields],
+  imports: [ReactiveFormsModule, LoadScheduleFields, UiAutocompleteFieldComponent],
   templateUrl: './load-xdock-edit-modal.html',
   styleUrl: './load-xdock-edit-modal.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -163,6 +164,11 @@ export class LoadXDockEditModal {
     setTimeout(() => this.partyPicker.update((s) => ({ ...s, menuOpen: false })), 150);
   }
 
+  protected clearPartyPicker(): void {
+    this.form.controls.secondary_provider_company_id.setValue(null);
+    this.partyPicker.set(emptyPicker());
+  }
+
   protected selectParty(option: PartyOption): void {
     this.form.controls.secondary_provider_company_id.setValue(option.id);
     this.partyPicker.set({
@@ -192,6 +198,11 @@ export class LoadXDockEditModal {
 
   protected onAddressBlur(field: AddressField): void {
     setTimeout(() => this.updateAddressPicker(field, { menuOpen: false }), 150);
+  }
+
+  protected clearAddressPicker(field: AddressField): void {
+    this.addressControl(field)?.setValue(null);
+    this.updateAddressPicker(field, emptyPicker());
   }
 
   protected selectAddress(field: AddressField, option: AddressOption): void {

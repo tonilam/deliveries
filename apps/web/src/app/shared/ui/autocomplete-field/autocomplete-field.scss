@@ -1,0 +1,163 @@
+:host {
+  display: block;
+  position: relative;
+}
+
+.ui-autocomplete {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ui-autocomplete__label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ui-autocomplete--compact {
+  gap: 0.25rem;
+}
+
+.ui-autocomplete__field {
+  position: relative;
+  display: block;
+}
+
+.ui-autocomplete__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  line-height: 1.25;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  background: #fff;
+  color: inherit;
+}
+
+.ui-autocomplete--compact .ui-autocomplete__input {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.ui-autocomplete__field--clearable .ui-autocomplete__input {
+  padding-right: 2.5rem;
+}
+
+.ui-autocomplete__input:disabled {
+  background: #f8fafc;
+  color: #475569;
+  cursor: not-allowed;
+}
+
+.ui-autocomplete__clear {
+  position: absolute;
+  top: 50%;
+  right: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.ui-autocomplete__clear:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.ui-autocomplete__clear svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  stroke: currentcolor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ui-autocomplete__list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% - 0.1rem);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 14rem;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 12%);
+}
+
+.ui-autocomplete__option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.ui-autocomplete__option--spread {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.ui-autocomplete__option:hover,
+.ui-autocomplete__option:focus-visible,
+.ui-autocomplete__option--active {
+  background: #f1f5f9;
+  outline: none;
+}
+
+.ui-autocomplete__option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ui-autocomplete__code {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.ui-autocomplete__status {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.ui-autocomplete--compact .ui-autocomplete__status {
+  font-size: 0.75rem;
+}
+
+.ui-autocomplete__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}

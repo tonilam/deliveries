@@ -43,6 +43,8 @@ import { Company, CompanyType } from '../../../core/company/company.model';
 import { createCompactViewportSignal } from '../../../shared/compact-viewport';
 import { DataListComponent } from '../../../shared/data-list/data-list';
 import { DataListColumn, DataListSortOption } from '../../../shared/data-list/data-list.types';
+import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
+import { UiAutocompleteOptionDirective } from '../../../shared/ui/autocomplete-field/autocomplete-option.directive';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -95,7 +97,13 @@ const serverSideTextFilterParams: ITextFilterParams = {
 
 @Component({
   selector: 'app-admin-company-network',
-  imports: [AgGridAngular, DataListComponent, FormsModule],
+  imports: [
+    AgGridAngular,
+    DataListComponent,
+    FormsModule,
+    UiAutocompleteFieldComponent,
+    UiAutocompleteOptionDirective,
+  ],
   templateUrl: './company-network.html',
   styleUrls: ['./company-network.scss', '../../../shared/portal-shell.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -413,9 +421,15 @@ export class AdminCompanyNetwork implements OnInit {
     this.linkError.set(null);
   }
 
-  protected onCandidateQueryInput(value: string): void {
+  protected onCandidateQueryInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
     this.candidateQuery.set(value);
     this.candidateSearch$.next(value);
+  }
+
+  protected clearCandidateQuery(): void {
+    this.candidateQuery.set('');
+    this.candidateSuggestions.set([]);
   }
 
   protected linkCandidate(candidate: NetworkCandidate): void {

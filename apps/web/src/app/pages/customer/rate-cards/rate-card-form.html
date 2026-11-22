@@ -42,37 +42,23 @@
             </ul>
           }
 
-          <input
-            type="text"
-            [value]="companyQuery()"
-            (input)="onCompanyQueryInput($event)"
-            (focus)="onCompanyFocus()"
-            (blur)="onCompanyBlur()"
-            [attr.aria-expanded]="companyMenuOpen()"
-            aria-autocomplete="list"
-            autocomplete="off"
+          <ui-autocomplete-field
+            [query]="companyQuery()"
+            [menuOpen]="companyMenuOpen()"
+            [options]="companySuggestions()"
+            optionLabelKey="business_name"
+            clearAriaLabel="Clear company search"
             placeholder="Type at least 2 characters to search"
-          />
-
-          @if (companyMenuOpen() && companySuggestions().length > 0) {
-            <ul class="company-picker__list" role="listbox">
-              @for (company of companySuggestions(); track company.id) {
-                <li role="option">
-                  <button
-                    type="button"
-                    class="company-picker__option"
-                    (mousedown)="selectCompany(company)"
-                  >
-                    {{ company.business_name }}
-                  </button>
-                </li>
-              }
-            </ul>
-          }
-
-          @if (companiesLoading()) {
-            <p class="company-picker__status">Searching…</p>
-          }
+            (queryInput)="onCompanyQueryInput($event)"
+            (fieldFocus)="onCompanyFocus()"
+            (fieldBlur)="onCompanyBlur()"
+            (cleared)="clearCompanyQuery()"
+            (optionSelected)="selectCompany($any($event))"
+          >
+            @if (companiesLoading()) {
+              <p class="ui-autocomplete__status" uiAutocompleteAfter>Searching…</p>
+            }
+          </ui-autocomplete-field>
         </div>
 
         <label>
@@ -115,96 +101,64 @@
             @for (row of zoneRows(); track $index; let i = $index) {
               <tr>
                 <td>
-                  <div class="zone-picker">
-                    <input
-                      type="text"
-                      class="zone-picker__input"
-                      [value]="row.collection_zone_query"
-                      (input)="onZoneQueryInput(i, 'collection', $event)"
-                      (focus)="onZoneFocus(i, 'collection')"
-                      (blur)="onZoneBlur(i, 'collection')"
-                      (keydown)="onZoneKeydown(i, 'collection', $event)"
-                      [disabled]="!zoneCatalogReady()"
-                      [attr.aria-expanded]="isZonePickerOpen(i, 'collection')"
-                      [attr.aria-activedescendant]="activeZoneOptionId(i, 'collection')"
-                      aria-autocomplete="list"
-                      role="combobox"
-                      autocomplete="off"
-                      placeholder="Type at least 2 characters"
-                    />
-                    @if (isZonePickerOpen(i, 'collection') && zonePickerSuggestions().length > 0) {
-                      <ul class="zone-picker__list" role="listbox">
-                        @for (zone of zonePickerSuggestions(); track zone.id; let zi = $index) {
-                          <li
-                            role="option"
-                            [attr.id]="zoneOptionId(i, 'collection', zone.id)"
-                            [attr.aria-selected]="activeZoneSuggestionIndex() === zi"
-                          >
-                            <button
-                              type="button"
-                              class="zone-picker__option"
-                              [class.zone-picker__option--active]="
-                                activeZoneSuggestionIndex() === zi
-                              "
-                              (mousedown)="selectZone(i, 'collection', zone)"
-                            >
-                              {{ zone.name }}
-                              <span class="zone-picker__code">{{ zone.code }}</span>
-                            </button>
-                          </li>
-                        }
-                      </ul>
-                    }
+                  <ui-autocomplete-field
+                    density="compact"
+                    [query]="row.collection_zone_query"
+                    [menuOpen]="
+                      isZonePickerOpen(i, 'collection') && zonePickerSuggestions().length > 0
+                    "
+                    [options]="zonePickerSuggestions()"
+                    [disabled]="!zoneCatalogReady()"
+                    [combobox]="true"
+                    [activeOptionIndex]="activeZoneSuggestionIndex()"
+                    [activeDescendantId]="activeZoneOptionId(i, 'collection')"
+                    [optionIdFn]="zoneOptionIdForRow(i, 'collection')"
+                    optionLabelKey="name"
+                    optionCodeKey="code"
+                    [optionSpread]="true"
+                    clearAriaLabel="Clear collection zone"
+                    placeholder="Type at least 2 characters"
+                    (queryInput)="onZoneQueryInput(i, 'collection', $event)"
+                    (fieldFocus)="onZoneFocus(i, 'collection')"
+                    (fieldBlur)="onZoneBlur(i, 'collection')"
+                    (fieldKeydown)="onZoneKeydown(i, 'collection', $event)"
+                    (cleared)="clearZoneQuery(i, 'collection')"
+                    (optionSelected)="selectZone(i, 'collection', $any($event))"
+                  >
                     @if (zoneSearchHint(i, 'collection'); as hint) {
-                      <p class="zone-picker__status">{{ hint }}</p>
+                      <p class="ui-autocomplete__status" uiAutocompleteAfter>{{ hint }}</p>
                     }
-                  </div>
+                  </ui-autocomplete-field>
                 </td>
                 <td>
-                  <div class="zone-picker">
-                    <input
-                      type="text"
-                      class="zone-picker__input"
-                      [value]="row.delivery_zone_query"
-                      (input)="onZoneQueryInput(i, 'delivery', $event)"
-                      (focus)="onZoneFocus(i, 'delivery')"
-                      (blur)="onZoneBlur(i, 'delivery')"
-                      (keydown)="onZoneKeydown(i, 'delivery', $event)"
-                      [disabled]="!zoneCatalogReady()"
-                      [attr.aria-expanded]="isZonePickerOpen(i, 'delivery')"
-                      [attr.aria-activedescendant]="activeZoneOptionId(i, 'delivery')"
-                      aria-autocomplete="list"
-                      role="combobox"
-                      autocomplete="off"
-                      placeholder="Type at least 2 characters"
-                    />
-                    @if (isZonePickerOpen(i, 'delivery') && zonePickerSuggestions().length > 0) {
-                      <ul class="zone-picker__list" role="listbox">
-                        @for (zone of zonePickerSuggestions(); track zone.id; let zi = $index) {
-                          <li
-                            role="option"
-                            [attr.id]="zoneOptionId(i, 'delivery', zone.id)"
-                            [attr.aria-selected]="activeZoneSuggestionIndex() === zi"
-                          >
-                            <button
-                              type="button"
-                              class="zone-picker__option"
-                              [class.zone-picker__option--active]="
-                                activeZoneSuggestionIndex() === zi
-                              "
-                              (mousedown)="selectZone(i, 'delivery', zone)"
-                            >
-                              {{ zone.name }}
-                              <span class="zone-picker__code">{{ zone.code }}</span>
-                            </button>
-                          </li>
-                        }
-                      </ul>
-                    }
+                  <ui-autocomplete-field
+                    density="compact"
+                    [query]="row.delivery_zone_query"
+                    [menuOpen]="
+                      isZonePickerOpen(i, 'delivery') && zonePickerSuggestions().length > 0
+                    "
+                    [options]="zonePickerSuggestions()"
+                    [disabled]="!zoneCatalogReady()"
+                    [combobox]="true"
+                    [activeOptionIndex]="activeZoneSuggestionIndex()"
+                    [activeDescendantId]="activeZoneOptionId(i, 'delivery')"
+                    [optionIdFn]="zoneOptionIdForRow(i, 'delivery')"
+                    optionLabelKey="name"
+                    optionCodeKey="code"
+                    [optionSpread]="true"
+                    clearAriaLabel="Clear delivery zone"
+                    placeholder="Type at least 2 characters"
+                    (queryInput)="onZoneQueryInput(i, 'delivery', $event)"
+                    (fieldFocus)="onZoneFocus(i, 'delivery')"
+                    (fieldBlur)="onZoneBlur(i, 'delivery')"
+                    (fieldKeydown)="onZoneKeydown(i, 'delivery', $event)"
+                    (cleared)="clearZoneQuery(i, 'delivery')"
+                    (optionSelected)="selectZone(i, 'delivery', $any($event))"
+                  >
                     @if (zoneSearchHint(i, 'delivery'); as hint) {
-                      <p class="zone-picker__status">{{ hint }}</p>
+                      <p class="ui-autocomplete__status" uiAutocompleteAfter>{{ hint }}</p>
                     }
-                  </div>
+                  </ui-autocomplete-field>
                 </td>
                 <td>
                   <input

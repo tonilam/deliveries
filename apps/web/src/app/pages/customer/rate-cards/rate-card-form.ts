@@ -15,6 +15,7 @@ import { forkJoin, of, switchMap } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
+import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 import {
   RadioCardGroupComponent,
   RadioCardOption,
@@ -77,7 +78,7 @@ const ZONE_SUGGESTION_LIMIT = 200;
 
 @Component({
   selector: 'app-customer-rate-card-form',
-  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent],
+  imports: [ReactiveFormsModule, RouterLink, RadioCardGroupComponent, UiAutocompleteFieldComponent],
   templateUrl: './rate-card-form.html',
   styleUrls: ['../../../shared/portal-shell.scss', './rate-card-form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -244,6 +245,35 @@ export class CustomerRateCardForm implements OnInit {
 
   protected zoneOptionId(row: number, field: ZonePickerField, zoneId: number): string {
     return `zone-option-${row}-${field}-${zoneId}`;
+  }
+
+  protected zoneOptionIdForRow(
+    row: number,
+    field: ZonePickerField,
+  ): (option: unknown, index: number) => string {
+    return (option, _index) => this.zoneOptionId(row, field, (option as ZoneOption).id);
+  }
+
+  protected clearZoneQuery(row: number, field: ZonePickerField): void {
+    this.zoneRows.update((rows) =>
+      rows.map((item, index) => {
+        if (index !== row) {
+          return item;
+        }
+        if (field === 'collection') {
+          return { ...item, collection_zone_id: null, collection_zone_query: '' };
+        }
+        return { ...item, delivery_zone_id: null, delivery_zone_query: '' };
+      }),
+    );
+    this.closeZonePicker();
+  }
+
+  protected clearCompanyQuery(): void {
+    this.companyQuery.set('');
+    this.companySuggestions.set([]);
+    this.companyMenuOpen.set(false);
+    this.activeCompanySuggestionIndex.set(-1);
   }
 
   protected activeZoneOptionId(row: number, field: ZonePickerField): string | null {
