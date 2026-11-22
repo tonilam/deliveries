@@ -1,9 +1,55 @@
-<section class="portal">
-  <h1>Customer dashboard</h1>
-  <p class="lede">Placeholder for load and delivery overview.</p>
-  @if (user(); as u) {
-    <p class="lede">
-      Signed in as <strong>{{ u.name }}</strong>.
-    </p>
+<section class="portal portal--wide customer-dashboard">
+  <h1>Dashboard</h1>
+  <p class="lede">Overview of your loads and busiest counterparties.</p>
+
+  @if (loading()) {
+    <p class="customer-dashboard__status">Loading…</p>
+  } @else if (error(); as message) {
+    <p class="customer-dashboard__status customer-dashboard__status--error">{{ message }}</p>
+  } @else if (dashboard(); as data) {
+    <div
+      class="customer-dashboard__stats"
+      [class.customer-dashboard__stats--broker]="data.company_type === 'broker'"
+    >
+      @if (showCustomers(data)) {
+        <article class="customer-dashboard__panel">
+          <h2 class="customer-dashboard__panel-title">Top 5 customers</h2>
+          @if (data.top_customers.length === 0) {
+            <p class="customer-dashboard__empty">No customer loads yet.</p>
+          } @else {
+            <ol class="customer-dashboard__rank-list">
+              @for (row of data.top_customers; track row.company_id) {
+                <li class="customer-dashboard__rank-item">
+                  <span class="customer-dashboard__rank-name">{{ row.business_name }}</span>
+                  <span class="customer-dashboard__rank-count">{{ row.load_count }} loads</span>
+                </li>
+              }
+            </ol>
+          }
+        </article>
+      }
+
+      @if (showProviders(data)) {
+        <article class="customer-dashboard__panel">
+          <h2 class="customer-dashboard__panel-title">Top 5 providers</h2>
+          @if (data.top_providers.length === 0) {
+            <p class="customer-dashboard__empty">No provider loads yet.</p>
+          } @else {
+            <ol class="customer-dashboard__rank-list">
+              @for (row of data.top_providers; track row.company_id) {
+                <li class="customer-dashboard__rank-item">
+                  <span class="customer-dashboard__rank-name">{{ row.business_name }}</span>
+                  <span class="customer-dashboard__rank-count">{{ row.load_count }} loads</span>
+                </li>
+              }
+            </ol>
+          }
+        </article>
+      }
+    </div>
+
+    <div class="customer-dashboard__chart-wrap">
+      <canvas #weekChart aria-label="Loads by pickup date line chart"></canvas>
+    </div>
   }
 </section>

@@ -1,0 +1,80 @@
+.customer-dashboard__status {
+  margin-top: 1rem;
+  color: var(--ui-color-text-secondary, #5c6b7a);
+
+  &--error {
+    color: var(--ui-color-text-danger, #b91c1c);
+  }
+}
+
+.customer-dashboard__stats {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 720px) {
+  .customer-dashboard__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .customer-dashboard__stats--broker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.customer-dashboard__panel {
+  background: var(--ui-color-surface, #fff);
+  border: 1px solid var(--ui-color-border-subtle, #e2e8f0);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.customer-dashboard__panel-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #003d7a;
+}
+
+.customer-dashboard__rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.customer-dashboard__rank-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--ui-color-border-subtle, #e2e8f0);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.customer-dashboard__rank-name {
+  font-weight: 600;
+}
+
+.customer-dashboard__rank-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-color-text-secondary, #5c6b7a);
+}
+
+.customer-dashboard__empty {
+  margin: 0;
+  color: var(--ui-color-text-secondary, #5c6b7a);
+  font-size: 0.9375rem;
+}
+
+.customer-dashboard__chart-wrap {
+  margin-top: 1.5rem;
+  height: 280px;
+  max-width: 100%;
+}

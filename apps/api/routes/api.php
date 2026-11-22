@@ -73,6 +73,7 @@ use App\Http\Controllers\CreateLoadChildController;
 use App\Http\Controllers\CreateLoadController;
 use App\Http\Controllers\CreateNetworkCompanyController;
 use App\Http\Controllers\CreateRateCardController;
+use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\DeleteAddressController;
 use App\Http\Controllers\DeleteItemController;
 use App\Http\Controllers\DeleteLoadController;
@@ -122,6 +123,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::put('/user/password', UpdatePasswordController::class);
     Route::post('/logout', LogoutController::class);
     Route::post('/impersonation/leave', LeaveImpersonationController::class);
+
+    Route::get('/dashboard', CustomerDashboardController::class);
 
     Route::get('/countries', CountryOptionsController::class);
     Route::get('/addresses', AddressListController::class);
