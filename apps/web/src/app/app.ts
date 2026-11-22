@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { SessionMonitor } from './core/auth/session-monitor';
 import { ToastrHost } from './core/feedback/toastr-host';
 
 @Component({
@@ -10,4 +11,7 @@ import { ToastrHost } from './core/feedback/toastr-host';
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './app.scss',
 })
-export class App {}
+export class App {
+  /** Starts periodic session checks while a user is signed in. */
+  private readonly _sessionMonitor = inject(SessionMonitor);
+}

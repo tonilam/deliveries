@@ -16,5 +16,5 @@ As a new user, I want to create an account and sign in with either email/passwor
 ## Notes
 - Identifier is **email** (not a separate username field).
 - Session model: Sanctum SPA cookies.
-- Out of scope: public self-service forgot-password, email verification, account linking UI, additional IdPs, tenants. Admin-initiated password reset: [US-008](US-008-admin-reset-user-password.md). Roles and admin portal: [US-002](US-002-admin-portal-and-roles.md).
+- Out of scope: public self-service forgot-password, email verification, account linking UI, additional IdPs, tenants. Admin-initiated password reset: [US-008](US-008-admin-reset-user-password.md). Roles and admin portal: [US-002](US-002-admin-portal-and-roles.md). Periodic session validation while signed in: [US-029](US-029-session-expiry.md).
 - Configure `GOOGLE_*` / `APPLE_*` in `apps/api/.env` before SSO works in a browser (see `.env.example`).

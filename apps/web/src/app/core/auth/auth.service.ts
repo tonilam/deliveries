@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
@@ -59,6 +59,21 @@ export class AuthService {
       catchError(() => {
         this.clearAuth();
         return of(null);
+      }),
+    );
+  }
+
+  /** Session keep-alive probe; only 401/419 clears local auth (see US-029). */
+  probeSession(): Observable<'ok' | 'expired'> {
+    return this.http.get<AuthResponse>('/api/user').pipe(
+      tap((res) => this.applyAuth(res)),
+      map(() => 'ok' as const),
+      catchError((err: HttpErrorResponse) => {
+        if (err.status === 401 || err.status === 419) {
+          this.clearAuth();
+          return of('expired' as const);
+        }
+        return of('ok' as const);
       }),
     );
   }

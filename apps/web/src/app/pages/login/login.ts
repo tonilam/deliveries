@@ -35,6 +35,8 @@ export class Login implements OnInit {
       this.error.set('Sign-in with the identity provider failed. Try again or use email.');
     } else if (ssoError === 'registration_disabled') {
       this.error.set('User registration is currently disabled. Sign in with an existing account.');
+    } else if (ssoError === 'session_expired') {
+      this.error.set('Your session has expired. Please sign in again.');
     }
   }
 
