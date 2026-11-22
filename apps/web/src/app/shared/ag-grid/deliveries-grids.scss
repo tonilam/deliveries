@@ -1,0 +1,129 @@
+/* Customer deliveries list + nested child/item detail grids (global to avoid component style budget). */
+
+/* autoHeight: grow with rows; vertical scroll lives on .shell__content only (main grid only). */
+app-customer-deliveries ag-grid-angular.deliveries-grid > .ag-root-wrapper,
+app-customer-deliveries ag-grid-angular.deliveries-grid > .ag-root-wrapper .ag-root-wrapper-body,
+app-customer-deliveries ag-grid-angular.deliveries-grid > .ag-root-wrapper .ag-body,
+app-customer-deliveries ag-grid-angular.deliveries-grid > .ag-root-wrapper .ag-body-viewport,
+app-customer-deliveries
+  ag-grid-angular.deliveries-grid
+  > .ag-root-wrapper
+  .ag-center-cols-viewport {
+  overflow-y: visible !important;
+  max-height: none !important;
+}
+
+app-customer-deliveries ag-grid-angular.deliveries-grid > .ag-root-wrapper .ag-body-vertical-scroll,
+app-customer-deliveries
+  ag-grid-angular.deliveries-grid
+  > .ag-root-wrapper
+  .ag-body-vertical-scroll-container,
+app-customer-deliveries
+  ag-grid-angular.deliveries-grid
+  > .ag-root-wrapper
+  .ag-body-vertical-scroll-viewport {
+  display: none !important;
+}
+
+app-customer-deliveries
+  ag-grid-angular.deliveries-grid
+  > .ag-root-wrapper
+  .ag-row:not(.ag-full-width-row)
+  .ag-cell,
+app-customer-deliveries
+  ag-grid-angular.deliveries-grid
+  > .ag-root-wrapper
+  .ag-row:not(.ag-full-width-row)
+  .ag-cell-wrapper,
+app-customer-deliveries
+  ag-grid-angular.deliveries-grid
+  > .ag-root-wrapper
+  .ag-row:not(.ag-full-width-row)
+  .ag-cell-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Nested detail grids: clip cell text like the main grid. */
+app-customer-deliveries ag-grid-angular.load-children-grid .ag-body-viewport,
+app-customer-deliveries ag-grid-angular.load-children-grid .ag-center-cols-viewport {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  max-height: none !important;
+}
+
+app-customer-deliveries ag-grid-angular.load-children-grid .ag-body-vertical-scroll {
+  display: none !important;
+}
+
+app-customer-deliveries ag-grid-angular.load-children-grid .ag-cell,
+app-customer-deliveries ag-grid-angular.load-children-grid .ag-cell-wrapper,
+app-customer-deliveries ag-grid-angular.load-children-grid .ag-cell-value,
+app-customer-deliveries ag-grid-angular.load-items-grid .ag-cell,
+app-customer-deliveries ag-grid-angular.load-items-grid .ag-cell-wrapper,
+app-customer-deliveries ag-grid-angular.load-items-grid .ag-cell-value {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+app-customer-deliveries ag-grid-angular.deliveries-grid .ag-full-width-row {
+  overflow-x: clip;
+  overflow-y: visible !important;
+}
+
+app-customer-deliveries
+  ag-grid-angular.deliveries-grid
+  .ag-full-width-row
+  .ag-full-width-row-center {
+  overflow-x: clip;
+  overflow-y: visible;
+  min-width: 0;
+  width: 100%;
+}
+
+app-customer-deliveries .deliveries-grid__actions-cell {
+  overflow: visible !important;
+  text-align: center;
+}
+
+app-customer-deliveries ag-grid-angular.load-children-grid .deliveries-grid__actions-cell {
+  overflow: visible !important;
+}
+
+app-customer-deliveries ag-grid-angular.deliveries-grid .deliveries-grid__items-cell--warn {
+  background-color: #fee2e2 !important;
+}
+
+app-customer-deliveries .deliveries-grid__address-cell,
+app-customer-deliveries ag-grid-angular.load-children-grid .deliveries-grid__address-cell {
+  white-space: normal !important;
+  align-content: center;
+}
+
+app-customer-deliveries .deliveries-grid__address-cell .ag-cell-wrapper,
+app-customer-deliveries .deliveries-grid__address-cell .ag-cell-value,
+app-customer-deliveries
+  ag-grid-angular.load-children-grid
+  .deliveries-grid__address-cell
+  .ag-cell-wrapper,
+app-customer-deliveries
+  ag-grid-angular.load-children-grid
+  .deliveries-grid__address-cell
+  .ag-cell-value {
+  white-space: normal !important;
+  text-overflow: clip;
+  overflow: hidden !important;
+  min-width: 0;
+}
+
+app-customer-deliveries .ag-row {
+  z-index: 0;
+}
+
+app-customer-deliveries .ag-row:has(.grid-actions__menu) {
+  z-index: 2;
+}
