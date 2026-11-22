@@ -1,0 +1,84 @@
+.admin-dashboard__status {
+  margin: 0;
+  color: #334155;
+
+  &--error {
+    color: #b91c1c;
+  }
+}
+
+.admin-dashboard__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-dashboard__stat {
+  flex: 0 0 auto;
+  min-width: 6.5rem;
+  max-width: 9rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.admin-dashboard__stat-label {
+  margin: 0 0 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.admin-dashboard__stat-value {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--ui-color-navy, #003d7a);
+}
+
+.admin-dashboard__chart-wrap {
+  position: relative;
+  height: 280px;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-dashboard__section-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ui-color-navy, #003d7a);
+}
+
+.admin-dashboard__section-hint {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.admin-dashboard__map-section {
+  margin-bottom: 2rem;
+}
+
+.admin-dashboard__map {
+  height: 420px;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e2e8f0;
+  z-index: 0;
+
+  // Leaflet tiles must not inherit responsive img rules (see leaflet.css comments).
+  &.leaflet-container,
+  &.leaflet-container .leaflet-tile-pane img {
+    max-width: none !important;
+    max-height: none !important;
+  }
+}

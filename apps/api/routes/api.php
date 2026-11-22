@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\CreateVehicleBodyTypeController;
 use App\Http\Controllers\Admin\CreateVehicleBodyTypeOptionController;
 use App\Http\Controllers\Admin\CreateVehicleCategoryController;
 use App\Http\Controllers\Admin\CreateZoneController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DeleteCountryController;
 use App\Http\Controllers\Admin\DeleteCountryStateController;
 use App\Http\Controllers\Admin\DeleteGoodTypeController;
@@ -166,6 +167,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
 Route::middleware(['auth:sanctum', 'active', 'admin', 'password.changed'])->prefix('admin')->scopeBindings()->group(function () {
     Route::get('/ping', fn () => response()->json(['ok' => true]));
+    Route::get('/dashboard', DashboardController::class);
     Route::get('/users', UserListController::class);
     Route::post('/users', CreateUserController::class);
     Route::get('/users/{user}', ShowUserController::class);

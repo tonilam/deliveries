@@ -1,9 +1,36 @@
-<section class="portal">
-  <h1>Admin portal</h1>
-  <p class="lede">System administration (placeholder).</p>
-  @if (user(); as u) {
-    <p class="lede">
-      Signed in as <strong>{{ u.name }}</strong>.
-    </p>
+<section class="portal portal--wide admin-dashboard">
+  <h1>Dashboard</h1>
+  <p class="lede">System overview for administrators.</p>
+
+  @if (loading()) {
+    <p class="admin-dashboard__status">Loading…</p>
+  } @else if (error(); as message) {
+    <p class="admin-dashboard__status admin-dashboard__status--error">{{ message }}</p>
+  } @else if (dashboard(); as data) {
+    <div class="admin-dashboard__stats">
+      <article class="admin-dashboard__stat">
+        <p class="admin-dashboard__stat-label">Users</p>
+        <p class="admin-dashboard__stat-value">{{ data.user_count }}</p>
+      </article>
+      <article class="admin-dashboard__stat">
+        <p class="admin-dashboard__stat-label">Companies</p>
+        <p class="admin-dashboard__stat-value">{{ data.company_count }}</p>
+      </article>
+    </div>
+
+    <div class="admin-dashboard__chart-wrap">
+      <canvas #loadsChart aria-label="Loads per week bar chart"></canvas>
+    </div>
+
+    @if (hasStateHeat()) {
+      <div class="admin-dashboard__map-section">
+        <h2 class="admin-dashboard__section-title">Collections & deliveries by state)</h2>
+        <div #stateMap class="admin-dashboard__map" aria-label="State delivery heat map"></div>
+      </div>
+    } @else {
+      <p class="admin-dashboard__section-hint">
+        No state-to-state deliveries in the last four months.
+      </p>
+    }
   }
 </section>
