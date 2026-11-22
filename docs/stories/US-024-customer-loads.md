@@ -11,7 +11,7 @@ As a customer user, I want to manage loads on the Deliveries page, so that I can
 - [ ] Each **child load** row with items **expands** to a read-only nested grid of that child’s items
 - [ ] Nested **item** rows are display-only (goods type, weight, order number, connote); assign/edit/delete remains in **Manage Item**
 - [ ] Columns include **load ID**, **customer**, **provider**, **collection**, **delivery**, **pickup date**, **pickup time**, **drop-off date**, **drop-off time**, **pallets**, **item count** (parent row shows **own items plus all child loads**; child rows show only that load’s items)
-- [ ] **Collection**, **delivery**, and nested **X dock** / **delivery** cells show the address **business name** on the first line and the street **address** on a second line in smaller text (combined `Name — address` string remains in API for pickers and labels)
+- [ ] **Collection**, **delivery**, and nested **X dock** / **delivery** cells show the address **business name** on the first line and the street **address** plus **state code** on a second line in smaller text (combined `Name — address` string remains in API for pickers and labels)
 - [ ] When a direct load has **child loads** but still has items on the **parent**, the parent **Items** cell shows a red background and **Check items**
 - [ ] Row actions: **Edit**, **Delete**, **Manage Item** (all load types including children)
 - [ ] **Create load** at `/app/deliveries/create`; **edit** at `/app/deliveries/:id/edit` for **direct** and **Add Drop** child loads; **X Dock** child **edit** uses an in-page **modal** (Deliveries list and direct load edit) — not the edit route

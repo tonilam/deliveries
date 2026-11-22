@@ -119,6 +119,22 @@ class LoadManagementTest extends TestCase
             ->assertJsonPath('load.customer_company_id', $customer->id);
     }
 
+    public function test_list_loads_address_line_includes_state_code(): void
+    {
+        [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();
+        $collection->update(['address' => '1 Wharf Road', 'state' => 'NSW']);
+        $delivery->update(['address' => '99 King Street', 'state' => 'VIC']);
+        $load = $this->createDirectLoad($owner, $collection->fresh(), $delivery->fresh());
+
+        $this->loginAs($user);
+
+        $this->asSpa()->getJson('/api/loads')
+            ->assertOk()
+            ->assertJsonPath('loads.0.id', $load->id)
+            ->assertJsonPath('loads.0.collection_address_line', '1 Wharf Road NSW')
+            ->assertJsonPath('loads.0.delivery_address_line', '99 King Street VIC');
+    }
+
     public function test_assign_and_unassign_item(): void
     {
         [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();

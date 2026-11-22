@@ -225,13 +225,25 @@ class Load extends Model
         }
 
         $businessName = $address->business_name;
-        $addressLine = $address->address;
+        $addressLine = $this->formatAddressLineForList($address);
 
         return [
             $prefix => trim($businessName.' — '.$addressLine),
             "{$prefix}_business_name" => $businessName,
             "{$prefix}_address_line" => $addressLine,
         ];
+    }
+
+    private function formatAddressLineForList(Address $address): string
+    {
+        $line = trim($address->address);
+        $state = trim($address->state);
+
+        if ($state === '') {
+            return $line;
+        }
+
+        return $line === '' ? $state : "{$line} {$state}";
     }
 
     private function formatScheduleTime(mixed $time): string
