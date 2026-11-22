@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\LoadType;
 use App\Http\Requests\StoreLoadChildRequest;
 use App\Models\Load;
+use App\Services\LoadActivityLogger;
 use Illuminate\Http\JsonResponse;
 
 class CreateLoadChildController extends Controller
 {
-    public function __invoke(StoreLoadChildRequest $request, Load $load): JsonResponse
+    public function __invoke(StoreLoadChildRequest $request, Load $load, LoadActivityLogger $activityLogger): JsonResponse
     {
         $type = LoadType::from($request->string('type')->toString());
 
@@ -34,8 +35,11 @@ class CreateLoadChildController extends Controller
             'dropoff_time' => $request->string('dropoff_time')->toString(),
         ]);
 
+        $child = $child->fresh();
+        $activityLogger->created($child, $request->user());
+
         return response()->json([
-            'load' => $child->fresh()->toCustomerPayload(false),
+            'load' => $child->toCustomerPayload(false),
         ], 201);
     }
 }

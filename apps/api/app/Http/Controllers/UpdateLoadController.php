@@ -5,12 +5,15 @@ namespace App\Http\Controllers;
 use App\Enums\LoadType;
 use App\Http\Requests\UpdateLoadRequest;
 use App\Models\Load;
+use App\Services\LoadActivityLogger;
 use Illuminate\Http\JsonResponse;
 
 class UpdateLoadController extends Controller
 {
-    public function __invoke(UpdateLoadRequest $request, Load $load): JsonResponse
+    public function __invoke(UpdateLoadRequest $request, Load $load, LoadActivityLogger $activityLogger): JsonResponse
     {
+        $before = $activityLogger->displaySnapshot($load);
+
         if ($load->type === LoadType::Direct) {
             $parties = $request->resolvedPartyIds();
             $truck = $request->resolvedTruckTypeFields();
@@ -50,6 +53,7 @@ class UpdateLoadController extends Controller
         }
 
         $load->save();
+        $activityLogger->updated($load, $request->user(), $before);
 
         $includeChildren = $load->type === LoadType::Direct;
 

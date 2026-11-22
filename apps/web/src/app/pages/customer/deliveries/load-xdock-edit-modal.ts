@@ -16,6 +16,7 @@ import { catchError, debounceTime, of, Subject, switchMap } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
+import { LoadActivityPanel } from './load-activity-panel';
 import { LoadScheduleFields } from './load-schedule-fields';
 import { loadScheduleControls, loadScheduleOrderValidator } from './load-schedule';
 import { LoadRow } from './load.types';
@@ -55,7 +56,12 @@ const emptyPicker = (): PickerState => ({
 
 @Component({
   selector: 'app-load-xdock-edit-modal',
-  imports: [ReactiveFormsModule, LoadScheduleFields, UiAutocompleteFieldComponent],
+  imports: [
+    ReactiveFormsModule,
+    LoadActivityPanel,
+    LoadScheduleFields,
+    UiAutocompleteFieldComponent,
+  ],
   templateUrl: './load-xdock-edit-modal.html',
   styleUrl: './load-xdock-edit-modal.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -77,6 +83,7 @@ export class LoadXDockEditModal {
   readonly saved = output<LoadRow>();
 
   protected readonly submitting = signal(false);
+  protected readonly activityRefresh = signal(0);
   protected readonly error = signal<string | null>(null);
   protected readonly partyPicker = signal<PickerState>(emptyPicker());
   protected readonly addressPickers = signal<Record<AddressField, PickerState>>({
@@ -247,6 +254,7 @@ export class LoadXDockEditModal {
       .subscribe({
         next: (res) => {
           this.submitting.set(false);
+          this.activityRefresh.update((n) => n + 1);
           this.toastr.success('X Dock load updated.');
           this.saved.emit(res.load);
           this.closed.emit();

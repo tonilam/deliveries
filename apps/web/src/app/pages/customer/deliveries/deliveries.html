@@ -105,6 +105,10 @@
   />
 }
 
+@if (selectedLoadForActivity(); as loadForActivity) {
+  <app-load-activity-slider [load]="loadForActivity" (closed)="closeActivitySlider()" />
+}
+
 @if (editingXDock(); as xdockLoad) {
   <app-load-xdock-edit-modal
     [load]="xdockLoad"

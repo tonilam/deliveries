@@ -60,6 +60,7 @@ import { LoadKindCell } from './load-kind-cell';
 import { LoadKindFilter } from './load-kind-filter';
 import { LoadKindFloatingFilter } from './load-kind-floating-filter';
 import { LoadItemCountCell } from './load-item-count-cell';
+import { LoadActivitySlider } from './load-activity-slider';
 import { LoadItemsSlider } from './load-items-slider';
 import { LoadXDockEditModal } from './load-xdock-edit-modal';
 import {
@@ -183,6 +184,7 @@ const serverSideDateFilterParams: IDateFilterParams = {
     LoadKindFloatingFilter,
     LoadAddressCell,
     LoadItemCountCell,
+    LoadActivitySlider,
     LoadItemsSlider,
     LoadXDockEditModal,
   ],
@@ -309,6 +311,7 @@ export class CustomerDeliveries implements OnInit {
   protected readonly searchQuery = signal('');
   protected readonly expandedLoadIds = signal<Set<number>>(new Set());
   protected readonly selectedLoadForItems = signal<LoadRow | null>(null);
+  protected readonly selectedLoadForActivity = signal<LoadRow | null>(null);
   protected readonly editingXDock = signal<LoadRow | null>(null);
   protected readonly detailRowHeights = signal<Record<number, number>>({});
 
@@ -822,6 +825,14 @@ export class CustomerDeliveries implements OnInit {
     this.selectedLoadForItems.set(null);
   }
 
+  protected openActivity(row: LoadRow): void {
+    this.selectedLoadForActivity.set(row);
+  }
+
+  protected closeActivitySlider(): void {
+    this.selectedLoadForActivity.set(null);
+  }
+
   protected onItemsChanged(): void {
     this.loadLoads();
   }
@@ -1014,6 +1025,7 @@ export class CustomerDeliveries implements OnInit {
   private actionsForRow(data: LoadRow): LoadActionItem[] {
     return [
       { id: 'edit', label: 'Edit', run: () => this.goToEdit(data) },
+      { id: 'activity', label: 'Activity', run: () => this.openActivity(data) },
       { id: 'items', label: 'Manage items', run: () => this.openManageItems(data) },
       { id: 'delete', label: 'Delete', run: () => this.requestDelete(data) },
     ];
@@ -1022,6 +1034,7 @@ export class CustomerDeliveries implements OnInit {
   private actionsForChildRow(child: LoadRow): LoadActionItem[] {
     return [
       { id: 'edit', label: 'Edit', run: () => this.goToEdit(child) },
+      { id: 'activity', label: 'Activity', run: () => this.openActivity(child) },
       { id: 'items', label: 'Manage items', run: () => this.openManageItems(child) },
       { id: 'delete', label: 'Delete', run: () => this.requestDelete(child) },
     ];

@@ -83,6 +83,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ItemGoodTypeOptionsController;
 use App\Http\Controllers\ItemListController;
 use App\Http\Controllers\ListCustomerVehiclesController;
+use App\Http\Controllers\ListLoadActivityController;
 use App\Http\Controllers\LoadAddressOptionsController;
 use App\Http\Controllers\LoadListController;
 use App\Http\Controllers\LoadPartyOptionsController;
@@ -149,6 +150,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/loads', LoadListController::class);
     Route::post('/loads', CreateLoadController::class);
     Route::get('/loads/{load}', ShowLoadController::class);
+    Route::get('/loads/{load}/activity', ListLoadActivityController::class);
     Route::put('/loads/{load}', UpdateLoadController::class);
     Route::delete('/loads/{load}', DeleteLoadController::class);
     Route::post('/loads/{load}/children', CreateLoadChildController::class);

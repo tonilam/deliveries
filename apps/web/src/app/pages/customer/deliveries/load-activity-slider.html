@@ -1,0 +1,14 @@
+<div class="load-slider-backdrop" (click)="close()"></div>
+<aside class="load-slider" role="dialog" aria-modal="true" aria-labelledby="load-activity-title">
+  <header class="load-slider__header">
+    <div>
+      <h2 id="load-activity-title">Activity</h2>
+      <p>Load #{{ load().id }} · {{ load().customer }} → {{ load().delivery ?? '—' }}</p>
+    </div>
+    <button type="button" class="btn btn--ghost" (click)="close()">Close</button>
+  </header>
+
+  <div class="load-slider__body">
+    <app-load-activity-panel [loadId]="load().id" />
+  </div>
+</aside>

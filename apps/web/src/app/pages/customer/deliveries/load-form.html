@@ -340,6 +340,10 @@
         }
       </div>
     }
+
+    @if (isEdit() && loadId(); as id) {
+      <app-load-activity-panel [loadId]="id" [refreshToken]="activityRefresh()" />
+    }
   }
 </section>
 

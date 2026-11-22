@@ -6,20 +6,29 @@ use App\Enums\LoadType;
 use App\Http\Requests\MoveItemToChildLoadRequest;
 use App\Models\Item;
 use App\Models\Load;
+use App\Services\LoadActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class MoveItemToChildLoadController extends Controller
 {
-    public function __invoke(MoveItemToChildLoadRequest $request, Load $load, Item $item): JsonResponse
-    {
-        $child = DB::transaction(function () use ($request, $load, $item): Load {
+    public function __invoke(
+        MoveItemToChildLoadRequest $request,
+        Load $load,
+        Item $item,
+        LoadActivityLogger $activityLogger,
+    ): JsonResponse {
+        $user = $request->user();
+
+        $child = DB::transaction(function () use ($request, $load, $item, $activityLogger, $user): Load {
+            $createdNewChild = false;
             if ($request->filled('child_load_id')) {
                 $child = Load::query()
                     ->where('parent_load_id', $load->id)
                     ->whereKey($request->integer('child_load_id'))
                     ->firstOrFail();
             } else {
+                $createdNewChild = true;
                 $type = LoadType::from($request->string('type')->toString());
 
                 $child = Load::query()->create([
@@ -44,8 +53,13 @@ class MoveItemToChildLoadController extends Controller
                 ]);
             }
 
+            if ($createdNewChild) {
+                $activityLogger->created($child->fresh(), $user);
+            }
+
             $item->load_id = $child->id;
             $item->save();
+            $activityLogger->itemMoved($load, $child, $item, $user);
 
             return $child;
         });

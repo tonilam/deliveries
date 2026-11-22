@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use App\Enums\LoadType;
 use App\Http\Requests\StoreLoadRequest;
 use App\Models\Load;
+use App\Services\LoadActivityLogger;
 use Illuminate\Http\JsonResponse;
 
 class CreateLoadController extends Controller
 {
-    public function __invoke(StoreLoadRequest $request): JsonResponse
+    public function __invoke(StoreLoadRequest $request, LoadActivityLogger $activityLogger): JsonResponse
     {
         $parties = $request->resolvedPartyIds();
 
@@ -32,8 +33,11 @@ class CreateLoadController extends Controller
             'vehicle_option_values' => $truck['vehicle_option_values'],
         ]);
 
+        $load = $load->fresh();
+        $activityLogger->created($load, $request->user());
+
         return response()->json([
-            'load' => $load->fresh()->toCustomerPayload(true),
+            'load' => $load->toCustomerPayload(true),
         ], 201);
     }
 }

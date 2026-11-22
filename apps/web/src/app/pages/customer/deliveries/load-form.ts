@@ -18,6 +18,7 @@ import { ToastrService } from '../../../core/feedback/toastr.service';
 import { LoadScheduleFields } from './load-schedule-fields';
 import { loadScheduleControls, loadScheduleOrderValidator } from './load-schedule';
 import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
+import { LoadActivityPanel } from './load-activity-panel';
 import { LoadXDockEditModal } from './load-xdock-edit-modal';
 import {
   VehicleBodyTypeOptionDefinition,
@@ -67,6 +68,7 @@ const emptyPicker = (): PickerState => ({
     ReactiveFormsModule,
     RouterLink,
     LoadScheduleFields,
+    LoadActivityPanel,
     LoadXDockEditModal,
     UiAutocompleteFieldComponent,
   ],
@@ -94,6 +96,7 @@ export class CustomerLoadForm implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly childSubmitting = signal(false);
   protected readonly loadId = signal<number | null>(null);
+  protected readonly activityRefresh = signal(0);
   protected readonly loadType = signal<LoadType | null>(null);
   protected readonly ownCompanyType = signal<OwnerCompanyType | null>(null);
   protected readonly children = signal<LoadRow[]>([]);
@@ -517,8 +520,11 @@ export class CustomerLoadForm implements OnInit {
           this.toastr.success(id === null ? 'Load created.' : 'Load updated.');
           if (id === null) {
             void this.router.navigate(['/app/deliveries', res.load.id, 'edit']);
-          } else if (res.load.type === 'direct') {
-            this.children.set(res.load.children ?? []);
+          } else {
+            this.activityRefresh.update((n) => n + 1);
+            if (res.load.type === 'direct') {
+              this.children.set(res.load.children ?? []);
+            }
           }
         },
         error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
