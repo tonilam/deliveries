@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\CompanyType;
+use App\Enums\LoadType;
 use App\Models\Company;
 use App\Models\Load;
 use Carbon\CarbonImmutable;
@@ -43,6 +44,8 @@ class CustomerDashboardService
         $rows = DB::table('loads')
             ->join('companies', "loads.{$partyColumn}", '=', 'companies.id')
             ->where('loads.company_id', $ownerCompanyId)
+            ->where('loads.type', LoadType::Direct)
+            ->whereNull('loads.parent_load_id')
             ->whereNotNull("loads.{$partyColumn}")
             ->groupBy('companies.id', 'companies.business_name')
             ->orderByDesc('load_count')
@@ -75,6 +78,7 @@ class CustomerDashboardService
 
         /** @var Collection<string, int> $counts */
         $counts = Load::query()
+            ->primaryDirect()
             ->where('company_id', $ownerCompanyId)
             ->whereNotNull('pickup_date')
             ->whereDate('pickup_date', '>=', $windowStart->toDateString())

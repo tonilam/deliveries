@@ -108,6 +108,42 @@ class CustomerDashboardTest extends TestCase
             ->assertJsonCount(1, 'top_providers');
     }
 
+    public function test_child_loads_are_excluded_from_counts(): void
+    {
+        CarbonImmutable::setTestNow('2026-11-22 12:00:00');
+
+        [$owner, $customer, $provider, $collection, $delivery, $user] = $this->brokerFixture();
+        $thisWeek = CarbonImmutable::parse('2026-11-20', 'UTC');
+
+        $parent = Load::query()->create($this->loadAttributes(
+            $owner,
+            $customer,
+            $provider,
+            $collection,
+            $delivery,
+            $thisWeek,
+        ));
+
+        Load::query()->create([
+            ...$this->loadAttributes($owner, $customer, $provider, $collection, $delivery, $thisWeek),
+            'parent_load_id' => $parent->id,
+            'type' => LoadType::AddDrop,
+        ]);
+        Load::query()->create([
+            ...$this->loadAttributes($owner, $customer, $provider, $collection, $delivery, $thisWeek),
+            'parent_load_id' => $parent->id,
+            'type' => LoadType::XDock,
+        ]);
+
+        $this->loginAs($user);
+
+        $this->asSpa()->getJson('/api/dashboard')
+            ->assertOk()
+            ->assertJsonPath('top_customers.0.load_count', 1)
+            ->assertJsonPath('top_providers.0.load_count', 1)
+            ->assertJsonFragment(['pickup_date' => '2026-11-20', 'count' => 1]);
+    }
+
     public function test_provider_company_sees_customers_only(): void
     {
         CarbonImmutable::setTestNow('2026-11-22 12:00:00');

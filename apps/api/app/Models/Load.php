@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\LoadType;
 use Database\Factories\LoadFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -39,6 +40,14 @@ class Load extends Model
             'pickup_date' => 'date:Y-m-d',
             'dropoff_date' => 'date:Y-m-d',
         ];
+    }
+
+    /**
+     * @param  Builder<Load>  $query
+     */
+    public function scopePrimaryDirect(Builder $query): void
+    {
+        $query->where('type', LoadType::Direct)->whereNull('parent_load_id');
     }
 
     protected static function booted(): void

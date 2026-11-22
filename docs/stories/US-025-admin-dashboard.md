@@ -6,8 +6,8 @@ As an admin user, I want a dashboard on the admin portal home page, so that I ca
 ## Acceptance criteria
 - [x] Admin **Home** (`/admin`) replaces the placeholder with a dashboard (not a separate route)
 - [x] Dashboard shows **user count** (all users) and **company count** (all companies)
-- [x] A **bar chart** shows load count per week for loads whose **pickup date** falls from the Monday of the week containing “today minus four months” through the end of the current week (UTC); all customer companies; parent and child loads each count; weeks with no loads show zero
-- [x] A **state delivery heat map** on **OpenStreetMap** (Leaflet) uses the same load window: heat intensity at pickup and delivery state centroids; brighter where more loads start or end; AU/NZ only; country-specific centroids so duplicate state codes (e.g. `TAS`) do not merge
+- [x] A **bar chart** shows primary direct load count per week for loads whose **pickup date** falls from the Monday of the week containing “today minus four months” through the end of the current week (UTC); all customer companies; **add/drop and x-dock child loads are excluded**; weeks with no loads show zero
+- [x] A **state delivery heat map** on **OpenStreetMap** (Leaflet) uses the same load window and the same primary-direct load set: heat intensity at pickup and delivery state centroids; brighter where more loads start or end; AU/NZ only; country-specific centroids so duplicate state codes (e.g. `TAS`) do not merge
 - [x] `GET /api/admin/dashboard` returns the stats; admin-only (same middleware as other admin routes)
 - [x] Loads without both collection and delivery addresses are omitted from the heatmap only
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\LoadType;
 use App\Models\Company;
 use App\Models\Load;
 use App\Models\User;
@@ -56,6 +57,7 @@ class AdminDashboardService
     {
         /** @var Collection<string, int> $counts */
         $counts = Load::query()
+            ->primaryDirect()
             ->whereNotNull('pickup_date')
             ->whereDate('pickup_date', '>=', $windowStart->toDateString())
             ->whereDate('pickup_date', '<=', $windowEnd->toDateString())
@@ -91,6 +93,8 @@ class AdminDashboardService
     private function stateFlows(CarbonImmutable $windowStart, CarbonImmutable $windowEnd): array
     {
         $rows = DB::table('loads')
+            ->where('loads.type', LoadType::Direct)
+            ->whereNull('loads.parent_load_id')
             ->join('addresses as from_addr', 'loads.collection_address_id', '=', 'from_addr.id')
             ->join('addresses as to_addr', 'loads.delivery_address_id', '=', 'to_addr.id')
             ->join('zones as from_zone', 'from_addr.zone_id', '=', 'from_zone.id')
