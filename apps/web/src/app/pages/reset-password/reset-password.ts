@@ -1,10 +1,8 @@
-import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
 
-import { AuthService } from '../../core/auth/auth.service';
+import { PasswordApiService } from '../../core/password/password-api.service';
 import { ToastrService } from '../../core/feedback/toastr.service';
 
 @Component({
@@ -15,8 +13,7 @@ import { ToastrService } from '../../core/feedback/toastr.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ResetPassword {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly passwordApi = inject(PasswordApiService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -46,18 +43,13 @@ export class ResetPassword {
     this.error.set(null);
 
     const raw = this.form.getRawValue();
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.post<{ message: string }>('/api/password/reset', {
-            email: this.email,
-            token: this.token,
-            password: raw.password,
-            password_confirmation: raw.password_confirmation,
-          }),
-        ),
-      )
+    this.passwordApi
+      .resetWithToken({
+        email: this.email,
+        token: this.token,
+        password: raw.password,
+        password_confirmation: raw.password_confirmation,
+      })
       .subscribe({
         next: () => {
           this.submitting.set(false);

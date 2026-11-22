@@ -1,13 +1,12 @@
-import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
 
-import { AuthService } from '../../../../core/auth/auth.service';
+import { AdminCountriesApiService } from '../../../../core/admin/admin-countries-api.service';
+import { AdminZonesApiService } from '../../../../core/admin/admin-zones-api.service';
 import { ToastrService } from '../../../../core/feedback/toastr.service';
 import { Country } from '../../../../core/country/country.model';
-import { Zone, ZonePayload } from '../../../../core/zone/zone.model';
+import { ZonePayload } from '../../../../core/zone/zone.model';
 
 @Component({
   selector: 'app-admin-zone-form',
@@ -17,8 +16,8 @@ import { Zone, ZonePayload } from '../../../../core/zone/zone.model';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminZoneForm implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly countriesApi = inject(AdminCountriesApiService);
+  private readonly zonesApi = inject(AdminZonesApiService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly toastr = inject(ToastrService);
@@ -40,7 +39,7 @@ export class AdminZoneForm implements OnInit {
 
   ngOnInit(): void {
     this.loading.set(true);
-    this.http.get<{ countries: Country[] }>('/api/admin/countries').subscribe({
+    this.countriesApi.list().subscribe({
       next: (res) => {
         this.countries.set(res.countries);
         if (res.countries.length > 0) {
@@ -71,22 +70,19 @@ export class AdminZoneForm implements OnInit {
       is_active: this.form.controls.is_active.value,
     };
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.post<{ zone: Zone }>('/api/admin/zones', payload)))
-      .subscribe({
-        next: () => {
-          this.submitting.set(false);
-          this.toastr.success('Zone created.');
-          void this.router.navigateByUrl('/admin/settings/zones');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.submitting.set(false);
-          const message = this.firstError(err) ?? 'Could not save zone';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.zonesApi.create(payload).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.toastr.success('Zone created.');
+        void this.router.navigateByUrl('/admin/settings/zones');
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.submitting.set(false);
+        const message = this.firstError(err) ?? 'Could not save zone';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   private firstError(err: {

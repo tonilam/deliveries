@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -37,7 +37,7 @@ import {
   tap,
 } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { AdminCompaniesApiService } from '../../../core/admin/admin-companies-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { Company, CompanyType } from '../../../core/company/company.model';
 import { createCompactViewportSignal } from '../../../shared/compact-viewport';
@@ -112,8 +112,7 @@ export class AdminCompanyNetwork implements OnInit {
   readonly parentCompanyId = input.required<number>();
   readonly parentCompanyType = input.required<CompanyType>();
 
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly companiesApi = inject(AdminCompaniesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly load$ = new Subject<void>();
@@ -279,10 +278,8 @@ export class AdminCompanyNetwork implements OnInit {
           this.error.set(null);
         }),
         switchMap(() =>
-          this.http
-            .get<NetworkListResponse>(`/api/admin/companies/${this.parentCompanyId()}/network`, {
-              params: this.buildParams(),
-            })
+          this.companiesApi
+            .getNetwork<NetworkListResponse>(this.parentCompanyId(), this.buildParams())
             .pipe(
               catchError(() => {
                 const lastGood = this.meta();
@@ -440,17 +437,9 @@ export class AdminCompanyNetwork implements OnInit {
     this.linking.set(true);
     this.linkError.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.post<{ company: Company }>(
-            `/api/admin/companies/${this.parentCompanyId()}/network`,
-            { company_id: candidate.id },
-          ),
-        ),
-        takeUntilDestroyed(this.destroyRef),
-      )
+    this.companiesApi
+      .linkToNetwork(this.parentCompanyId(), { company_id: candidate.id })
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.linking.set(false);
@@ -488,11 +477,8 @@ export class AdminCompanyNetwork implements OnInit {
           this.candidatesLoading.set(true);
           const params = new HttpParams().set('type', this.networkApiType()).set('search', trimmed);
 
-          return this.http
-            .get<{ companies: NetworkCandidate[] }>(
-              `/api/admin/companies/${this.parentCompanyId()}/network/candidates`,
-              { params },
-            )
+          return this.companiesApi
+            .getNetworkCandidates<{ companies: NetworkCandidate[] }>(this.parentCompanyId(), params)
             .pipe(
               map((res) => ({ generation, companies: res.companies })),
               catchError(() => of({ generation, companies: [] as NetworkCandidate[] })),

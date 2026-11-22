@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,9 +8,9 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin, of, switchMap } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { AddressesApiService } from '../../../core/addresses/addresses-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 import {
@@ -47,8 +46,7 @@ const ZONE_SUGGESTION_LIMIT = 200;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerAddressForm implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly addressesApi = inject(AddressesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -120,11 +118,9 @@ export class CustomerAddressForm implements OnInit {
 
     const addressId = this.addressId();
     forkJoin({
-      states: this.http.get<{ states: StateOption[] }>('/api/addresses/state-options'),
-      zones: this.http.get<{ zones: ZoneOption[] }>('/api/addresses/zone-options'),
-      address: addressId
-        ? this.http.get<{ address: AddressRow }>(`/api/addresses/${addressId}`)
-        : of(null),
+      states: this.addressesApi.getStateOptions<{ states: StateOption[] }>(),
+      zones: this.addressesApi.getZoneOptions<{ zones: ZoneOption[] }>(),
+      address: addressId ? this.addressesApi.get<{ address: AddressRow }>(addressId) : of(null),
     }).subscribe({
       next: ({ states, zones, address }) => {
         this.stateOptions.set(states.states);
@@ -298,26 +294,23 @@ export class CustomerAddressForm implements OnInit {
     const addressId = this.addressId();
     const request$ =
       addressId === null
-        ? this.http.post<{ address: AddressRow }>('/api/addresses', payload)
-        : this.http.put<{ address: AddressRow }>(`/api/addresses/${addressId}`, payload);
+        ? this.addressesApi.create<{ address: AddressRow }>(payload)
+        : this.addressesApi.update<{ address: AddressRow }>(addressId, payload);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: () => {
-          this.submitting.set(false);
-          const created = addressId === null;
-          this.toastr.success(created ? 'Address created.' : 'Address updated.');
-          void this.router.navigateByUrl('/app/addresses');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.submitting.set(false);
-          const message = this.firstError(err) ?? 'Could not save address';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    request$.subscribe({
+      next: () => {
+        this.submitting.set(false);
+        const created = addressId === null;
+        this.toastr.success(created ? 'Address created.' : 'Address updated.');
+        void this.router.navigateByUrl('/app/addresses');
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.submitting.set(false);
+        const message = this.firstError(err) ?? 'Could not save address';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   private refreshZoneSuggestions(query: string): void {

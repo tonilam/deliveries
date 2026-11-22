@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,9 +9,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
-
-import { AuthService } from '../../../core/auth/auth.service';
+import { NetworkApiService } from '../../../core/network/network-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import {
   normalizeBusinessName,
@@ -52,8 +49,7 @@ const DEFAULT_GST_PERCENT = 10;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class NetworkCompanyForm implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly networkApi = inject(NetworkApiService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -140,7 +136,7 @@ export class NetworkCompanyForm implements OnInit {
 
   ngOnInit(): void {
     this.loading.set(true);
-    this.http.get<{ countries: Country[] }>('/api/countries').subscribe({
+    this.networkApi.getCountries().subscribe({
       next: ({ countries }) => {
         this.countries.set(countries);
         this.loadCompanyIfEditing();
@@ -171,7 +167,7 @@ export class NetworkCompanyForm implements OnInit {
       this.activeTab.set('finance');
     }
 
-    this.http.get<{ company: Company }>(`/api/network/companies/${id}`).subscribe({
+    this.networkApi.get(id).subscribe({
       next: ({ company }) => {
         this.patchCompany(company);
         this.loading.set(false);
@@ -227,16 +223,11 @@ export class NetworkCompanyForm implements OnInit {
 
     this.financeSubmitting.set(true);
     this.error.set(null);
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.put<{ company: Company }>(`/api/network/companies/${id}`, {
-            section: 'finance',
-            ...finance,
-          }),
-        ),
-      )
+    this.networkApi
+      .update(id, {
+        section: 'finance',
+        ...finance,
+      })
       .subscribe({
         next: ({ company }) => {
           this.patchFinance(company);
@@ -289,21 +280,11 @@ export class NetworkCompanyForm implements OnInit {
     };
     const request$ =
       id === null
-        ? this.auth.ensureCsrf().pipe(
-            switchMap(() =>
-              this.http.post<{ company: Company }>('/api/network/companies', {
-                ...detailsBody,
-                network_type: this.networkApiType(),
-              }),
-            ),
-          )
-        : this.auth
-            .ensureCsrf()
-            .pipe(
-              switchMap(() =>
-                this.http.put<{ company: Company }>(`/api/network/companies/${id}`, detailsBody),
-              ),
-            );
+        ? this.networkApi.create({
+            ...detailsBody,
+            network_type: this.networkApiType(),
+          })
+        : this.networkApi.update(id, detailsBody);
 
     request$.subscribe({
       next: ({ company }) => {
@@ -459,38 +440,31 @@ export class NetworkCompanyForm implements OnInit {
       body['company_id'] = companyId;
     }
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.post<UniquenessCheckResponse>('/api/network/companies/check-uniqueness', body),
-        ),
-      )
-      .subscribe({
-        next: (result) => {
-          if (!this.isCurrentCheck(generation)) {
-            return;
-          }
-          this.fieldChecks.set({
-            business_name: this.toFieldCheck(result.fields.business_name),
-            reg_number: this.toFieldCheck(result.fields.reg_number),
-            allowed_domains: this.toFieldCheck(result.fields.allowed_domains),
-          });
-          this.checking.set(false);
-        },
-        error: () => {
-          if (!this.isCurrentCheck(generation)) {
-            return;
-          }
-          this.checking.set(false);
-          this.checkError.set('Unable to verify uniqueness. Please try again.');
-          this.fieldChecks.set({
-            business_name: { status: 'error', message: null },
-            reg_number: { status: 'error', message: null },
-            allowed_domains: { status: 'error', message: null },
-          });
-        },
-      });
+    this.networkApi.checkUniqueness<UniquenessCheckResponse>(body).subscribe({
+      next: (result) => {
+        if (!this.isCurrentCheck(generation)) {
+          return;
+        }
+        this.fieldChecks.set({
+          business_name: this.toFieldCheck(result.fields.business_name),
+          reg_number: this.toFieldCheck(result.fields.reg_number),
+          allowed_domains: this.toFieldCheck(result.fields.allowed_domains),
+        });
+        this.checking.set(false);
+      },
+      error: () => {
+        if (!this.isCurrentCheck(generation)) {
+          return;
+        }
+        this.checking.set(false);
+        this.checkError.set('Unable to verify uniqueness. Please try again.');
+        this.fieldChecks.set({
+          business_name: { status: 'error', message: null },
+          reg_number: { status: 'error', message: null },
+          allowed_domains: { status: 'error', message: null },
+        });
+      },
+    });
   }
 
   private isCurrentCheck(generation: number): boolean {

@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,9 +11,10 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { forkJoin, of, switchMap } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { AddressesApiService } from '../../../core/addresses/addresses-api.service';
+import { RateCardsApiService } from '../../../core/rate-cards/rate-cards-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 import {
@@ -84,8 +85,8 @@ const ZONE_SUGGESTION_LIMIT = 200;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerRateCardForm implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly rateCardsApi = inject(RateCardsApiService);
+  private readonly addressesApi = inject(AddressesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -156,9 +157,9 @@ export class CustomerRateCardForm implements OnInit {
 
     const rateCardId = this.rateCardId();
     forkJoin({
-      zones: this.http.get<{ zones: ZoneOption[] }>('/api/addresses/zone-options'),
+      zones: this.addressesApi.getZoneOptions<{ zones: ZoneOption[] }>(),
       rateCard: rateCardId
-        ? this.http.get<{ rate_card: RateCardDetail }>(`/api/rate-cards/${rateCardId}`)
+        ? this.rateCardsApi.get<{ rate_card: RateCardDetail }>(rateCardId)
         : of(null),
     }).subscribe({
       next: ({ zones, rateCard }) => {
@@ -490,27 +491,24 @@ export class CustomerRateCardForm implements OnInit {
     const rateCardId = this.rateCardId();
     const request$ =
       rateCardId === null
-        ? this.http.post('/api/rate-cards', payload)
-        : this.http.put(`/api/rate-cards/${rateCardId}`, payload);
+        ? this.rateCardsApi.create(payload)
+        : this.rateCardsApi.update(rateCardId, payload);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: () => {
-          this.submitting.set(false);
-          this.toastr.success(
-            this.rateCardId() === null ? 'Rate card created.' : 'Rate card updated.',
-          );
-          void this.router.navigateByUrl('/app/rate-cards');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.submitting.set(false);
-          const message = this.firstError(err) ?? 'Could not save rate card';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    request$.subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.toastr.success(
+          this.rateCardId() === null ? 'Rate card created.' : 'Rate card updated.',
+        );
+        void this.router.navigateByUrl('/app/rate-cards');
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.submitting.set(false);
+        const message = this.firstError(err) ?? 'Could not save rate card';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   private buildZoneRatesPayload():
@@ -705,8 +703,8 @@ export class CustomerRateCardForm implements OnInit {
     const userType = this.form.controls.user_type.value;
     const params = new HttpParams().set('q', query).set('user_type', userType);
 
-    this.http
-      .get<{ companies: CompanyOption[] }>('/api/rate-cards/company-options', { params })
+    this.rateCardsApi
+      .getCompanyOptions<{ companies: CompanyOption[] }>(params)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ companies }) => {

@@ -1,12 +1,10 @@
-import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
 
-import { AuthService } from '../../../../core/auth/auth.service';
+import { AdminGoodTypesApiService } from '../../../../core/admin/admin-good-types-api.service';
 import { ToastrService } from '../../../../core/feedback/toastr.service';
-import { GoodType, GoodTypePayload } from '../../../../core/good-type/good-type.model';
+import { GoodTypePayload } from '../../../../core/good-type/good-type.model';
 
 @Component({
   selector: 'app-admin-good-form',
@@ -16,8 +14,7 @@ import { GoodType, GoodTypePayload } from '../../../../core/good-type/good-type.
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminGoodForm {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly goodTypesApi = inject(AdminGoodTypesApiService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly toastr = inject(ToastrService);
@@ -54,24 +51,19 @@ export class AdminGoodForm {
       refrigerated_required: this.form.controls.refrigerated_required.value,
     };
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() => this.http.post<{ good_type: GoodType }>('/api/admin/good-types', payload)),
-      )
-      .subscribe({
-        next: () => {
-          this.submitting.set(false);
-          this.toastr.success('Goods type created.');
-          void this.router.navigateByUrl('/admin/settings/goods');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.submitting.set(false);
-          const message = this.firstError(err) ?? 'Could not save goods type';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.goodTypesApi.create(payload).subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.toastr.success('Goods type created.');
+        void this.router.navigateByUrl('/admin/settings/goods');
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.submitting.set(false);
+        const message = this.firstError(err) ?? 'Could not save goods type';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   private firstError(err: {

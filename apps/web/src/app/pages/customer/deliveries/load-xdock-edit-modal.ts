@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,9 +11,9 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { catchError, debounceTime, of, Subject, switchMap } from 'rxjs';
+import { catchError, debounceTime, of, Subject } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { LoadsApiService } from '../../../core/loads/loads-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 import { LoadActivityPanel } from './load-activity-panel';
@@ -67,8 +67,7 @@ const emptyPicker = (): PickerState => ({
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoadXDockEditModal {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly loadsApi = inject(LoadsApiService);
   private readonly toastr = inject(ToastrService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
@@ -248,24 +247,21 @@ export class LoadXDockEditModal {
     this.submitting.set(true);
     this.error.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.put<{ load: LoadRow }>(`/api/loads/${loadId}`, payload)))
-      .subscribe({
-        next: (res) => {
-          this.submitting.set(false);
-          this.activityRefresh.update((n) => n + 1);
-          this.toastr.success('X Dock load updated.');
-          this.saved.emit(res.load);
-          this.closed.emit();
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.submitting.set(false);
-          const message = this.firstError(err) ?? 'Unable to update X Dock load.';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.loadsApi.update(loadId, payload).subscribe({
+      next: (res) => {
+        this.submitting.set(false);
+        this.activityRefresh.update((n) => n + 1);
+        this.toastr.success('X Dock load updated.');
+        this.saved.emit(res.load);
+        this.closed.emit();
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.submitting.set(false);
+        const message = this.firstError(err) ?? 'Unable to update X Dock load.';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   private addressControl(field: AddressField) {
@@ -296,8 +292,8 @@ export class LoadXDockEditModal {
           params = params.set('q', trimmed);
         }
 
-        this.http
-          .get<{ companies: PartyOption[] }>('/api/loads/party-options', { params })
+        this.loadsApi
+          .getPartyOptions<{ companies: PartyOption[] }>(params)
           .pipe(catchError(() => of({ companies: [] })))
           .subscribe((res) => {
             if (generation !== this.partySearchGeneration) {
@@ -327,8 +323,8 @@ export class LoadXDockEditModal {
           params = params.set('q', trimmed);
         }
 
-        this.http
-          .get<{ addresses: AddressOption[] }>('/api/loads/address-options', { params })
+        this.loadsApi
+          .getAddressOptions<{ addresses: AddressOption[] }>(params)
           .pipe(catchError(() => of({ addresses: [] })))
           .subscribe((res) => {
             if (generation !== this.addressSearchGeneration) {

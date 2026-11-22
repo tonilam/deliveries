@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -20,6 +20,7 @@ import {
 } from 'ag-grid-community';
 import { catchError, of } from 'rxjs';
 
+import { ItemsApiService } from '../../../core/items/items-api.service';
 import { displayUnitLabel, formatWeightForDisplay, ItemRow } from './item-format';
 import {
   isLoadChildItemDetailRow,
@@ -135,7 +136,7 @@ function detailMeta(
 export class LoadItemsFullWidth implements ICellRendererAngularComp {
   readonly hostParams = input<Params | null>(null);
 
-  private readonly http = inject(HttpClient);
+  private readonly itemsApi = inject(ItemsApiService);
   private readonly panelRef = viewChild<ElementRef<HTMLElement>>('panel');
 
   protected readonly theme = themeQuartz;
@@ -255,8 +256,8 @@ export class LoadItemsFullWidth implements ICellRendererAngularComp {
       .set('sort', 'good_type')
       .set('direction', 'asc');
 
-    this.http
-      .get<ItemsListResponse>('/api/items', { params })
+    this.itemsApi
+      .list<ItemsListResponse>(params)
       .pipe(catchError(() => of(null)))
       .subscribe((res) => {
         if (generation !== this.fetchGeneration) {

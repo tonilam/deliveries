@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -16,6 +15,7 @@ import * as L from 'leaflet';
 import { HeatLayer } from 'leaflet.heat';
 import { catchError, of } from 'rxjs';
 
+import { DashboardApiService } from '../../../core/dashboard/dashboard-api.service';
 import { stateCentroid } from './state-centroids';
 
 export interface AdminDashboardResponse {
@@ -48,7 +48,7 @@ const AU_NZ_FIT_OPTIONS: L.FitBoundsOptions = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminHome implements OnDestroy {
-  private readonly http = inject(HttpClient);
+  private readonly dashboardApi = inject(DashboardApiService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   private readonly loadsChartRef = viewChild<ElementRef<HTMLCanvasElement>>('loadsChart');
@@ -104,8 +104,8 @@ export class AdminHome implements OnDestroy {
       }
     });
 
-    this.http
-      .get<AdminDashboardResponse>('/api/admin/dashboard')
+    this.dashboardApi
+      .getAdminDashboard()
       .pipe(catchError(() => of(null)))
       .subscribe((data) => {
         this.loading.set(false);

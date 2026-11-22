@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,9 +11,10 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { catchError, debounceTime, forkJoin, of, Subject, switchMap } from 'rxjs';
+import { catchError, debounceTime, forkJoin, of, Subject } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { LoadsApiService } from '../../../core/loads/loads-api.service';
+import { VehiclesApiService } from '../../../core/vehicles/vehicles-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { LoadScheduleFields } from './load-schedule-fields';
 import { loadScheduleControls, loadScheduleOrderValidator } from './load-schedule';
@@ -77,8 +78,8 @@ const emptyPicker = (): PickerState => ({
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerLoadForm implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly loadsApi = inject(LoadsApiService);
+  private readonly vehiclesApi = inject(VehiclesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -229,16 +230,12 @@ export class CustomerLoadForm implements OnInit {
     }
 
     const loadId = this.loadId();
-    const load$ = loadId
-      ? this.http.get<{ load: LoadRow; own_company_type: OwnerCompanyType }>(`/api/loads/${loadId}`)
-      : of(null);
+    const load$ = loadId ? this.loadsApi.getWithOwnerType(loadId) : of(null);
     const meta$ = loadId
       ? of(null)
-      : this.http.get<{ meta: { own_company_type?: OwnerCompanyType } }>('/api/loads', {
-          params: new HttpParams().set('page', '1').set('per_page', '10'),
-        });
-    const bodyTypes$ = this.http
-      .get<{ vehicle_body_types: VehicleBodyTypeOptionRow[] }>('/api/vehicles/body-type-options')
+      : this.loadsApi.getOwnerTypeMeta(new HttpParams().set('page', '1').set('per_page', '10'));
+    const bodyTypes$ = this.vehiclesApi
+      .getBodyTypeOptions()
       .pipe(catchError(() => of({ vehicle_body_types: [] as VehicleBodyTypeOptionRow[] })));
 
     forkJoin({ meta: meta$, load: load$, bodyTypes: bodyTypes$ }).subscribe({
@@ -507,33 +504,28 @@ export class CustomerLoadForm implements OnInit {
     const payload = this.isChildEdit() ? this.childEditPayload() : this.directLoadPayload();
 
     const request$ =
-      id === null
-        ? this.http.post<{ load: LoadRow }>('/api/loads', payload)
-        : this.http.put<{ load: LoadRow }>(`/api/loads/${id}`, payload);
+      id === null ? this.loadsApi.create(payload) : this.loadsApi.update(id, payload);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: (res) => {
-          this.submitting.set(false);
-          this.toastr.success(id === null ? 'Load created.' : 'Load updated.');
-          if (id === null) {
-            void this.router.navigate(['/app/deliveries', res.load.id, 'edit']);
-          } else {
-            this.activityRefresh.update((n) => n + 1);
-            if (res.load.type === 'direct') {
-              this.children.set(res.load.children ?? []);
-            }
+    request$.subscribe({
+      next: (res) => {
+        this.submitting.set(false);
+        this.toastr.success(id === null ? 'Load created.' : 'Load updated.');
+        if (id === null) {
+          void this.router.navigate(['/app/deliveries', res.load.id, 'edit']);
+        } else {
+          this.activityRefresh.update((n) => n + 1);
+          if (res.load.type === 'direct') {
+            this.children.set(res.load.children ?? []);
           }
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          const message = this.firstError(err) ?? 'Unable to save load.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.submitting.set(false);
-        },
-      });
+        }
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        const message = this.firstError(err) ?? 'Unable to save load.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.submitting.set(false);
+      },
+    });
   }
 
   protected openXDockEdit(child: LoadRow): void {
@@ -637,44 +629,37 @@ export class CustomerLoadForm implements OnInit {
             ...this.schedulePayload(childForm),
           };
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.post<{ load: LoadRow }>(`/api/loads/${parentId}/children`, payload),
-        ),
-      )
-      .subscribe({
-        next: () => {
-          this.childSubmitting.set(false);
-          this.toastr.success('Child load created.');
-          if (type === 'add_drop') {
-            this.addDropForm.reset({ pallet_count: 1, delivery_address_id: null });
-            this.updateAddressPicker('add_drop_delivery', emptyPicker());
-          } else {
-            this.xDockForm.reset({
-              pallet_count: 1,
-              delivery_address_id: null,
-              xdock_address_id: null,
-              secondary_provider_company_id: null,
-            });
-            this.updateAddressPicker('x_dock_delivery', emptyPicker());
-            this.updateAddressPicker('x_dock_xdock', emptyPicker());
-            this.updatePartyPicker('x_dock_secondary', emptyPicker());
-          }
-          this.refreshDirectLoad(parentId);
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          const message = this.firstError(err) ?? 'Unable to create child load.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.childSubmitting.set(false);
-        },
-      });
+    this.loadsApi.createChild(parentId, payload).subscribe({
+      next: () => {
+        this.childSubmitting.set(false);
+        this.toastr.success('Child load created.');
+        if (type === 'add_drop') {
+          this.addDropForm.reset({ pallet_count: 1, delivery_address_id: null });
+          this.updateAddressPicker('add_drop_delivery', emptyPicker());
+        } else {
+          this.xDockForm.reset({
+            pallet_count: 1,
+            delivery_address_id: null,
+            xdock_address_id: null,
+            secondary_provider_company_id: null,
+          });
+          this.updateAddressPicker('x_dock_delivery', emptyPicker());
+          this.updateAddressPicker('x_dock_xdock', emptyPicker());
+          this.updatePartyPicker('x_dock_secondary', emptyPicker());
+        }
+        this.refreshDirectLoad(parentId);
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        const message = this.firstError(err) ?? 'Unable to create child load.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.childSubmitting.set(false);
+      },
+    });
   }
 
   private refreshDirectLoad(id: number): void {
-    this.http.get<{ load: LoadRow }>(`/api/loads/${id}`).subscribe({
+    this.loadsApi.get(id).subscribe({
       next: (res) => {
         this.children.set(res.load.children ?? []);
       },
@@ -730,8 +715,8 @@ export class CustomerLoadForm implements OnInit {
           params = params.set('q', trimmed);
         }
 
-        this.http
-          .get<{ companies: PartyOption[] }>('/api/loads/party-options', { params })
+        this.loadsApi
+          .getPartyOptions<{ companies: PartyOption[] }>(params)
           .pipe(catchError(() => of({ companies: [] })))
           .subscribe((res) => {
             if (generation !== this.partySearchGeneration) {
@@ -763,8 +748,8 @@ export class CustomerLoadForm implements OnInit {
           params = params.set('q', trimmed);
         }
 
-        this.http
-          .get<{ addresses: AddressOption[] }>('/api/loads/address-options', { params })
+        this.loadsApi
+          .getAddressOptions<{ addresses: AddressOption[] }>(params)
           .pipe(catchError(() => of({ addresses: [] })))
           .subscribe((res) => {
             if (generation !== this.addressSearchGeneration) {

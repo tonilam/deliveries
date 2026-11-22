@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -28,7 +28,7 @@ import {
   DataListColumn,
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
-import { AuthService } from '../../../core/auth/auth.service';
+import { AddressesApiService } from '../../../core/addresses/addresses-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import {
   AddressActionItem,
@@ -143,8 +143,7 @@ function postcodeAsNumber(postcode: string | undefined | null): number | null {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerAddresses implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly addressesApi = inject(AddressesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
@@ -309,24 +308,20 @@ export class CustomerAddresses implements OnInit {
           this.error.set(null);
         }),
         switchMap(() => {
-          return this.http
-            .get<AddressesListResponse>('/api/addresses', {
-              params: this.buildParams(),
-            })
-            .pipe(
-              catchError(() => {
-                const lastGood = this.meta();
-                if (lastGood) {
-                  this.page.set(lastGood.current_page);
-                  if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
-                    this.pageSize.set(lastGood.per_page as PageSize);
-                  }
+          return this.addressesApi.list<AddressesListResponse>(this.buildParams()).pipe(
+            catchError(() => {
+              const lastGood = this.meta();
+              if (lastGood) {
+                this.page.set(lastGood.current_page);
+                if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
+                  this.pageSize.set(lastGood.per_page as PageSize);
                 }
-                this.error.set('Unable to load addresses. Please try again.');
-                this.loading.set(false);
-                return of(null);
-              }),
-            );
+              }
+              this.error.set('Unable to load addresses. Please try again.');
+              this.loading.set(false);
+              return of(null);
+            }),
+          );
         }),
       )
       .subscribe((res) => {
@@ -462,28 +457,25 @@ export class CustomerAddresses implements OnInit {
     this.deleting.set(true);
     this.error.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.delete(`/api/addresses/${pending.id}`)))
-      .subscribe({
-        next: () => {
-          const remaining = this.addresses().filter((address) => address.id !== pending.id);
-          this.addresses.set(remaining);
-          this.pendingDelete.set(null);
-          this.deleting.set(false);
-          if (remaining.length === 0 && this.page() > 1) {
-            this.page.set(this.page() - 1);
-          }
-          this.loadAddresses();
-          this.toastr.success('Address deleted.');
-        },
-        error: () => {
-          const message = 'Unable to delete address. Please try again.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.deleting.set(false);
-        },
-      });
+    this.addressesApi.delete(pending.id).subscribe({
+      next: () => {
+        const remaining = this.addresses().filter((address) => address.id !== pending.id);
+        this.addresses.set(remaining);
+        this.pendingDelete.set(null);
+        this.deleting.set(false);
+        if (remaining.length === 0 && this.page() > 1) {
+          this.page.set(this.page() - 1);
+        }
+        this.loadAddresses();
+        this.toastr.success('Address deleted.');
+      },
+      error: () => {
+        const message = 'Unable to delete address. Please try again.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.deleting.set(false);
+      },
+    });
   }
 
   protected goToPage(nextPage: number): void {

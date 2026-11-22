@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -10,6 +10,8 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, catchError, of, switchMap } from 'rxjs';
+
+import { LoadsApiService } from '../../../core/loads/loads-api.service';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 200] as const;
 
@@ -58,7 +60,7 @@ interface ActivityListResponse {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoadActivityPanel {
-  private readonly http = inject(HttpClient);
+  private readonly loadsApi = inject(LoadsApiService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly loadId = input.required<number>();
@@ -91,8 +93,8 @@ export class LoadActivityPanel {
             .set('page', String(page))
             .set('per_page', String(perPage));
 
-          return this.http
-            .get<ActivityListResponse>(`/api/loads/${loadId}/activity`, { params })
+          return this.loadsApi
+            .getActivity<ActivityListResponse>(loadId, params)
             .pipe(catchError(() => of(null)));
         }),
         takeUntilDestroyed(this.destroyRef),

@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,11 +8,10 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
 
-import { AuthService } from '../../../../core/auth/auth.service';
+import { AdminCountriesApiService } from '../../../../core/admin/admin-countries-api.service';
 import { ToastrService } from '../../../../core/feedback/toastr.service';
-import { Country, CountryState, CountryStatePayload } from '../../../../core/country/country.model';
+import { CountryStatePayload } from '../../../../core/country/country.model';
 
 @Component({
   selector: 'app-admin-state-form',
@@ -23,8 +21,7 @@ import { Country, CountryState, CountryStatePayload } from '../../../../core/cou
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminStateForm implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly countriesApi = inject(AdminCountriesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -57,7 +54,7 @@ export class AdminStateForm implements OnInit {
     this.countryId.set(countryId);
     this.loading.set(true);
 
-    this.http.get<{ country: Country }>(`/api/admin/countries/${countryId}`).subscribe({
+    this.countriesApi.get(countryId).subscribe({
       next: (res) => {
         this.countryName.set(res.country.name);
 
@@ -110,31 +107,22 @@ export class AdminStateForm implements OnInit {
     const stateId = this.stateId();
     const request$ =
       stateId === null
-        ? this.http.post<{ state: CountryState }>(
-            `/api/admin/countries/${countryId}/states`,
-            payload,
-          )
-        : this.http.put<{ state: CountryState }>(
-            `/api/admin/countries/${countryId}/states/${stateId}`,
-            payload,
-          );
+        ? this.countriesApi.createState(countryId, payload)
+        : this.countriesApi.updateState(countryId, stateId, payload);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: () => {
-          this.submitting.set(false);
-          this.toastr.success(this.stateId() === null ? 'State created.' : 'State updated.');
-          void this.router.navigateByUrl('/admin/settings/countries');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.submitting.set(false);
-          const message = this.firstError(err) ?? 'Could not save state';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    request$.subscribe({
+      next: () => {
+        this.submitting.set(false);
+        this.toastr.success(this.stateId() === null ? 'State created.' : 'State updated.');
+        void this.router.navigateByUrl('/admin/settings/countries');
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.submitting.set(false);
+        const message = this.firstError(err) ?? 'Could not save state';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   private firstError(err: {

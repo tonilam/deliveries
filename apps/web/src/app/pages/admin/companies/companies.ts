@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -25,6 +25,7 @@ import {
   DataListColumn,
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
+import { AdminCompaniesApiService } from '../../../core/admin/admin-companies-api.service';
 import { Company } from '../../../core/company/company.model';
 import {
   CompanyActionItem,
@@ -86,7 +87,7 @@ const serverSideTextFilterParams: ITextFilterParams = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminCompanies implements OnInit {
-  private readonly http = inject(HttpClient);
+  private readonly companiesApi = inject(AdminCompaniesApiService);
   private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
   private gridApi: GridApi<Company> | null = null;
@@ -253,24 +254,20 @@ export class AdminCompanies implements OnInit {
           this.error.set(null);
         }),
         switchMap(() => {
-          return this.http
-            .get<CompaniesListResponse>('/api/admin/companies', {
-              params: this.buildParams(),
-            })
-            .pipe(
-              catchError(() => {
-                const lastGood = this.meta();
-                if (lastGood) {
-                  this.page.set(lastGood.current_page);
-                  if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
-                    this.pageSize.set(lastGood.per_page as PageSize);
-                  }
+          return this.companiesApi.list<CompaniesListResponse>(this.buildParams()).pipe(
+            catchError(() => {
+              const lastGood = this.meta();
+              if (lastGood) {
+                this.page.set(lastGood.current_page);
+                if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
+                  this.pageSize.set(lastGood.per_page as PageSize);
                 }
-                this.error.set('Unable to load companies. Please try again.');
-                this.loading.set(false);
-                return of(null);
-              }),
-            );
+              }
+              this.error.set('Unable to load companies. Please try again.');
+              this.loading.set(false);
+              return of(null);
+            }),
+          );
         }),
       )
       .subscribe((res) => {

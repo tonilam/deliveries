@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,9 +8,7 @@ import {
 } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
-
-import { AuthService } from '../../../core/auth/auth.service';
+import { AdminUsersApiService } from '../../../core/admin/admin-users-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { UserRole } from '../../../core/auth/user.model';
 
@@ -32,8 +29,7 @@ interface ManagedUserDetail {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminResetPassword implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly usersApi = inject(AdminUsersApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -69,7 +65,7 @@ export class AdminResetPassword implements OnInit {
       return;
     }
 
-    this.http.get<{ user: ManagedUserDetail }>(`/api/admin/users/${id}`).subscribe({
+    this.usersApi.get<{ user: ManagedUserDetail }>(Number(id)).subscribe({
       next: (res) => {
         this.user.set(res.user);
         this.loading.set(false);
@@ -111,17 +107,12 @@ export class AdminResetPassword implements OnInit {
     this.notice.set(null);
 
     const raw = this.form.getRawValue();
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.put<{ message: string }>(`/api/admin/users/${u.id}/password`, {
-            password: raw.password,
-            password_confirmation: raw.password_confirmation,
-            must_change_password: raw.must_change_password,
-          }),
-        ),
-      )
+    this.usersApi
+      .updatePassword(u.id, {
+        password: raw.password,
+        password_confirmation: raw.password_confirmation,
+        must_change_password: raw.must_change_password,
+      })
       .subscribe({
         next: () => {
           this.settingPassword.set(false);
@@ -153,27 +144,20 @@ export class AdminResetPassword implements OnInit {
     this.error.set(null);
     this.notice.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.post<{ email: string }>(`/api/admin/users/${u.id}/password-reset`, {}),
-        ),
-      )
-      .subscribe({
-        next: (res) => {
-          this.sendingEmail.set(false);
-          const message = `Password reset email sent to ${res.email}.`;
-          this.notice.set(message);
-          this.toastr.success(message);
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.sendingEmail.set(false);
-          const message = this.firstError(err) ?? 'Could not send reset email';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.usersApi.sendPasswordReset(u.id).subscribe({
+      next: (res) => {
+        this.sendingEmail.set(false);
+        const message = `Password reset email sent to ${res.email}.`;
+        this.notice.set(message);
+        this.toastr.success(message);
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.sendingEmail.set(false);
+        const message = this.firstError(err) ?? 'Could not send reset email';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   private firstError(err: {

@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -17,9 +16,7 @@ import {
   ModuleRegistry,
   themeQuartz,
 } from 'ag-grid-community';
-import { switchMap } from 'rxjs';
-
-import { AuthService } from '../../../../core/auth/auth.service';
+import { AdminCountriesApiService } from '../../../../core/admin/admin-countries-api.service';
 import { ToastrService } from '../../../../core/feedback/toastr.service';
 import { Country, CountryState } from '../../../../core/country/country.model';
 import {
@@ -45,8 +42,7 @@ type PendingDelete =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminCountries implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly countriesApi = inject(AdminCountriesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
 
@@ -194,30 +190,27 @@ export class AdminCountries implements OnInit {
 
     const request$ =
       pending.kind === 'country'
-        ? this.http.delete(`/api/admin/countries/${pending.country.id}`)
-        : this.http.delete(`/api/admin/countries/${pending.country.id}/states/${pending.state.id}`);
+        ? this.countriesApi.deleteCountry(pending.country.id)
+        : this.countriesApi.deleteState(pending.country.id, pending.state.id);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: () => {
-          this.pending.set(null);
-          this.deleting.set(false);
-          this.loadCountries();
-          const label = pending.kind === 'country' ? 'Country' : 'State';
-          this.toastr.success(`${label} deleted.`);
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          const message =
-            err.error?.errors?.['country']?.[0] ??
-            err.error?.message ??
-            'Unable to delete. Please try again.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.deleting.set(false);
-        },
-      });
+    request$.subscribe({
+      next: () => {
+        this.pending.set(null);
+        this.deleting.set(false);
+        this.loadCountries();
+        const label = pending.kind === 'country' ? 'Country' : 'State';
+        this.toastr.success(`${label} deleted.`);
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        const message =
+          err.error?.errors?.['country']?.[0] ??
+          err.error?.message ??
+          'Unable to delete. Please try again.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.deleting.set(false);
+      },
+    });
   }
 
   protected confirmMessage(pending: PendingDelete): string {
@@ -256,7 +249,7 @@ export class AdminCountries implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.http.get<{ countries: Country[] }>('/api/admin/countries').subscribe({
+    this.countriesApi.list().subscribe({
       next: (res) => {
         this.countries.set(res.countries);
         this.loading.set(false);

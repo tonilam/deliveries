@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -24,7 +24,7 @@ import {
   TextFilterModel,
   themeQuartz,
 } from 'ag-grid-community';
-import { AuthService } from '../../../core/auth/auth.service';
+import { NetworkApiService } from '../../../core/network/network-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { Company, CompanyType } from '../../../core/company/company.model';
 import { createCompactViewportSignal } from '../../../shared/compact-viewport';
@@ -89,8 +89,7 @@ const serverSideTextFilterParams: ITextFilterParams = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerNetwork implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly networkApi = inject(NetworkApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -257,22 +256,20 @@ export class CustomerNetwork implements OnInit {
           this.error.set(null);
         }),
         switchMap(() =>
-          this.http
-            .get<NetworkListResponse>('/api/network/companies', { params: this.buildParams() })
-            .pipe(
-              catchError(() => {
-                const lastGood = this.meta();
-                if (lastGood) {
-                  this.page.set(lastGood.current_page);
-                  if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
-                    this.pageSize.set(lastGood.per_page as PageSize);
-                  }
+          this.networkApi.list<NetworkListResponse>(this.buildParams()).pipe(
+            catchError(() => {
+              const lastGood = this.meta();
+              if (lastGood) {
+                this.page.set(lastGood.current_page);
+                if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
+                  this.pageSize.set(lastGood.per_page as PageSize);
                 }
-                this.error.set('Unable to load network companies. Please try again.');
-                this.loading.set(false);
-                return of(null);
-              }),
-            ),
+              }
+              this.error.set('Unable to load network companies. Please try again.');
+              this.loading.set(false);
+              return of(null);
+            }),
+          ),
         ),
       )
       .subscribe((res) => {
@@ -418,24 +415,21 @@ export class CustomerNetwork implements OnInit {
     this.deleting.set(true);
     this.error.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.delete(`/api/network/companies/${target.id}`)))
-      .subscribe({
-        next: () => {
-          this.toastr.success('Company removed from network.');
-          this.deleting.set(false);
-          this.deleteTarget.set(null);
-          this.loadCompanies();
-        },
-        error: (err: { error?: { message?: string } }) => {
-          this.deleting.set(false);
-          const message = err.error?.message ?? 'Could not delete company.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.deleteTarget.set(null);
-        },
-      });
+    this.networkApi.delete(target.id).subscribe({
+      next: () => {
+        this.toastr.success('Company removed from network.');
+        this.deleting.set(false);
+        this.deleteTarget.set(null);
+        this.loadCompanies();
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.deleting.set(false);
+        const message = err.error?.message ?? 'Could not delete company.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.deleteTarget.set(null);
+      },
+    });
   }
 
   private actionsFor(data: CompanyActionsCellRow): CompanyActionItem[] {

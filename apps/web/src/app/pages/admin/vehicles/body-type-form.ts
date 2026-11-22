@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,13 +8,10 @@ import {
 } from '@angular/core';
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { switchMap } from 'rxjs';
-
-import { AuthService } from '../../../core/auth/auth.service';
+import { AdminVehiclesApiService } from '../../../core/admin/admin-vehicles-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import {
   VEHICLE_CAPACITY_UNITS,
-  VehicleBodyType,
   VehicleBodyTypeOption,
   VehicleOptionDataType,
   VehicleOptionVisibility,
@@ -29,8 +25,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminVehicleBodyTypeForm implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly vehiclesApi = inject(AdminVehiclesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -93,32 +88,28 @@ export class AdminVehicleBodyTypeForm implements OnInit {
     this.bodyTypeId.set(bodyTypeId);
     this.loading.set(true);
 
-    this.http
-      .get<{ vehicle_body_type: VehicleBodyType }>(
-        `/api/admin/vehicle-categories/${categoryId}/body-types/${bodyTypeId}`,
-      )
-      .subscribe({
-        next: (res) => {
-          const row = res.vehicle_body_type;
-          this.form.patchValue({
-            name: row.name,
-            code: row.code,
-            capacity: row.capacity,
-            capacity_unit: row.capacity_unit,
-            pallet_spaces: row.pallet_spaces,
-            cubic_metres: row.cubic_metres,
-            payload_kg: row.payload_kg,
-            description: row.description ?? '',
-          });
-          this.options.set(row.options ?? []);
-          this.syncOptionValueControls(row.options ?? [], row.option_values ?? {});
-          this.loading.set(false);
-        },
-        error: () => {
-          this.error.set('Unable to load body type.');
-          this.loading.set(false);
-        },
-      });
+    this.vehiclesApi.getBodyType(categoryId, bodyTypeId).subscribe({
+      next: (res) => {
+        const row = res.vehicle_body_type;
+        this.form.patchValue({
+          name: row.name,
+          code: row.code,
+          capacity: row.capacity,
+          capacity_unit: row.capacity_unit,
+          pallet_spaces: row.pallet_spaces,
+          cubic_metres: row.cubic_metres,
+          payload_kg: row.payload_kg,
+          description: row.description ?? '',
+        });
+        this.options.set(row.options ?? []);
+        this.syncOptionValueControls(row.options ?? [], row.option_values ?? {});
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('Unable to load body type.');
+        this.loading.set(false);
+      },
+    });
   }
 
   protected openNewOption(): void {
@@ -162,29 +153,25 @@ export class AdminVehicleBodyTypeForm implements OnInit {
 
     const payload = this.optionForm.getRawValue();
     const editingId = this.editingOptionId();
-    const url = editingId
-      ? `/api/admin/vehicle-categories/${categoryId}/body-types/${bodyTypeId}/options/${editingId}`
-      : `/api/admin/vehicle-categories/${categoryId}/body-types/${bodyTypeId}/options`;
 
-    const request$ = editingId ? this.http.put(url, payload) : this.http.post(url, payload);
+    const request$ = editingId
+      ? this.vehiclesApi.updateBodyTypeOption(categoryId, bodyTypeId, editingId, payload)
+      : this.vehiclesApi.createBodyTypeOption(categoryId, bodyTypeId, payload);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: () => {
-          this.optionFormOpen.set(false);
-          this.reloadBodyType();
-          this.toastr.success(
-            editingId ? 'Option definition updated.' : 'Option definition created.',
-          );
-        },
-        error: (err: { error?: { errors?: Record<string, string[]> } }) => {
-          const message = err.error?.errors?.['key']?.[0] ?? 'Unable to save option definition.';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    request$.subscribe({
+      next: () => {
+        this.optionFormOpen.set(false);
+        this.reloadBodyType();
+        this.toastr.success(
+          editingId ? 'Option definition updated.' : 'Option definition created.',
+        );
+      },
+      error: (err: { error?: { errors?: Record<string, string[]> } }) => {
+        const message = err.error?.errors?.['key']?.[0] ?? 'Unable to save option definition.';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   protected deleteOption(option: VehicleBodyTypeOption): void {
@@ -194,26 +181,17 @@ export class AdminVehicleBodyTypeForm implements OnInit {
       return;
     }
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.delete(
-            `/api/admin/vehicle-categories/${categoryId}/body-types/${bodyTypeId}/options/${option.id}`,
-          ),
-        ),
-      )
-      .subscribe({
-        next: () => {
-          this.reloadBodyType();
-          this.toastr.success('Option definition deleted.');
-        },
-        error: () => {
-          const message = 'Unable to delete option.';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.vehiclesApi.deleteBodyTypeOption(categoryId, bodyTypeId, option.id).subscribe({
+      next: () => {
+        this.reloadBodyType();
+        this.toastr.success('Option definition deleted.');
+      },
+      error: () => {
+        const message = 'Unable to delete option.';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   protected submit(): void {
@@ -238,40 +216,31 @@ export class AdminVehicleBodyTypeForm implements OnInit {
 
     const bodyTypeId = this.bodyTypeId();
     const request$ = bodyTypeId
-      ? this.http.put<{ vehicle_body_type: VehicleBodyType }>(
-          `/api/admin/vehicle-categories/${categoryId}/body-types/${bodyTypeId}`,
-          payload,
-        )
-      : this.http.post<{ vehicle_body_type: VehicleBodyType }>(
-          `/api/admin/vehicle-categories/${categoryId}/body-types`,
-          payload,
-        );
+      ? this.vehiclesApi.updateBodyType(categoryId, bodyTypeId, payload)
+      : this.vehiclesApi.createBodyType(categoryId, payload);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: (res) => {
-          this.submitting.set(false);
-          if (!bodyTypeId && res.vehicle_body_type.id) {
-            this.bodyTypeId.set(res.vehicle_body_type.id);
-            this.options.set(res.vehicle_body_type.options ?? []);
-            this.syncOptionValueControls(
-              res.vehicle_body_type.options ?? [],
-              res.vehicle_body_type.option_values ?? {},
-            );
-          }
-          this.toastr.success(bodyTypeId ? 'Body type updated.' : 'Body type created.');
-        },
-        error: (err: { error?: { errors?: Record<string, string[]> } }) => {
-          const first =
-            err.error?.errors?.['option_values.mezzanine']?.[0] ?? err.error?.errors?.['code']?.[0];
-          const message = first ?? 'Unable to save body type.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.submitting.set(false);
-        },
-      });
+    request$.subscribe({
+      next: (res) => {
+        this.submitting.set(false);
+        if (!bodyTypeId && res.vehicle_body_type.id) {
+          this.bodyTypeId.set(res.vehicle_body_type.id);
+          this.options.set(res.vehicle_body_type.options ?? []);
+          this.syncOptionValueControls(
+            res.vehicle_body_type.options ?? [],
+            res.vehicle_body_type.option_values ?? {},
+          );
+        }
+        this.toastr.success(bodyTypeId ? 'Body type updated.' : 'Body type created.');
+      },
+      error: (err: { error?: { errors?: Record<string, string[]> } }) => {
+        const first =
+          err.error?.errors?.['option_values.mezzanine']?.[0] ?? err.error?.errors?.['code']?.[0];
+        const message = first ?? 'Unable to save body type.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.submitting.set(false);
+      },
+    });
   }
 
   private reloadBodyType(): void {
@@ -281,19 +250,15 @@ export class AdminVehicleBodyTypeForm implements OnInit {
       return;
     }
 
-    this.http
-      .get<{ vehicle_body_type: VehicleBodyType }>(
-        `/api/admin/vehicle-categories/${categoryId}/body-types/${bodyTypeId}`,
-      )
-      .subscribe({
-        next: (res) => {
-          this.options.set(res.vehicle_body_type.options ?? []);
-          this.syncOptionValueControls(
-            res.vehicle_body_type.options ?? [],
-            res.vehicle_body_type.option_values ?? {},
-          );
-        },
-      });
+    this.vehiclesApi.getBodyType(categoryId, bodyTypeId).subscribe({
+      next: (res) => {
+        this.options.set(res.vehicle_body_type.options ?? []);
+        this.syncOptionValueControls(
+          res.vehicle_body_type.options ?? [],
+          res.vehicle_body_type.option_values ?? {},
+        );
+      },
+    });
   }
 
   private syncOptionValueControls(

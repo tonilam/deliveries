@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,9 +13,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, debounceTime, distinctUntilChanged, map, of, Subject, switchMap } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { AdminCompaniesApiService } from '../../../core/admin/admin-companies-api.service';
+import { AdminUsersApiService } from '../../../core/admin/admin-users-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
-import { User, UserRole } from '../../../core/auth/user.model';
+import { UserRole } from '../../../core/auth/user.model';
 import { Company } from '../../../core/company/company.model';
 import { UiAutocompleteFieldComponent } from '../../../shared/ui/autocomplete-field/autocomplete-field';
 
@@ -33,8 +34,8 @@ const COMPANY_SEARCH_PAGE_SIZE = 200;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminCreateUser implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly usersApi = inject(AdminUsersApiService);
+  private readonly companiesApi = inject(AdminCompaniesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -329,21 +330,16 @@ export class AdminCreateUser implements OnInit {
     const companyId = raw.role === 'customer' ? raw.company_id : null;
 
     if (this.mode() === 'password') {
-      this.auth
-        .ensureCsrf()
-        .pipe(
-          switchMap(() =>
-            this.http.post<{ user: User }>('/api/admin/users', {
-              name: raw.name,
-              email: raw.email,
-              role: raw.role,
-              company_id: companyId,
-              password: raw.password,
-              password_confirmation: raw.password_confirmation,
-              must_change_password: raw.must_change_password,
-            }),
-          ),
-        )
+      this.usersApi
+        .create({
+          name: raw.name,
+          email: raw.email,
+          role: raw.role,
+          company_id: companyId,
+          password: raw.password,
+          password_confirmation: raw.password_confirmation,
+          must_change_password: raw.must_change_password,
+        })
         .subscribe({
           next: () => {
             this.submitting.set(false);
@@ -360,18 +356,13 @@ export class AdminCreateUser implements OnInit {
       return;
     }
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.post<{ message: string }>('/api/admin/invitations', {
-            name: raw.name,
-            email: raw.email,
-            role: raw.role,
-            company_id: companyId,
-          }),
-        ),
-      )
+    this.usersApi
+      .sendInvitation({
+        name: raw.name,
+        email: raw.email,
+        role: raw.role,
+        company_id: companyId,
+      })
       .subscribe({
         next: () => {
           this.submitting.set(false);
@@ -410,7 +401,7 @@ export class AdminCreateUser implements OnInit {
             .set('filter[business_name][type]', 'startsWith')
             .set('filter[business_name][filter]', query);
 
-          return this.http.get<{ companies: Company[] }>('/api/admin/companies', { params }).pipe(
+          return this.companiesApi.list<{ companies: Company[] }>(params).pipe(
             map((res) => ({ generation, companies: res.companies })),
             catchError(() => {
               if (generation === this.companySearchGeneration) {
@@ -442,8 +433,8 @@ export class AdminCreateUser implements OnInit {
 
   private loadLockedCompany(companyId: number): void {
     this.companiesLoading.set(true);
-    this.http
-      .get<{ company: Company }>(`/api/admin/companies/${companyId}`)
+    this.companiesApi
+      .get(companyId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ company }) => {

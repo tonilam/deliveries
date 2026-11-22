@@ -1,17 +1,18 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { debounceTime, distinctUntilChanged, switchMap, of, catchError } from 'rxjs';
 
 import { AuthService } from '../../core/auth/auth.service';
+import {
+  RegistrationApiService,
+  RegistrationCompanyChoice,
+} from '../../core/registration/registration-api.service';
 import { ToastrService } from '../../core/feedback/toastr.service';
 import { SsoProvider } from '../../core/auth/user.model';
 
-interface CompanyChoice {
-  id: number;
-  business_name: string;
-}
+type CompanyChoice = RegistrationCompanyChoice;
 
 @Component({
   selector: 'app-register',
@@ -23,7 +24,7 @@ interface CompanyChoice {
 export class Register implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly toastr = inject(ToastrService);
-  private readonly http = inject(HttpClient);
+  private readonly registrationApi = inject(RegistrationApiService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
@@ -67,18 +68,14 @@ export class Register implements OnInit {
             this.form.controls.company_id.updateValueAndValidity({ emitEvent: false });
             return of<{ companies: CompanyChoice[] }>({ companies: [] });
           }
-          return this.http
-            .get<{ companies: CompanyChoice[] }>('/api/registration/companies', {
-              params: { email: value },
-            })
-            .pipe(
-              catchError((err: HttpErrorResponse) => {
-                if (err.status === 429) {
-                  this.error.set('Too many lookups. Please wait a moment and try again.');
-                }
-                return of({ companies: [] as CompanyChoice[], lookupFailed: true });
-              }),
-            );
+          return this.registrationApi.companiesForEmail(value).pipe(
+            catchError((err: HttpErrorResponse) => {
+              if (err.status === 429) {
+                this.error.set('Too many lookups. Please wait a moment and try again.');
+              }
+              return of({ companies: [] as CompanyChoice[], lookupFailed: true });
+            }),
+          );
         }),
       )
       .subscribe((result) => {
@@ -153,20 +150,16 @@ export class Register implements OnInit {
   }
 
   private loadCompaniesForEmail(email: string): void {
-    this.http
-      .get<{ companies: CompanyChoice[] }>('/api/registration/companies', {
-        params: { email },
-      })
-      .subscribe({
-        next: ({ companies }) => this.applyCompanyChoices(companies),
-        error: (err: HttpErrorResponse) => {
-          if (err.status === 429) {
-            this.error.set('Too many lookups. Please wait a moment and try again.');
-            return;
-          }
-          this.companyChoices.set([]);
-        },
-      });
+    this.registrationApi.companiesForEmail(email).subscribe({
+      next: ({ companies }) => this.applyCompanyChoices(companies),
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 429) {
+          this.error.set('Too many lookups. Please wait a moment and try again.');
+          return;
+        }
+        this.companyChoices.set([]);
+      },
+    });
   }
 
   private applyCompanyChoices(companies: CompanyChoice[]): void {

@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -19,7 +19,7 @@ import {
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
-import { AuthService } from '../../../../core/auth/auth.service';
+import { AdminGoodTypesApiService } from '../../../../core/admin/admin-good-types-api.service';
 import { ToastrService } from '../../../../core/feedback/toastr.service';
 import { GoodType, GoodTypeUpdatePayload } from '../../../../core/good-type/good-type.model';
 import { createCompactViewportSignal } from '../../../../shared/compact-viewport';
@@ -96,8 +96,7 @@ const serverSideTextFilterParams: ITextFilterParams = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminGoods implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly goodTypesApi = inject(AdminGoodTypesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly load$ = new Subject<void>();
   private gridApi: GridApi<GoodTypeListRow> | null = null;
@@ -243,22 +242,20 @@ export class AdminGoods implements OnInit {
           this.error.set(null);
         }),
         switchMap(() =>
-          this.http
-            .get<GoodTypesListResponse>('/api/admin/good-types', { params: this.buildParams() })
-            .pipe(
-              catchError(() => {
-                const lastGood = this.meta();
-                if (lastGood) {
-                  this.page.set(lastGood.current_page);
-                  if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
-                    this.pageSize.set(lastGood.per_page as PageSize);
-                  }
+          this.goodTypesApi.list<GoodTypesListResponse>(this.buildParams()).pipe(
+            catchError(() => {
+              const lastGood = this.meta();
+              if (lastGood) {
+                this.page.set(lastGood.current_page);
+                if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
+                  this.pageSize.set(lastGood.per_page as PageSize);
                 }
-                this.error.set('Unable to load goods types. Please try again.');
-                this.loading.set(false);
-                return of(null);
-              }),
-            ),
+              }
+              this.error.set('Unable to load goods types. Please try again.');
+              this.loading.set(false);
+              return of(null);
+            }),
+          ),
         ),
       )
       .subscribe((res) => {
@@ -313,24 +310,21 @@ export class AdminGoods implements OnInit {
       refrigerated_required: raw.refrigerated_required,
     };
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.put(`/api/admin/good-types/${code}`, payload)))
-      .subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.editOpen.set(false);
-          this.editingCode.set(null);
-          this.loadGoodTypes();
-          this.toastr.success('Goods type updated.');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          const message = this.firstError(err) ?? 'Unable to save goods type.';
-          this.editError.set(message);
-          this.toastr.error(message);
-          this.saving.set(false);
-        },
-      });
+    this.goodTypesApi.update(code, payload).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.editOpen.set(false);
+        this.editingCode.set(null);
+        this.loadGoodTypes();
+        this.toastr.success('Goods type updated.');
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        const message = this.firstError(err) ?? 'Unable to save goods type.';
+        this.editError.set(message);
+        this.toastr.error(message);
+        this.saving.set(false);
+      },
+    });
   }
 
   protected requestDelete(goodType: GoodType): void {
@@ -350,24 +344,21 @@ export class AdminGoods implements OnInit {
     }
 
     this.deleting.set(true);
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.delete(`/api/admin/good-types/${goodType.code}`)))
-      .subscribe({
-        next: () => {
-          this.deleting.set(false);
-          this.pendingDelete.set(null);
-          this.loadGoodTypes();
-          this.toastr.success('Goods type deleted.');
-        },
-        error: () => {
-          this.deleting.set(false);
-          const message = 'Unable to delete goods type.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.pendingDelete.set(null);
-        },
-      });
+    this.goodTypesApi.delete(goodType.code).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.pendingDelete.set(null);
+        this.loadGoodTypes();
+        this.toastr.success('Goods type deleted.');
+      },
+      error: () => {
+        this.deleting.set(false);
+        const message = 'Unable to delete goods type.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.pendingDelete.set(null);
+      },
+    });
   }
 
   protected onGridReady(event: GridReadyEvent<GoodTypeListRow>): void {

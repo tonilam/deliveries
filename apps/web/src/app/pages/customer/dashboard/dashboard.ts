@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -12,6 +11,8 @@ import {
 } from '@angular/core';
 import { Chart, type ChartConfiguration } from 'chart.js/auto';
 import { catchError, of } from 'rxjs';
+
+import { DashboardApiService } from '../../../core/dashboard/dashboard-api.service';
 
 export interface CounterpartyRank {
   company_id: number;
@@ -33,7 +34,7 @@ export interface CustomerDashboardResponse {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerDashboard implements OnDestroy {
-  private readonly http = inject(HttpClient);
+  private readonly dashboardApi = inject(DashboardApiService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   private readonly weekChartRef = viewChild<ElementRef<HTMLCanvasElement>>('weekChart');
@@ -67,8 +68,8 @@ export class CustomerDashboard implements OnDestroy {
       this.lastChartSignature = signature;
     });
 
-    this.http
-      .get<CustomerDashboardResponse>('/api/dashboard')
+    this.dashboardApi
+      .getCustomerDashboard()
       .pipe(catchError(() => of(null)))
       .subscribe((data) => {
         this.loading.set(false);

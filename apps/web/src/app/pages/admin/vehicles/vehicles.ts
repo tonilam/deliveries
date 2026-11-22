@@ -1,4 +1,3 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -18,9 +17,9 @@ import {
   ModuleRegistry,
   themeQuartz,
 } from 'ag-grid-community';
-import { catchError, of, switchMap } from 'rxjs';
+import { catchError, of } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { AdminVehiclesApiService } from '../../../core/admin/admin-vehicles-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { VehicleBodyType, VehicleCategory } from '../../../core/vehicle/vehicle.model';
 import {
@@ -47,8 +46,7 @@ type PendingDelete =
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminVehicles implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly vehiclesApi = inject(AdminVehiclesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -267,33 +265,26 @@ export class AdminVehicles implements OnInit {
     this.savingCategory.set(true);
     this.categoryEditError.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.put(`/api/admin/vehicle-categories/${id}`, this.categoryForm.getRawValue()),
-        ),
-      )
-      .subscribe({
-        next: () => {
-          this.savingCategory.set(false);
-          this.categoryEditOpen.set(false);
-          this.editingCategoryId.set(null);
-          this.loadCatalogue();
-          this.toastr.success('Vehicle category updated.');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          const messages = err.error?.errors;
-          const message =
-            messages?.['code']?.[0] ??
-            messages?.['name']?.[0] ??
-            err.error?.message ??
-            'Unable to save category.';
-          this.categoryEditError.set(message);
-          this.toastr.error(message);
-          this.savingCategory.set(false);
-        },
-      });
+    this.vehiclesApi.updateCategory(id, this.categoryForm.getRawValue()).subscribe({
+      next: () => {
+        this.savingCategory.set(false);
+        this.categoryEditOpen.set(false);
+        this.editingCategoryId.set(null);
+        this.loadCatalogue();
+        this.toastr.success('Vehicle category updated.');
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        const messages = err.error?.errors;
+        const message =
+          messages?.['code']?.[0] ??
+          messages?.['name']?.[0] ??
+          err.error?.message ??
+          'Unable to save category.';
+        this.categoryEditError.set(message);
+        this.toastr.error(message);
+        this.savingCategory.set(false);
+      },
+    });
   }
 
   protected requestDeleteCategory(category: VehicleCategory): void {
@@ -321,30 +312,25 @@ export class AdminVehicles implements OnInit {
 
     const request$ =
       pending.kind === 'category'
-        ? this.http.delete(`/api/admin/vehicle-categories/${pending.category.id}`)
-        : this.http.delete(
-            `/api/admin/vehicle-categories/${pending.category.id}/body-types/${pending.bodyType.id}`,
-          );
+        ? this.vehiclesApi.deleteCategory(pending.category.id)
+        : this.vehiclesApi.deleteBodyType(pending.category.id, pending.bodyType.id);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => request$))
-      .subscribe({
-        next: () => {
-          this.pendingDelete.set(null);
-          this.deleting.set(false);
-          this.loadCatalogue();
-          const label = pending.kind === 'category' ? 'Vehicle category' : 'Body type';
-          this.toastr.success(`${label} deleted.`);
-        },
-        error: (err: { error?: { errors?: Record<string, string[]> } }) => {
-          const message =
-            err.error?.errors?.['vehicle_category']?.[0] ?? 'Unable to delete. Please try again.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.deleting.set(false);
-        },
-      });
+    request$.subscribe({
+      next: () => {
+        this.pendingDelete.set(null);
+        this.deleting.set(false);
+        this.loadCatalogue();
+        const label = pending.kind === 'category' ? 'Vehicle category' : 'Body type';
+        this.toastr.success(`${label} deleted.`);
+      },
+      error: (err: { error?: { errors?: Record<string, string[]> } }) => {
+        const message =
+          err.error?.errors?.['vehicle_category']?.[0] ?? 'Unable to delete. Please try again.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.deleting.set(false);
+      },
+    });
   }
 
   protected deleteMessage(pending: PendingDelete): string {
@@ -385,24 +371,14 @@ export class AdminVehicles implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    const params = new HttpParams().set('catalogue', '1');
-
-    this.auth
-      .ensureCsrf()
+    this.vehiclesApi
+      .getCategoriesCatalogue()
       .pipe(
-        switchMap(() =>
-          this.http
-            .get<{ vehicle_categories: VehicleCategory[] }>('/api/admin/vehicle-categories', {
-              params,
-            })
-            .pipe(
-              catchError(() => {
-                this.error.set('Unable to load vehicle catalogue.');
-                this.loading.set(false);
-                return of(null);
-              }),
-            ),
-        ),
+        catchError(() => {
+          this.error.set('Unable to load vehicle catalogue.');
+          this.loading.set(false);
+          return of(null);
+        }),
       )
       .subscribe((res) => {
         if (!res) {

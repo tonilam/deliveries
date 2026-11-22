@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -12,9 +12,10 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { catchError, debounceTime, of, Subject, switchMap } from 'rxjs';
+import { catchError, debounceTime, of, Subject } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { ItemsApiService } from '../../../core/items/items-api.service';
+import { LoadsApiService } from '../../../core/loads/loads-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import {
   displayUnitLabel,
@@ -87,8 +88,8 @@ interface GoodTypeOption {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoadItemsSlider {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly loadsApi = inject(LoadsApiService);
+  private readonly itemsApi = inject(ItemsApiService);
   private readonly toastr = inject(ToastrService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
@@ -173,10 +174,8 @@ export class LoadItemsSlider {
     });
 
     this.setupSearchStreams();
-    this.http
-      .get<{ meta: { own_company_type?: OwnerCompanyType } }>('/api/loads', {
-        params: { page: '1', per_page: '1' },
-      })
+    this.loadsApi
+      .getOwnerTypeMeta(new HttpParams().set('page', '1').set('per_page', '1'))
       .subscribe({
         next: (res) => {
           this.ownCompanyType.set(res.meta.own_company_type ?? null);
@@ -366,37 +365,30 @@ export class LoadItemsSlider {
     this.assigning.set(true);
     this.error.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.post<MoveResponse>(`/api/loads/${parentId}/items/${item.id}/move`, payload),
-        ),
-      )
-      .subscribe({
-        next: (res) => {
-          this.assigning.set(false);
-          this.toastr.success('Item moved to child load.');
-          this.children.update((list) => {
-            const index = list.findIndex((child) => child.id === res.child_load.id);
-            if (index < 0) {
-              return [...list, res.child_load];
-            }
-            const next = [...list];
-            next[index] = res.child_load;
-            return next;
-          });
-          this.cancelMove();
-          this.reloadLists();
-          this.changed.emit();
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.assigning.set(false);
-          const message = this.firstError(err) ?? 'Unable to move item.';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.loadsApi.moveItem<MoveResponse>(parentId, item.id, payload).subscribe({
+      next: (res) => {
+        this.assigning.set(false);
+        this.toastr.success('Item moved to child load.');
+        this.children.update((list) => {
+          const index = list.findIndex((child) => child.id === res.child_load.id);
+          if (index < 0) {
+            return [...list, res.child_load];
+          }
+          const next = [...list];
+          next[index] = res.child_load;
+          return next;
+        });
+        this.cancelMove();
+        this.reloadLists();
+        this.changed.emit();
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.assigning.set(false);
+        const message = this.firstError(err) ?? 'Unable to move item.';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   protected assignItem(item: ItemRow): void {
@@ -408,27 +400,20 @@ export class LoadItemsSlider {
     this.assigning.set(true);
     this.error.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.post<{ item: ItemRow }>(`/api/loads/${loadId}/items`, { item_id: item.id }),
-        ),
-      )
-      .subscribe({
-        next: () => {
-          this.assigning.set(false);
-          this.toastr.success('Item assigned to load.');
-          this.reloadLists();
-          this.changed.emit();
-        },
-        error: () => {
-          this.assigning.set(false);
-          const message = 'Unable to assign item.';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.loadsApi.attachItem(loadId, item.id).subscribe({
+      next: () => {
+        this.assigning.set(false);
+        this.toastr.success('Item assigned to load.');
+        this.reloadLists();
+        this.changed.emit();
+      },
+      error: () => {
+        this.assigning.set(false);
+        const message = 'Unable to assign item.';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   protected openCreateItem(): void {
@@ -443,8 +428,8 @@ export class LoadItemsSlider {
     });
     this.createItemOpen.set(true);
 
-    this.http
-      .get<{ good_types: GoodTypeOption[] }>('/api/items/good-type-options')
+    this.itemsApi
+      .getGoodTypeOptions<{ good_types: GoodTypeOption[] }>()
       .pipe(catchError(() => of({ good_types: [] as GoodTypeOption[] })))
       .subscribe({
         next: (res) => {
@@ -491,28 +476,25 @@ export class LoadItemsSlider {
     this.savingItem.set(true);
     this.createItemError.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.post<{ item: ItemRow }>('/api/items', payload)))
-      .subscribe({
-        next: () => {
-          this.savingItem.set(false);
-          this.createItemOpen.set(false);
-          this.toastr.success('Item created.');
-          const assigned = raw.assign_to_load;
-          this.reloadLists();
-          if (assigned) {
-            this.tab.set('assigned');
-            this.changed.emit();
-          }
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          this.savingItem.set(false);
-          const message = this.firstError(err) ?? 'Could not create item.';
-          this.createItemError.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.itemsApi.create<{ item: ItemRow }>(payload).subscribe({
+      next: () => {
+        this.savingItem.set(false);
+        this.createItemOpen.set(false);
+        this.toastr.success('Item created.');
+        const assigned = raw.assign_to_load;
+        this.reloadLists();
+        if (assigned) {
+          this.tab.set('assigned');
+          this.changed.emit();
+        }
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        this.savingItem.set(false);
+        const message = this.firstError(err) ?? 'Could not create item.';
+        this.createItemError.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   protected unassignItem(item: ItemRow): void {
@@ -524,23 +506,20 @@ export class LoadItemsSlider {
     this.assigning.set(true);
     this.error.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.delete(`/api/loads/${loadId}/items/${item.id}`)))
-      .subscribe({
-        next: () => {
-          this.assigning.set(false);
-          this.toastr.success('Item removed from load.');
-          this.reloadLists();
-          this.changed.emit();
-        },
-        error: () => {
-          this.assigning.set(false);
-          const message = 'Unable to remove item.';
-          this.error.set(message);
-          this.toastr.error(message);
-        },
-      });
+    this.loadsApi.detachItem(loadId, item.id).subscribe({
+      next: () => {
+        this.assigning.set(false);
+        this.toastr.success('Item removed from load.');
+        this.reloadLists();
+        this.changed.emit();
+      },
+      error: () => {
+        this.assigning.set(false);
+        const message = 'Unable to remove item.';
+        this.error.set(message);
+        this.toastr.error(message);
+      },
+    });
   }
 
   private reloadLists(): void {
@@ -548,25 +527,29 @@ export class LoadItemsSlider {
     this.loading.set(true);
     this.error.set(null);
 
-    this.http.get<ItemsListResponse>(`/api/items?load_id=${loadId}&per_page=200&page=1`).subscribe({
-      next: (assignedRes) => {
-        this.assigned.set(assignedRes.items);
-        this.http.get<ItemsListResponse>('/api/items?unassigned=1&per_page=200&page=1').subscribe({
-          next: (unassignedRes) => {
-            this.unassigned.set(unassignedRes.items);
-            this.loading.set(false);
-          },
-          error: () => {
-            this.loading.set(false);
-            this.error.set('Unable to load unassigned items.');
-          },
-        });
-      },
-      error: () => {
-        this.loading.set(false);
-        this.error.set('Unable to load items on this load.');
-      },
-    });
+    this.itemsApi
+      .list<ItemsListResponse>({ load_id: String(loadId), per_page: '200', page: '1' })
+      .subscribe({
+        next: (assignedRes) => {
+          this.assigned.set(assignedRes.items);
+          this.itemsApi
+            .list<ItemsListResponse>({ unassigned: '1', per_page: '200', page: '1' })
+            .subscribe({
+              next: (unassignedRes) => {
+                this.unassigned.set(unassignedRes.items);
+                this.loading.set(false);
+              },
+              error: () => {
+                this.loading.set(false);
+                this.error.set('Unable to load unassigned items.');
+              },
+            });
+        },
+        error: () => {
+          this.loading.set(false);
+          this.error.set('Unable to load items on this load.');
+        },
+      });
   }
 
   private resetMoveForms(): void {
@@ -634,8 +617,8 @@ export class LoadItemsSlider {
           params = params.set('q', trimmed);
         }
 
-        this.http
-          .get<{ companies: PartyOption[] }>('/api/loads/party-options', { params })
+        this.loadsApi
+          .getPartyOptions<{ companies: PartyOption[] }>(params)
           .pipe(catchError(() => of({ companies: [] })))
           .subscribe((res) => {
             if (generation !== this.partySearchGeneration) {
@@ -665,8 +648,8 @@ export class LoadItemsSlider {
           params = params.set('q', trimmed);
         }
 
-        this.http
-          .get<{ addresses: AddressOption[] }>('/api/loads/address-options', { params })
+        this.loadsApi
+          .getAddressOptions<{ addresses: AddressOption[] }>(params)
           .pipe(catchError(() => of({ addresses: [] })))
           .subscribe((res) => {
             if (generation !== this.addressSearchGeneration) {

@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -18,7 +18,7 @@ import {
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { AdminVehiclesApiService } from '../../../core/admin/admin-vehicles-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { VehicleBodyType, VehicleCategory } from '../../../core/vehicle/vehicle.model';
 import { createCompactViewportSignal } from '../../../shared/compact-viewport';
@@ -77,8 +77,7 @@ const serverSideTextFilterParams: ITextFilterParams = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminVehicleBodyTypes implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly vehiclesApi = inject(AdminVehiclesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -222,25 +221,25 @@ export class AdminVehicleBodyTypes implements OnInit {
           this.loading.set(true);
           this.error.set(null);
         }),
-        switchMap(() =>
-          this.auth.ensureCsrf().pipe(
-            switchMap(() =>
-              this.http
-                .get<{
-                  vehicle_body_types: VehicleBodyType[];
-                  vehicle_category: VehicleCategory;
-                  meta: ListMeta;
-                }>(`/api/admin/vehicle-categories/${id}/body-types`, { params: this.buildParams() })
-                .pipe(
-                  catchError(() => {
-                    this.error.set('Unable to load body types.');
-                    this.loading.set(false);
-                    return of(null);
-                  }),
-                ),
-            ),
-          ),
-        ),
+        switchMap(() => {
+          const categoryId = this.categoryId();
+          if (categoryId === null) {
+            return of(null);
+          }
+          return this.vehiclesApi
+            .listBodyTypes<{
+              vehicle_body_types: VehicleBodyType[];
+              vehicle_category: VehicleCategory;
+              meta: ListMeta;
+            }>(categoryId, this.buildParams())
+            .pipe(
+              catchError(() => {
+                this.error.set('Unable to load body types.');
+                this.loading.set(false);
+                return of(null);
+              }),
+            );
+        }),
       )
       .subscribe((res) => {
         if (!res) {
@@ -345,27 +344,20 @@ export class AdminVehicleBodyTypes implements OnInit {
       return;
     }
     this.deleting.set(true);
-    this.auth
-      .ensureCsrf()
-      .pipe(
-        switchMap(() =>
-          this.http.delete(`/api/admin/vehicle-categories/${categoryId}/body-types/${row.id}`),
-        ),
-      )
-      .subscribe({
-        next: () => {
-          this.pendingDelete.set(null);
-          this.deleting.set(false);
-          this.loadRows();
-          this.toastr.success('Body type deleted.');
-        },
-        error: () => {
-          const message = 'Unable to delete body type.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.deleting.set(false);
-        },
-      });
+    this.vehiclesApi.deleteBodyType(categoryId, row.id).subscribe({
+      next: () => {
+        this.pendingDelete.set(null);
+        this.deleting.set(false);
+        this.loadRows();
+        this.toastr.success('Body type deleted.');
+      },
+      error: () => {
+        const message = 'Unable to delete body type.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.deleting.set(false);
+      },
+    });
   }
 
   private gridActionsFor(data: VehicleCategoryActionsCellRow): VehicleCategoryActionItem[] {

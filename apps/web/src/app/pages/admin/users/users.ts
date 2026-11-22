@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -34,6 +34,7 @@ import {
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
 import { AuthService } from '../../../core/auth/auth.service';
+import { AdminUsersApiService } from '../../../core/admin/admin-users-api.service';
 import { BooleanCheckboxCell } from '../../../shared/ag-grid/boolean-checkbox-cell';
 import { UserActionItem, UserActionsCell, UserActionsCellRow } from './user-actions-cell';
 
@@ -95,7 +96,7 @@ const serverSideTextFilterParams: ITextFilterParams = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminUsers implements OnInit {
-  private readonly http = inject(HttpClient);
+  private readonly usersApi = inject(AdminUsersApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
@@ -186,24 +187,20 @@ export class AdminUsers implements OnInit {
           this.error.set(null);
         }),
         switchMap(() => {
-          return this.http
-            .get<UsersListResponse>('/api/admin/users', {
-              params: this.buildParams(),
-            })
-            .pipe(
-              catchError(() => {
-                const lastGood = this.meta();
-                if (lastGood) {
-                  this.page.set(lastGood.current_page);
-                  if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
-                    this.pageSize.set(lastGood.per_page as PageSize);
-                  }
+          return this.usersApi.list<UsersListResponse>(this.buildParams()).pipe(
+            catchError(() => {
+              const lastGood = this.meta();
+              if (lastGood) {
+                this.page.set(lastGood.current_page);
+                if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
+                  this.pageSize.set(lastGood.per_page as PageSize);
                 }
-                this.error.set('Unable to load users. Please try again.');
-                this.loading.set(false);
-                return of(null);
-              }),
-            );
+              }
+              this.error.set('Unable to load users. Please try again.');
+              this.loading.set(false);
+              return of(null);
+            }),
+          );
         }),
       )
       .subscribe((res) => {

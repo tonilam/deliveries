@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -18,7 +18,8 @@ import {
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
-import { AuthService } from '../../../../core/auth/auth.service';
+import { AdminCountriesApiService } from '../../../../core/admin/admin-countries-api.service';
+import { AdminZonesApiService } from '../../../../core/admin/admin-zones-api.service';
 import { ToastrService } from '../../../../core/feedback/toastr.service';
 import { Country } from '../../../../core/country/country.model';
 import { Zone } from '../../../../core/zone/zone.model';
@@ -91,8 +92,8 @@ function countryName(zone: Zone): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AdminZones implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly zonesApi = inject(AdminZonesApiService);
+  private readonly countriesApi = inject(AdminCountriesApiService);
   private readonly toastr = inject(ToastrService);
   private readonly load$ = new Subject<void>();
   private gridApi: GridApi<Zone> | null = null;
@@ -243,7 +244,7 @@ export class AdminZones implements OnInit {
   };
 
   ngOnInit(): void {
-    this.http.get<{ countries: Country[] }>('/api/admin/countries').subscribe({
+    this.countriesApi.list().subscribe({
       next: (res) => this.countries.set(res.countries),
     });
 
@@ -254,7 +255,7 @@ export class AdminZones implements OnInit {
           this.error.set(null);
         }),
         switchMap(() =>
-          this.http.get<ZonesListResponse>('/api/admin/zones', { params: this.buildParams() }).pipe(
+          this.zonesApi.list<ZonesListResponse>(this.buildParams()).pipe(
             catchError(() => {
               const lastGood = this.meta();
               if (lastGood) {
@@ -325,24 +326,21 @@ export class AdminZones implements OnInit {
       is_active: raw.is_active,
     };
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.put(`/api/admin/zones/${id}`, payload)))
-      .subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.editOpen.set(false);
-          this.editingId.set(null);
-          this.loadZones();
-          this.toastr.success('Zone updated.');
-        },
-        error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
-          const message = this.firstError(err) ?? 'Unable to save zone.';
-          this.editError.set(message);
-          this.toastr.error(message);
-          this.saving.set(false);
-        },
-      });
+    this.zonesApi.update(id, payload).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.editOpen.set(false);
+        this.editingId.set(null);
+        this.loadZones();
+        this.toastr.success('Zone updated.');
+      },
+      error: (err: { error?: { message?: string; errors?: Record<string, string[]> } }) => {
+        const message = this.firstError(err) ?? 'Unable to save zone.';
+        this.editError.set(message);
+        this.toastr.error(message);
+        this.saving.set(false);
+      },
+    });
   }
 
   protected requestDelete(zone: Zone): void {
@@ -362,24 +360,21 @@ export class AdminZones implements OnInit {
     }
 
     this.deleting.set(true);
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.delete(`/api/admin/zones/${zone.id}`)))
-      .subscribe({
-        next: () => {
-          this.deleting.set(false);
-          this.pendingDelete.set(null);
-          this.loadZones();
-          this.toastr.success('Zone deleted.');
-        },
-        error: () => {
-          this.deleting.set(false);
-          const message = 'Unable to delete zone.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.pendingDelete.set(null);
-        },
-      });
+    this.zonesApi.delete(zone.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.pendingDelete.set(null);
+        this.loadZones();
+        this.toastr.success('Zone deleted.');
+      },
+      error: () => {
+        this.deleting.set(false);
+        const message = 'Unable to delete zone.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.pendingDelete.set(null);
+      },
+    });
   }
 
   protected onGridReady(event: GridReadyEvent<Zone>): void {

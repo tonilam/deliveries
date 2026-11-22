@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -25,6 +25,7 @@ import {
   DataListColumn,
   DataListSortOption,
 } from '../../../shared/data-list/data-list.types';
+import { RateCardsApiService } from '../../../core/rate-cards/rate-cards-api.service';
 import {
   AddressActionItem,
   AddressActionsCell,
@@ -119,7 +120,7 @@ function linkedCompaniesFilterText(row: RateCardRow | undefined): string {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerRateCards implements OnInit {
-  private readonly http = inject(HttpClient);
+  private readonly rateCardsApi = inject(RateCardsApiService);
   private readonly router = inject(Router);
   private readonly load$ = new Subject<void>();
   private gridApi: GridApi<RateCardRow> | null = null;
@@ -272,22 +273,20 @@ export class CustomerRateCards implements OnInit {
           this.error.set(null);
         }),
         switchMap(() =>
-          this.http
-            .get<RateCardsListResponse>('/api/rate-cards', { params: this.buildParams() })
-            .pipe(
-              catchError(() => {
-                const lastGood = this.meta();
-                if (lastGood) {
-                  this.page.set(lastGood.current_page);
-                  if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
-                    this.pageSize.set(lastGood.per_page as PageSize);
-                  }
+          this.rateCardsApi.list<RateCardsListResponse>(this.buildParams()).pipe(
+            catchError(() => {
+              const lastGood = this.meta();
+              if (lastGood) {
+                this.page.set(lastGood.current_page);
+                if (PAGE_SIZE_OPTIONS.includes(lastGood.per_page as PageSize)) {
+                  this.pageSize.set(lastGood.per_page as PageSize);
                 }
-                this.error.set('Unable to load rate cards. Please try again.');
-                this.loading.set(false);
-                return of(null);
-              }),
-            ),
+              }
+              this.error.set('Unable to load rate cards. Please try again.');
+              this.loading.set(false);
+              return of(null);
+            }),
+          ),
         ),
       )
       .subscribe((res) => {

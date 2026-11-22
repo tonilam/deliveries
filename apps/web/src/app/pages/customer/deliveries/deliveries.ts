@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpParams } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -34,7 +34,7 @@ import {
 } from 'ag-grid-community';
 import { catchError, of, Subject, switchMap, tap } from 'rxjs';
 
-import { AuthService } from '../../../core/auth/auth.service';
+import { LoadsApiService } from '../../../core/loads/loads-api.service';
 import { ToastrService } from '../../../core/feedback/toastr.service';
 import { createCompactViewportSignal } from '../../../shared/compact-viewport';
 import { DataListComponent } from '../../../shared/data-list/data-list';
@@ -193,8 +193,7 @@ const serverSideDateFilterParams: IDateFilterParams = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerDeliveries implements OnInit {
-  private readonly http = inject(HttpClient);
-  private readonly auth = inject(AuthService);
+  private readonly loadsApi = inject(LoadsApiService);
   private readonly toastr = inject(ToastrService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -730,7 +729,7 @@ export class CustomerDeliveries implements OnInit {
           this.error.set(null);
         }),
         switchMap(() =>
-          this.http.get<LoadsListResponse>('/api/loads', { params: this.buildParams() }).pipe(
+          this.loadsApi.list<LoadsListResponse>(this.buildParams()).pipe(
             catchError(() => {
               const lastGood = this.meta();
               if (lastGood) {
@@ -959,23 +958,20 @@ export class CustomerDeliveries implements OnInit {
     this.deleting.set(true);
     this.error.set(null);
 
-    this.auth
-      .ensureCsrf()
-      .pipe(switchMap(() => this.http.delete(`/api/loads/${pending.id}`)))
-      .subscribe({
-        next: () => {
-          this.deleting.set(false);
-          this.pendingDelete.set(null);
-          this.loadLoads();
-          this.toastr.success('Load deleted.');
-        },
-        error: () => {
-          const message = 'Unable to delete load. Please try again.';
-          this.error.set(message);
-          this.toastr.error(message);
-          this.deleting.set(false);
-        },
-      });
+    this.loadsApi.delete(pending.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.pendingDelete.set(null);
+        this.loadLoads();
+        this.toastr.success('Load deleted.');
+      },
+      error: () => {
+        const message = 'Unable to delete load. Please try again.';
+        this.error.set(message);
+        this.toastr.error(message);
+        this.deleting.set(false);
+      },
+    });
   }
 
   protected goToPage(nextPage: number): void {
@@ -996,7 +992,7 @@ export class CustomerDeliveries implements OnInit {
   }
 
   private openXDockEditById(id: number): void {
-    this.http.get<{ load: LoadRow }>(`/api/loads/${id}`).subscribe({
+    this.loadsApi.get(id).subscribe({
       next: (res) => {
         if (res.load.type !== 'x_dock') {
           this.clearEditLoadQueryParam();

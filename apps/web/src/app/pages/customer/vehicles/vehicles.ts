@@ -1,4 +1,3 @@
-import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -20,6 +19,7 @@ import {
 import { catchError, of, tap } from 'rxjs';
 
 import { ToastrService } from '../../../core/feedback/toastr.service';
+import { VehiclesApiService } from '../../../core/vehicles/vehicles-api.service';
 import {
   CustomerVehicleBodyType,
   CustomerVehicleCategory,
@@ -44,10 +44,6 @@ export interface CustomerVehicleBodyTypeRow extends CustomerVehicleBodyType {
   category_name: string;
 }
 
-interface VehiclesResponse {
-  vehicle_categories: CustomerVehicleCategory[];
-}
-
 @Component({
   selector: 'app-customer-vehicles',
   imports: [AgGridAngular, DataListComponent, VehicleBodyTypeActiveCell],
@@ -56,7 +52,7 @@ interface VehiclesResponse {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CustomerVehicles implements OnInit {
-  private readonly http = inject(HttpClient);
+  private readonly vehiclesApi = inject(VehiclesApiService);
   private readonly toastr = inject(ToastrService);
 
   protected readonly loading = signal(false);
@@ -266,10 +262,8 @@ export class CustomerVehicles implements OnInit {
     this.patchBodyTypeActive(row.id, active);
     this.savingIds.update((set) => new Set(set).add(row.id));
 
-    this.http
-      .put<{ vehicle_body_type: CustomerVehicleBodyType }>(`/api/vehicles/body-types/${row.id}`, {
-        active,
-      })
+    this.vehiclesApi
+      .setBodyTypeActive(row.id, active)
       .pipe(
         tap(() => {
           this.savingIds.update((set) => {
@@ -300,8 +294,8 @@ export class CustomerVehicles implements OnInit {
   private loadCatalogue(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.http
-      .get<VehiclesResponse>('/api/vehicles')
+    this.vehiclesApi
+      .getCustomerCatalogue()
       .pipe(
         catchError(() => {
           this.error.set('Could not load vehicles.');
