@@ -1,0 +1,34 @@
+<div class="load-kind-floating-filter">
+  <button
+    #trigger
+    type="button"
+    class="load-kind-floating-filter__trigger"
+    [class.load-kind-floating-filter__trigger--active]="filterActive()"
+    [attr.aria-expanded]="panelOpen()"
+    aria-haspopup="listbox"
+    (click)="togglePanel($event)"
+  >
+    <span class="load-kind-floating-filter__label">{{ summary() }}</span>
+    <span class="load-kind-floating-filter__caret" aria-hidden="true">▾</span>
+  </button>
+
+  @if (panelOpen()) {
+    <div
+      class="load-kind-floating-filter__panel"
+      role="listbox"
+      [ngStyle]="panelStyle()"
+      (click)="onPanelClick($event)"
+    >
+      @for (option of options; track option.slug) {
+        <label class="load-kind-floating-filter__option">
+          <input
+            type="checkbox"
+            [checked]="selected()[option.label]"
+            (change)="onOptionChange(option.label, $any($event.target).checked)"
+          />
+          <span>{{ option.label }}</span>
+        </label>
+      }
+    </div>
+  }
+</div>

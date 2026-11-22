@@ -26,6 +26,7 @@ class ListLoadsRequest extends FormRequest
         'dropoff_date',
         'dropoff_time',
         'pallet_count',
+        'load_kind',
     ];
 
     /** @var list<string> */
@@ -42,6 +43,7 @@ class ListLoadsRequest extends FormRequest
         'dropoff_time',
         'pallet_count',
         'item_count',
+        'load_kind',
     ];
 
     public const DEFAULT_SORT = 'customer';
@@ -66,6 +68,7 @@ class ListLoadsRequest extends FormRequest
         'inRange',
         'blank',
         'notBlank',
+        'in',
     ];
 
     public function authorize(): bool

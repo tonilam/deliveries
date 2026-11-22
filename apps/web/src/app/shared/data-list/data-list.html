@@ -57,8 +57,25 @@
                       [attr.aria-label]="column.label"
                     />
                   </dd>
+                } @else if (column.badgeValueFor?.(row); as badgeText) {
+                  <dd class="data-list__value">
+                    <ui-badge
+                      [color]="column.subValueBadgeColor ?? 'info'"
+                      [size]="column.subValueBadgeSize ?? 'md'"
+                      >{{ badgeText }}</ui-badge
+                    >
+                  </dd>
                 } @else {
-                  <dd>{{ valueFor(column, row) }}</dd>
+                  <dd class="data-list__value">
+                    <span>{{ valueFor(column, row) }}</span>
+                    @if (column.subValueFor?.(row); as sub) {
+                      <ui-badge
+                        [color]="column.subValueBadgeColor ?? 'info'"
+                        [size]="column.subValueBadgeSize ?? 'md'"
+                        >{{ sub }}</ui-badge
+                      >
+                    }
+                  </dd>
                 }
               </div>
             }

@@ -165,6 +165,14 @@ class LoadListController extends Controller
             return;
         }
 
+        if ($sort === 'load_kind') {
+            $sqlDirection = strtolower($direction) === 'desc' ? 'DESC' : 'ASC';
+            $query->orderByRaw($this->loadKindSortSql().' '.$sqlDirection)
+                ->orderBy('loads.id');
+
+            return;
+        }
+
         $column = match ($sort) {
             'id' => 'loads.id',
             'customer' => 'load_customer.business_name',
@@ -221,6 +229,12 @@ class LoadListController extends Controller
 
         if ($column === 'truck_type') {
             $this->applyTruckTypeFilter($query, $type, $value, $filterTo);
+
+            return;
+        }
+
+        if ($column === 'load_kind') {
+            $this->applyLoadKindFilter($query, $type, $value);
 
             return;
         }
@@ -396,6 +410,72 @@ class LoadListController extends Controller
     private function truckTypeLabelSql(): string
     {
         return "(load_vehicle_category.name || ' \\ ' || load_vehicle_body_type.name)";
+    }
+
+    private function loadKindSortSql(): string
+    {
+        $child = 'loads AS load_kind_children';
+
+        return 'CASE '
+            .'WHEN NOT EXISTS (SELECT 1 FROM '.$child.' WHERE load_kind_children.parent_load_id = loads.id) THEN \'Direct\' '
+            .'WHEN EXISTS (SELECT 1 FROM '.$child.' WHERE load_kind_children.parent_load_id = loads.id AND load_kind_children.type = \''
+            .LoadType::AddDrop->value.'\') '
+            .'AND EXISTS (SELECT 1 FROM '.$child.' WHERE load_kind_children.parent_load_id = loads.id AND load_kind_children.type = \''
+            .LoadType::XDock->value.'\') THEN \'Hybrid\' '
+            .'WHEN EXISTS (SELECT 1 FROM '.$child.' WHERE load_kind_children.parent_load_id = loads.id AND load_kind_children.type = \''
+            .LoadType::AddDrop->value.'\') THEN \'Add Drop\' '
+            .'WHEN EXISTS (SELECT 1 FROM '.$child.' WHERE load_kind_children.parent_load_id = loads.id AND load_kind_children.type = \''
+            .LoadType::XDock->value.'\') THEN \'X Dock\' '
+            .'ELSE \'Direct\' '
+            .'END';
+    }
+
+    /**
+     * @param  Builder<Load>  $query
+     */
+    private function applyLoadKindFilter(Builder $query, string $type, ?string $value): void
+    {
+        if ($type === 'equals' && $value === '__no_match__') {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        if ($type !== 'in' || $value === null || $value === '') {
+            return;
+        }
+
+        $allowed = ['direct', 'add_drop', 'x_dock', 'hybrid'];
+        $slugs = array_values(array_intersect(
+            array_filter(array_map('trim', explode(',', $value))),
+            $allowed,
+        ));
+
+        if ($slugs === []) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $query->where(function (Builder $outer) use ($slugs): void {
+            foreach ($slugs as $slug) {
+                $outer->orWhere(function (Builder $inner) use ($slug): void {
+                    match ($slug) {
+                        'direct' => $inner->whereDoesntHave('children'),
+                        'add_drop' => $inner
+                            ->whereHas('children', static fn (Builder $child) => $child->where('type', LoadType::AddDrop))
+                            ->whereDoesntHave('children', static fn (Builder $child) => $child->where('type', LoadType::XDock)),
+                        'x_dock' => $inner
+                            ->whereHas('children', static fn (Builder $child) => $child->where('type', LoadType::XDock))
+                            ->whereDoesntHave('children', static fn (Builder $child) => $child->where('type', LoadType::AddDrop)),
+                        'hybrid' => $inner
+                            ->whereHas('children', static fn (Builder $child) => $child->where('type', LoadType::AddDrop))
+                            ->whereHas('children', static fn (Builder $child) => $child->where('type', LoadType::XDock)),
+                        default => null,
+                    };
+                });
+            }
+        });
     }
 
     /**

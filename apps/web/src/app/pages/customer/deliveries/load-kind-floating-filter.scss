@@ -1,0 +1,95 @@
+:host {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.load-kind-floating-filter {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.load-kind-floating-filter__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ag-spacing, 0.25rem);
+  width: 100%;
+  box-sizing: border-box;
+  height: var(--ag-input-height);
+  min-height: var(--ag-input-height);
+  margin: 0;
+  padding-block: 0;
+  padding-inline: var(--ag-input-padding-start);
+  font: inherit;
+  font-size: inherit;
+  line-height: normal;
+  color: var(--ag-input-text-color);
+  background-color: var(--ag-input-background-color);
+  border: var(--ag-input-border);
+  border-radius: var(--ag-input-border-radius);
+  cursor: pointer;
+  text-align: left;
+}
+
+.load-kind-floating-filter__trigger:hover {
+  border-color: var(--ag-input-focus-border-color, #94a3b8);
+}
+
+.load-kind-floating-filter__trigger--active {
+  color: var(--ag-input-focus-text-color);
+  background-color: var(--ag-input-focus-background-color);
+  border: var(--ag-input-focus-border);
+  box-shadow: var(--ag-input-focus-shadow);
+}
+
+.load-kind-floating-filter__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.load-kind-floating-filter__caret {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: var(--ag-input-placeholder-text-color, #64748b);
+}
+
+.load-kind-floating-filter__panel {
+  width: max-content;
+  padding: var(--ag-widget-container-vertical-padding) var(--ag-widget-container-horizontal-padding);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--ag-menu-background-color, #fff);
+  border: var(--ag-input-border);
+  border-radius: var(--ag-input-border-radius);
+  box-shadow: var(--ag-popup-shadow, 0 4px 12px rgb(30 58 138 / 12%));
+}
+
+.load-kind-floating-filter__option {
+  display: flex;
+  align-items: center;
+  gap: var(--ag-spacing);
+  height: var(--ag-list-item-height);
+  min-height: var(--ag-list-item-height);
+  margin: 0;
+  font: inherit;
+  font-size: inherit;
+  line-height: 1;
+  color: var(--ag-input-text-color);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.load-kind-floating-filter__option input {
+  width: var(--ag-icon-size);
+  height: var(--ag-icon-size);
+  margin: 0;
+  flex-shrink: 0;
+}

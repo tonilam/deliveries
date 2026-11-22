@@ -1,0 +1,145 @@
+/* Truckit badge — see https://component.truckitmetro.com/demo/ (Badges & Status). */
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  padding: 4px 11px;
+  border-radius: 9999px;
+  border: 1px solid #f0e8e4;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.ui-badge--with-dot {
+  padding: 3px 10px;
+}
+
+.ui-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  opacity: 0.75;
+  flex-shrink: 0;
+  background: currentColor;
+}
+
+/* md: base .ui-badge rules (11px / 4px 11px) */
+.ui-badge--md {
+  font-size: 11px;
+  padding: 4px 11px;
+}
+
+.ui-badge--sm {
+  font-size: 10px;
+  /* Half of md (4px 11px) */
+  padding: 2px 5.5px;
+}
+
+.ui-badge--sm.ui-badge--with-dot {
+  /* Half of md with dot (3px 10px) */
+  padding: 1.5px 5px;
+}
+
+.ui-badge--lg {
+  font-size: 12px;
+  padding: 5px 13px;
+}
+
+.ui-badge--transparent {
+  background: transparent;
+}
+
+/* Filled */
+.ui-badge--filled.ui-badge--brand {
+  background: #fff3ee;
+  color: #a3340f;
+}
+
+.ui-badge--filled.ui-badge--success {
+  background: #eefff3;
+  color: #16a34a;
+}
+
+.ui-badge--filled.ui-badge--error {
+  background: #fee;
+  color: #dc2626;
+}
+
+.ui-badge--filled.ui-badge--warning {
+  background: #ededed;
+  color: #d97706;
+}
+
+.ui-badge--filled.ui-badge--info {
+  background: #eef8ff;
+  color: #2563eb;
+}
+
+.ui-badge--filled.ui-badge--neutral {
+  background: #f3f4f6;
+  color: #102253;
+}
+
+.ui-badge--filled.ui-badge--muted {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* Transparent */
+.ui-badge--transparent.ui-badge--brand {
+  border-color: #a3340f;
+  color: #a3340f;
+}
+
+.ui-badge--transparent.ui-badge--success {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.ui-badge--transparent.ui-badge--error {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.ui-badge--transparent.ui-badge--warning {
+  border-color: #d97706;
+  color: #d97706;
+}
+
+.ui-badge--transparent.ui-badge--info {
+  border-color: #2563eb;
+  color: #2563eb;
+}
+
+.ui-badge--transparent.ui-badge--neutral {
+  border-color: #102253;
+  color: #102253;
+}
+
+.ui-badge--transparent.ui-badge--muted {
+  border-color: #4b5563;
+  color: #4b5563;
+}
+
+/* Outline (semantic border tint) */
+.ui-badge--outline.ui-badge--warning {
+  background: #fffbeb;
+  border-color: #fef3c7;
+  color: #d97706;
+}
+
+.ui-badge--outline.ui-badge--error {
+  background: #fef2f2;
+  border-color: #fee2e2;
+  color: #dc2626;
+}
+
+.ui-badge--outline.ui-badge--success {
+  background: #f0fdf4;
+  border-color: #dcfce7;
+  color: #15803d;
+}

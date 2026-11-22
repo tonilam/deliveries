@@ -27,6 +27,7 @@ import {
   DateFilterModel,
   GridOptions,
   IDateFilterParams,
+  SetFilterModel,
   SortChangedEvent,
   TextFilterModel,
   themeQuartz,
@@ -47,6 +48,17 @@ import { LoadAddressCell } from './load-address-cell';
 import { LoadActionItem, LoadActionsCell } from './load-actions-cell';
 import { LoadDetailFullWidth } from './load-detail-full-width';
 import { LoadExpandCell } from './load-expand-cell';
+import {
+  DIRECT_LOAD_KIND_BADGE_COLOR,
+  DIRECT_LOAD_KIND_BADGE_SIZE,
+  DirectLoadKindLabel,
+  directLoadKind,
+  LOAD_KIND_FILTER_LABELS,
+  loadKindLabelToSlug,
+} from './load-kind';
+import { LoadKindCell } from './load-kind-cell';
+import { LoadKindFilter } from './load-kind-filter';
+import { LoadKindFloatingFilter } from './load-kind-floating-filter';
 import { LoadItemCountCell } from './load-item-count-cell';
 import { LoadItemsSlider } from './load-items-slider';
 import { LoadXDockEditModal } from './load-xdock-edit-modal';
@@ -70,6 +82,7 @@ type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
 const FILTERABLE_FIELDS = [
   'id',
+  'load_kind',
   'customer',
   'provider',
   'collection',
@@ -80,7 +93,8 @@ const FILTERABLE_FIELDS = [
   'dropoff_time',
   'pallet_count',
 ] as const;
-type SortableField = (typeof FILTERABLE_FIELDS)[number] | 'item_count';
+type FilterableField = (typeof FILTERABLE_FIELDS)[number];
+type SortableField = FilterableField | 'item_count' | 'truck_type';
 type SortDirection = 'asc' | 'desc';
 
 const DEFAULT_SORT: SortableField = 'customer';
@@ -155,6 +169,9 @@ const serverSideDateFilterParams: IDateFilterParams = {
     LoadActionsCell,
     LoadDetailFullWidth,
     LoadExpandCell,
+    LoadKindCell,
+    LoadKindFilter,
+    LoadKindFloatingFilter,
     LoadAddressCell,
     LoadItemCountCell,
     LoadItemsSlider,
@@ -257,6 +274,13 @@ export class CustomerDeliveries implements OnInit {
 
   protected readonly listColumns: DataListColumn<LoadRow>[] = [
     { field: 'id', label: 'Load ID', valueFor: (row) => String(row.id) },
+    {
+      field: 'type',
+      label: 'Load type',
+      badgeValueFor: (row) => directLoadKind(row),
+      subValueBadgeColor: DIRECT_LOAD_KIND_BADGE_COLOR,
+      subValueBadgeSize: DIRECT_LOAD_KIND_BADGE_SIZE,
+    },
     { field: 'customer', label: 'Customer', valueFor: (row) => row.customer },
     { field: 'provider', label: 'Provider', valueFor: (row) => row.provider },
     {
@@ -291,6 +315,7 @@ export class CustomerDeliveries implements OnInit {
 
   protected readonly sortOptions: DataListSortOption[] = [
     { field: 'id', label: 'Load ID' },
+    { field: 'load_kind', label: 'Load type' },
     { field: 'customer', label: 'Customer' },
     { field: 'provider', label: 'Provider' },
     { field: 'collection', label: 'Collection' },
@@ -342,11 +367,38 @@ export class CustomerDeliveries implements OnInit {
       headerName: 'Load ID',
       width: 88,
       minWidth: 72,
-      maxWidth: 110,
+      maxWidth: 104,
       comparator: serverSideSortComparator,
       filter: 'agNumberColumnFilter',
       filterParams: serverSideNumberFilterParams,
       valueGetter: (params) => (isLoadDetailRow(params.data!) ? null : params.data?.id),
+    },
+    {
+      colId: 'load_kind',
+      headerName: 'Load type',
+      width: 108,
+      minWidth: 96,
+      maxWidth: 124,
+      comparator: serverSideSortComparator,
+      filter: LoadKindFilter,
+      floatingFilterComponent: LoadKindFloatingFilter,
+      suppressHeaderFilterButton: true,
+      suppressFloatingFilterButton: true,
+      cellRenderer: LoadKindCell,
+      filterValueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return directLoadKind(data);
+      },
+      valueGetter: (params) => {
+        const data = params.data;
+        if (!data || isLoadDetailRow(data)) {
+          return '';
+        }
+        return directLoadKind(data);
+      },
     },
     {
       field: 'customer',
@@ -946,6 +998,11 @@ export class CustomerDeliveries implements OnInit {
         continue;
       }
 
+      if (field === 'load_kind') {
+        params = this.appendLoadKindSetFilterParams(params, model);
+        continue;
+      }
+
       if (field === 'pallet_count' || field === 'id') {
         params = this.appendNumberFilterParams(params, model, field);
         continue;
@@ -1041,6 +1098,42 @@ export class CustomerDeliveries implements OnInit {
     return params;
   }
 
+  private appendLoadKindSetFilterParams(
+    params: HttpParams,
+    model: FilterModel[string],
+  ): HttpParams {
+    if (!this.isSetFilterModel(model)) {
+      return params;
+    }
+
+    const selected = (model.values ?? []).filter(
+      (value): value is DirectLoadKindLabel =>
+        typeof value === 'string' && (LOAD_KIND_FILTER_LABELS as readonly string[]).includes(value),
+    );
+
+    if (selected.length === 0) {
+      return params
+        .set('filter[load_kind][type]', 'equals')
+        .set('filter[load_kind][filter]', '__no_match__');
+    }
+
+    if (selected.length >= LOAD_KIND_FILTER_LABELS.length) {
+      return params;
+    }
+
+    const slugs = selected.map((label) => loadKindLabelToSlug(label)).join(',');
+
+    return params.set('filter[load_kind][type]', 'in').set('filter[load_kind][filter]', slugs);
+  }
+
+  private isSetFilterModel(model: FilterModel[string] | null | undefined): model is SetFilterModel {
+    if (!model || typeof model !== 'object' || !('values' in model)) {
+      return false;
+    }
+    const filterType = 'filterType' in model ? model.filterType : 'set';
+    return filterType === 'set';
+  }
+
   private isTextFilterModel(
     model: FilterModel[string] | null | undefined,
   ): model is TextFilterModel {
@@ -1075,6 +1168,8 @@ export class CustomerDeliveries implements OnInit {
     return (
       [
         'id',
+        'load_kind',
+        'truck_type',
         'customer',
         'provider',
         'collection',

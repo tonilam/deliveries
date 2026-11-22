@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, input, output } from '@angular/core';
 
+import { UiBadgeComponent } from '../ui/badge/badge';
 import { DataListAction, DataListColumn, DataListSortOption } from './data-list.types';
 
 const MAX_ACTIONS = 3;
 
 @Component({
   selector: 'app-data-list',
-  imports: [],
+  imports: [UiBadgeComponent],
   templateUrl: './data-list.html',
   styleUrl: './data-list.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

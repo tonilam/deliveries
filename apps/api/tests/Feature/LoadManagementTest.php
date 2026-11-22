@@ -204,6 +204,70 @@ class LoadManagementTest extends TestCase
             ->assertJsonPath('loads.0.children.0.item_count', 2);
     }
 
+    public function test_list_filters_by_load_kind(): void
+    {
+        [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();
+        $directOnly = $this->createDirectLoad($owner, $collection, $delivery);
+        $withAddDrop = $this->createDirectLoad($owner, $collection, $delivery);
+        $childDelivery = Address::factory()->for($owner)->delivery()->create();
+        Load::query()->create(array_merge([
+            'company_id' => $owner->id,
+            'parent_load_id' => $withAddDrop->id,
+            'type' => LoadType::AddDrop,
+            'customer_company_id' => $withAddDrop->customer_company_id,
+            'provider_company_id' => $withAddDrop->provider_company_id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $childDelivery->id,
+            'pallet_count' => 1,
+        ], $this->scheduleAttributes()));
+
+        $this->loginAs($user);
+
+        $this->asSpa()->getJson('/api/loads?filter[load_kind][type]=in&filter[load_kind][filter]=direct')
+            ->assertOk()
+            ->assertJsonCount(1, 'loads')
+            ->assertJsonPath('loads.0.id', $directOnly->id);
+
+        $this->asSpa()->getJson('/api/loads?filter[load_kind][type]=in&filter[load_kind][filter]=add_drop')
+            ->assertOk()
+            ->assertJsonCount(1, 'loads')
+            ->assertJsonPath('loads.0.id', $withAddDrop->id);
+
+        $this->asSpa()->getJson('/api/loads?filter[load_kind][type]=equals&filter[load_kind][filter]=__no_match__')
+            ->assertOk()
+            ->assertJsonCount(0, 'loads');
+    }
+
+    public function test_list_sorts_by_load_kind(): void
+    {
+        [$owner, , , $collection, $delivery, $user] = $this->brokerFixture();
+        $directOnly = $this->createDirectLoad($owner, $collection, $delivery);
+        $withAddDrop = $this->createDirectLoad($owner, $collection, $delivery);
+        $childDelivery = Address::factory()->for($owner)->delivery()->create();
+        Load::query()->create(array_merge([
+            'company_id' => $owner->id,
+            'parent_load_id' => $withAddDrop->id,
+            'type' => LoadType::AddDrop,
+            'customer_company_id' => $withAddDrop->customer_company_id,
+            'provider_company_id' => $withAddDrop->provider_company_id,
+            'collection_address_id' => $collection->id,
+            'delivery_address_id' => $childDelivery->id,
+            'pallet_count' => 1,
+        ], $this->scheduleAttributes()));
+
+        $this->loginAs($user);
+
+        $this->asSpa()->getJson('/api/loads?sort=load_kind&direction=asc')
+            ->assertOk()
+            ->assertJsonPath('loads.0.id', $withAddDrop->id)
+            ->assertJsonPath('loads.1.id', $directOnly->id);
+
+        $this->asSpa()->getJson('/api/loads?sort=load_kind&direction=desc')
+            ->assertOk()
+            ->assertJsonPath('loads.0.id', $directOnly->id)
+            ->assertJsonPath('loads.1.id', $withAddDrop->id);
+    }
+
     public function test_party_options_without_search_returns_up_to_ten(): void
     {
         [$owner, , , , , $user] = $this->brokerFixture();
