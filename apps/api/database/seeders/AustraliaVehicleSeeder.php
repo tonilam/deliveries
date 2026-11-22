@@ -221,22 +221,28 @@ class AustraliaVehicleSeeder extends Seeder
                 $optionValues = $mezzanine ? ['mezzanine' => false] : [];
 
                 /** @var VehicleBodyType $bodyType */
-                $bodyType = VehicleBodyType::query()->updateOrCreate(
-                    [
-                        'vehicle_category_id' => $category->id,
-                        'code' => $row['code'],
-                    ],
-                    [
-                        'name' => $row['name'],
-                        'capacity' => $row['capacity'],
-                        'capacity_unit' => $row['capacity_unit'],
-                        'pallet_spaces' => $row['pallet_spaces'] ?? null,
-                        'cubic_metres' => $row['cubic_metres'] ?? null,
-                        'payload_kg' => $row['payload_kg'] ?? null,
-                        'description' => $row['description'] ?? null,
-                        'option_values' => $optionValues,
-                    ],
-                );
+                $bodyType = VehicleBodyType::query()
+                    ->withTrashed()
+                    ->updateOrCreate(
+                        [
+                            'vehicle_category_id' => $category->id,
+                            'code' => $row['code'],
+                        ],
+                        [
+                            'name' => $row['name'],
+                            'capacity' => $row['capacity'],
+                            'capacity_unit' => $row['capacity_unit'],
+                            'pallet_spaces' => $row['pallet_spaces'] ?? null,
+                            'cubic_metres' => $row['cubic_metres'] ?? null,
+                            'payload_kg' => $row['payload_kg'] ?? null,
+                            'description' => $row['description'] ?? null,
+                            'option_values' => $optionValues,
+                        ],
+                    );
+
+                if ($bodyType->trashed()) {
+                    $bodyType->restore();
+                }
 
                 if ($mezzanine) {
                     VehicleBodyTypeOption::query()->updateOrCreate(

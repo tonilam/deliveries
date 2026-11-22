@@ -351,7 +351,7 @@ export class AdminVehicles implements OnInit {
     if (pending.kind === 'category') {
       return `Delete category “${pending.category.name}”? This is only allowed when it has no body types.`;
     }
-    return `Delete body type “${pending.bodyType.name}” and its option definitions?`;
+    return `Delete body type “${pending.bodyType.name}”?`;
   }
 
   protected navigateEditBodyType(categoryId: number, bodyTypeId: number): void {

@@ -4,6 +4,7 @@ namespace Tests\Feature\Admin;
 
 use App\Models\User;
 use App\Models\VehicleBodyType;
+use App\Models\VehicleBodyTypeOption;
 use App\Models\VehicleCategory;
 use Database\Seeders\AustraliaVehicleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -143,6 +144,119 @@ class VehicleCatalogueTest extends TestCase
 
         $this->assertSame(['mezzanine' => false], $tautliner->option_values);
         $this->assertTrue($tautliner->options()->where('key', 'mezzanine')->exists());
+    }
+
+    public function test_admin_can_soft_delete_body_type(): void
+    {
+        $category = VehicleCategory::factory()->create();
+        $bodyType = VehicleBodyType::factory()->create([
+            'vehicle_category_id' => $category->id,
+            'code' => 'tautliner',
+        ]);
+        VehicleBodyTypeOption::factory()->create([
+            'vehicle_body_type_id' => $bodyType->id,
+            'key' => 'mezzanine',
+        ]);
+
+        $this->loginAsAdmin();
+
+        $this->asSpa()->deleteJson(
+            '/api/admin/vehicle-categories/'.$category->id.'/body-types/'.$bodyType->id,
+        )->assertNoContent();
+
+        $this->assertSoftDeleted('vehicle_body_types', [
+            'id' => $bodyType->id,
+            'code' => 'tautliner',
+        ]);
+
+        $this->assertDatabaseHas('vehicle_body_type_options', [
+            'vehicle_body_type_id' => $bodyType->id,
+            'key' => 'mezzanine',
+        ]);
+
+        $this->asSpa()->getJson(
+            '/api/admin/vehicle-categories/'.$category->id.'/body-types',
+        )->assertOk()
+            ->assertJsonPath('meta.total', 0);
+
+        $catalogue = $this->asSpa()->getJson('/api/admin/vehicle-categories?catalogue=1');
+        $catalogue->assertOk();
+        $bodyTypes = collect($catalogue->json('vehicle_categories'))
+            ->firstWhere('id', $category->id)['body_types'] ?? [];
+        $this->assertEmpty($bodyTypes);
+
+        $this->asSpa()->getJson(
+            '/api/admin/vehicle-categories/'.$category->id.'/body-types/'.$bodyType->id,
+        )->assertNotFound();
+    }
+
+    public function test_soft_deleted_body_type_code_cannot_be_recreated(): void
+    {
+        $category = VehicleCategory::factory()->create();
+        $bodyType = VehicleBodyType::factory()->create([
+            'vehicle_category_id' => $category->id,
+            'code' => 'old_code',
+        ]);
+        $bodyType->delete();
+
+        $this->loginAsAdmin();
+
+        $this->asSpa()->postJson(
+            '/api/admin/vehicle-categories/'.$category->id.'/body-types',
+            [
+                'name' => 'Other',
+                'code' => 'old_code',
+                'capacity' => 10,
+                'capacity_unit' => 'pallet',
+            ],
+        )->assertUnprocessable()
+            ->assertJsonValidationErrors(['code']);
+    }
+
+    public function test_category_can_be_soft_deleted_when_only_soft_deleted_body_types_remain(): void
+    {
+        $category = VehicleCategory::factory()->create();
+        $bodyType = VehicleBodyType::factory()->create(['vehicle_category_id' => $category->id]);
+        $bodyType->delete();
+
+        $this->loginAsAdmin();
+
+        $this->asSpa()->deleteJson('/api/admin/vehicle-categories/'.$category->id)
+            ->assertNoContent();
+    }
+
+    public function test_australia_vehicle_seeder_restores_soft_deleted_body_type(): void
+    {
+        $this->seed(AustraliaVehicleSeeder::class);
+
+        $semi = VehicleCategory::query()->where('code', 'semi_trailer')->firstOrFail();
+        $tautliner = VehicleBodyType::query()
+            ->where('vehicle_category_id', $semi->id)
+            ->where('code', 'tautliner')
+            ->firstOrFail();
+        $tautliner->delete();
+
+        $this->assertSoftDeleted('vehicle_body_types', [
+            'vehicle_category_id' => $semi->id,
+            'code' => 'tautliner',
+        ]);
+
+        $this->seed(AustraliaVehicleSeeder::class);
+
+        $this->assertDatabaseHas('vehicle_body_types', [
+            'vehicle_category_id' => $semi->id,
+            'code' => 'tautliner',
+            'deleted_at' => null,
+        ]);
+        $this->assertTrue(
+            VehicleBodyType::query()
+                ->where('vehicle_category_id', $semi->id)
+                ->where('code', 'tautliner')
+                ->firstOrFail()
+                ->options()
+                ->where('key', 'mezzanine')
+                ->exists(),
+        );
     }
 
     private function loginAsAdmin(): void
