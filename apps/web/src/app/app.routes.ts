@@ -101,6 +101,11 @@ export const routes: Routes = [
           import('./pages/customer/network/network-company-form').then((m) => m.NetworkCompanyForm),
       },
       {
+        path: 'vehicles',
+        loadComponent: () =>
+          import('./pages/customer/vehicles/vehicles').then((m) => m.CustomerVehicles),
+      },
+      {
         path: 'rate-cards',
         loadComponent: () =>
           import('./pages/customer/rate-cards/rate-cards').then((m) => m.CustomerRateCards),

@@ -1,0 +1,11 @@
+@if (row) {
+  <label class="active-cell checkbox" (click)="$event.stopPropagation()">
+    <input
+      type="checkbox"
+      [checked]="row.active"
+      (change)="onChange($event)"
+      [attr.aria-label]="'Active: ' + row.name"
+    />
+    <span class="visually-hidden">{{ row.active ? 'Active' : 'Inactive' }}</span>
+  </label>
+}

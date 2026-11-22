@@ -82,6 +82,7 @@ use App\Http\Controllers\FeatureFlagsController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ItemGoodTypeOptionsController;
 use App\Http\Controllers\ItemListController;
+use App\Http\Controllers\ListCustomerVehiclesController;
 use App\Http\Controllers\LoadAddressOptionsController;
 use App\Http\Controllers\LoadListController;
 use App\Http\Controllers\LoadPartyOptionsController;
@@ -97,10 +98,12 @@ use App\Http\Controllers\ShowNetworkCompanyController;
 use App\Http\Controllers\ShowRateCardController;
 use App\Http\Controllers\UnassignItemFromLoadController;
 use App\Http\Controllers\UpdateAddressController;
+use App\Http\Controllers\UpdateCompanyVehicleBodyTypeController;
 use App\Http\Controllers\UpdateItemController;
 use App\Http\Controllers\UpdateLoadController;
 use App\Http\Controllers\UpdateNetworkCompanyController;
 use App\Http\Controllers\UpdateRateCardController;
+use App\Http\Controllers\VehicleBodyTypeOptionsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class);
@@ -159,6 +162,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/items/{item}', ShowItemController::class);
     Route::put('/items/{item}', UpdateItemController::class);
     Route::delete('/items/{item}', DeleteItemController::class);
+
+    Route::get('/vehicles', ListCustomerVehiclesController::class);
+    Route::get('/vehicles/body-type-options', VehicleBodyTypeOptionsController::class);
+    Route::put('/vehicles/body-types/{bodyType}', UpdateCompanyVehicleBodyTypeController::class);
 
     Route::get('/network/companies', NetworkCompanyListController::class);
     Route::post('/network/companies', CreateNetworkCompanyController::class);

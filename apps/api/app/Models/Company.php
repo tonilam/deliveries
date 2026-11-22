@@ -76,6 +76,15 @@ class Company extends Model
     }
 
     /**
+     * @return BelongsToMany<VehicleBodyType, $this>
+     */
+    public function vehicleBodyTypes(): BelongsToMany
+    {
+        return $this->belongsToMany(VehicleBodyType::class, 'company_vehicle_body_types')
+            ->withTimestamps();
+    }
+
+    /**
      * @return HasMany<User, $this>
      */
     public function users(): HasMany

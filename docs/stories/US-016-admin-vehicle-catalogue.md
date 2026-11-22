@@ -17,7 +17,7 @@ As an admin user, I want to manage vehicle categories, body types, and body-type
 
 ## Notes
 - Category **edit** uses an in-page modal on `/admin/vehicles` (≤5 simple fields); **create** uses `/admin/vehicles/categories/create` ([simple-entity-edit-modal](../../.cursor/skills/simple-entity-edit-modal/SKILL.md)).
-- Builds on [US-002](US-002-admin-portal-and-roles.md). Customer visibility of `public` options is a later story.
+- Builds on [US-002](US-002-admin-portal-and-roles.md). Customer company activation of body types: [US-027](US-027-customer-vehicles.md). Customer visibility of `public` options is a later story.
 - Per-shipment `load_type` is out of scope (future load/delivery story); goods type catalogue: [US-022](US-022-admin-goods-types.md).
 - Run seeder: `php artisan db:seed --class=AustraliaVehicleSeeder`
 - `AustraliaVehicleSeeder` restores a soft-deleted seeded body type (same idea as `GoodTypeSeeder`); no admin restore screen

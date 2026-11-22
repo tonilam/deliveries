@@ -1,0 +1,97 @@
+<section class="portal portal--wide">
+  <div class="vehicles-header">
+    <div>
+      <h1>Vehicles</h1>
+      <p class="lede">
+        Choose which body types your company uses. Only active types appear in vehicle pickers.
+      </p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="vehicles-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="vehicles-status">Loading catalogue…</p>
+  } @else if (categories().length === 0) {
+    <p class="vehicles-status">No vehicle body types are available yet.</p>
+  } @else if (compact()) {
+    <app-data-list
+      [loading]="loading()"
+      [rows]="filteredListRows()"
+      [titleFor]="listTitle"
+      [columns]="listColumns"
+      [actionsFor]="actionsForList"
+      [rowClassFor]="listRowClass"
+      [searchValue]="listSearch()"
+      searchPlaceholder="Search body types…"
+      [sortOptions]="sortOptions"
+      [sortField]="listSortField()"
+      [sortDirection]="listSortDirection()"
+      (searchChange)="onListSearch($event)"
+      (sortFieldChange)="onListSortField($event)"
+      (sortDirectionChange)="onListSortDirection($event)"
+    />
+  } @else {
+    <div class="category-filters" aria-label="Show categories">
+      <label class="category-filters__all checkbox">
+        <input
+          type="checkbox"
+          [checked]="allCategoriesChecked()"
+          (change)="toggleAllCategories($any($event.target).checked)"
+        />
+        <span>All categories</span>
+      </label>
+      @for (category of categories(); track category.id) {
+        <label class="checkbox">
+          <input
+            type="checkbox"
+            [checked]="isCategoryVisible(category.id)"
+            (change)="toggleCategory(category.id, $any($event.target).checked)"
+          />
+          <span>{{ category.name }}</span>
+        </label>
+      }
+    </div>
+
+    @if (visibleCategories().length === 0) {
+      <p class="vehicles-status">No categories selected. Turn on a category above.</p>
+    }
+
+    <ul class="category-sections">
+      @for (category of visibleCategories(); track category.id) {
+        <li class="category-section">
+          <div class="category-section__header">
+            <div>
+              <h2>{{ category.name }}</h2>
+              <p class="category-section__code">
+                {{ category.code }} · sort {{ category.sort_order }}
+              </p>
+            </div>
+          </div>
+
+          @if ((category.body_types ?? []).length === 0) {
+            <p class="vehicles-status">No body types in this category.</p>
+          } @else {
+            <ag-grid-angular
+              class="body-types-grid"
+              [theme]="theme"
+              [rowData]="bodyTypesForGrid(category)"
+              [getRowId]="bodyTypeRowId"
+              [columnDefs]="bodyTypeColumnsFor(category.id)"
+              [defaultColDef]="bodyTypeDefaultsByCategory().get(category.id)"
+              [pagination]="true"
+              [paginationPageSize]="bodyTypePageSize"
+              [paginationPageSizeSelector]="bodyTypePageSizeSelector"
+              domLayout="autoHeight"
+              [rowHeight]="bodyTypeRowHeight"
+              [rowClassRules]="bodyTypeRowClassRules"
+              [suppressCellFocus]="true"
+            />
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

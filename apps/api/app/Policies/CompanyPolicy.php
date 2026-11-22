@@ -34,6 +34,11 @@ class CompanyPolicy
         return $this->managesNetworkCompany($user, $company);
     }
 
+    public function manageVehicles(User $user): bool
+    {
+        return $this->customerWithCompany($user);
+    }
+
     private function customerWithCompany(User $user): bool
     {
         return $user->role === UserRole::Customer && $user->company_id !== null;

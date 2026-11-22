@@ -1,0 +1,104 @@
+.vehicles-header {
+  margin-bottom: 1.25rem;
+}
+
+.vehicles-error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.vehicles-status {
+  color: #64748b;
+}
+
+.category-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+
+.category-filters__all {
+  font-weight: 700;
+  margin-right: 0.25rem;
+  padding-right: 1rem;
+  border-right: 1px solid #cbd5e1;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.category-sections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.category-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  padding: 1rem 1.1rem;
+  background: #fff;
+}
+
+.category-section__header {
+  margin-bottom: 0.85rem;
+}
+
+.category-section h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--ui-color-navy);
+}
+
+.category-section__code {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.body-types-grid {
+  display: block;
+  width: 100%;
+}
+
+:host ::ng-deep .body-types-grid .ag-cell {
+  display: flex;
+  align-items: center;
+}
+
+:host ::ng-deep .body-types-grid .ag-row.body-types-grid__row--inactive {
+  background-color: #f3f4f6;
+}
+
+:host ::ng-deep .body-types-grid .ag-row.body-types-grid__row--inactive .ag-cell {
+  color: #d1d5db;
+}
+
+:host ::ng-deep .vehicles-list-item--inactive {
+  background-color: #f3f4f6;
+  border-color: #e2e8f0;
+}
+
+:host ::ng-deep .vehicles-list-item--inactive .data-list__title,
+:host ::ng-deep .vehicles-list-item--inactive .data-list__field dd {
+  color: #d1d5db;
+}
+
+:host ::ng-deep .vehicles-list-item--inactive .data-list__field dt {
+  color: #d1d5db;
+}

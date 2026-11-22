@@ -41,7 +41,7 @@
   } @else {
     <ul class="data-list__items">
       @for (row of rows(); track trackRow(row)) {
-        <li class="data-list__item">
+        <li class="data-list__item" [class]="rowClassFor()?.(row) ?? ''">
           <p class="data-list__title">{{ titleFor()(row) }}</p>
           <dl class="data-list__fields">
             @for (column of columns(); track column.field) {

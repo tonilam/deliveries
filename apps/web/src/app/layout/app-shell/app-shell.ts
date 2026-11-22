@@ -52,6 +52,7 @@ export class AppShell {
           { label: 'Deliveries', path: '/app/deliveries' },
           { label: 'Addresses', path: '/app/addresses' },
           { label: 'Network', path: '/app/network/providers' },
+          { label: 'Vehicles', path: '/app/vehicles' },
           { label: 'Rate cards', path: '/app/rate-cards' },
         ];
   });

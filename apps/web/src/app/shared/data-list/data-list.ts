@@ -17,6 +17,7 @@ export class DataListComponent<T extends { id: number | string }> implements OnD
   readonly titleFor = input.required<(row: T) => string>();
   readonly columns = input.required<DataListColumn<T>[]>();
   readonly actionsFor = input.required<(row: T) => DataListAction<T>[]>();
+  readonly rowClassFor = input<(row: T) => string | undefined>();
   readonly searchValue = input('');
   readonly searchPlaceholder = input('Search…');
   readonly sortOptions = input.required<DataListSortOption[]>();

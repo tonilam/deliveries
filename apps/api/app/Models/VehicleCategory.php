@@ -30,6 +30,28 @@ class VehicleCategory extends Model
     }
 
     /**
+     * @param  array<int, true>  $activeBodyTypeIds
+     * @return array<string, mixed>
+     */
+    public function toCustomerCataloguePayload(array $activeBodyTypeIds): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'code' => $this->code,
+            'sort_order' => $this->sort_order,
+            'body_types' => $this->relationLoaded('bodyTypes')
+                ? $this->bodyTypes
+                    ->map(static fn (VehicleBodyType $bodyType) => $bodyType->toCustomerPayload(
+                        isset($activeBodyTypeIds[$bodyType->id]),
+                    ))
+                    ->values()
+                    ->all()
+                : [],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toAdminPayload(bool $withBodyTypes = false): array

@@ -39,6 +39,38 @@ export interface VehicleBodyTypeOption {
   sort_order: number;
 }
 
+export interface CustomerVehicleBodyType {
+  id: number;
+  vehicle_category_id: number;
+  name: string;
+  code: string;
+  capacity: number;
+  capacity_unit: VehicleCapacityUnit;
+  pallet_spaces: number | null;
+  cubic_metres: number | null;
+  payload_kg: number | null;
+  description: string | null;
+  active: boolean;
+}
+
+export interface CustomerVehicleCategory {
+  id: number;
+  name: string;
+  code: string;
+  sort_order: number;
+  body_types: CustomerVehicleBodyType[];
+}
+
+export interface VehicleBodyTypeOptionRow {
+  id: number;
+  name: string;
+  code: string;
+  vehicle_category_id: number;
+  category_name: string | null;
+  capacity: number;
+  capacity_unit: VehicleCapacityUnit;
+}
+
 export const VEHICLE_CAPACITY_UNITS: { value: VehicleCapacityUnit; label: string }[] = [
   { value: 'pallet', label: 'Pallets' },
   { value: 'm3', label: 'Cubic metres' },
