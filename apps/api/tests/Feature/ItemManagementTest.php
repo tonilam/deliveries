@@ -47,12 +47,15 @@ class ItemManagementTest extends TestCase
 
         $create = $this->asSpa()->postJson('/api/items', $this->validPayload([
             'weight_tonnes' => 1.5,
+            'quantity' => 3,
             'display_unit' => 'tonnes',
             'order_number' => 'ORD-1',
         ]));
         $create->assertCreated()
             ->assertJsonPath('item.good_type_code', 'GEN')
             ->assertJsonPath('item.weight_tonnes', '1.500000')
+            ->assertJsonPath('item.quantity', 3)
+            ->assertJsonPath('item.total_weight_tonnes', '4.500000')
             ->assertJsonPath('item.display_unit', 'tonnes')
             ->assertJsonPath('item.order_number', 'ORD-1');
 
@@ -96,6 +99,29 @@ class ItemManagementTest extends TestCase
             ->assertJsonValidationErrors(['weight_tonnes']);
     }
 
+    public function test_rejects_invalid_quantity(): void
+    {
+        $company = Company::factory()->create();
+        $customer = User::factory()->forCompany($company)->create([
+            'email' => 'customer@example.com',
+            'password' => 'Password1!',
+        ]);
+
+        $this->loginAs($customer);
+
+        $withoutQuantity = $this->validPayload();
+        unset($withoutQuantity['quantity']);
+        $this->asSpa()->postJson('/api/items', $withoutQuantity)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['quantity']);
+
+        foreach ([0, -1, 1.5] as $invalid) {
+            $this->asSpa()->postJson('/api/items', $this->validPayload(['quantity' => $invalid]))
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['quantity']);
+        }
+    }
+
     public function test_rejects_soft_deleted_good_type(): void
     {
         $company = Company::factory()->create();
@@ -133,12 +159,15 @@ class ItemManagementTest extends TestCase
         $this->asSpa()->putJson("/api/items/{$item->id}", [
             'good_type_code' => 'GEN',
             'weight_tonnes' => 2.5,
+            'quantity' => 2,
             'display_unit' => 'tonnes',
             'order_number' => null,
             'connote' => null,
         ])
             ->assertOk()
-            ->assertJsonPath('item.weight_tonnes', '2.500000');
+            ->assertJsonPath('item.weight_tonnes', '2.500000')
+            ->assertJsonPath('item.quantity', 2)
+            ->assertJsonPath('item.total_weight_tonnes', '5.000000');
     }
 
     public function test_good_type_options_for_customer(): void
@@ -165,6 +194,7 @@ class ItemManagementTest extends TestCase
         return array_merge([
             'good_type_code' => 'GEN',
             'weight_tonnes' => 0.5,
+            'quantity' => 1,
             'display_unit' => 'kg',
             'order_number' => null,
             'connote' => null,

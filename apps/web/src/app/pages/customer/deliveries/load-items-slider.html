@@ -308,7 +308,7 @@
       </label>
       <div class="form-stack__row">
         <label>
-          <span>Weight</span>
+          <span>Weight per unit</span>
           <input type="number" formControlName="weight" min="0" step="any" inputmode="decimal" />
         </label>
         <label>
@@ -319,6 +319,10 @@
           </select>
         </label>
       </div>
+      <label>
+        <span>Quantity</span>
+        <input type="number" formControlName="quantity" min="1" step="1" inputmode="numeric" />
+      </label>
       <label>
         <span>Order number</span>
         <input type="text" formControlName="order_number" autocomplete="off" />

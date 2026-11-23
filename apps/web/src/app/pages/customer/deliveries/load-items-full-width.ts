@@ -161,15 +161,22 @@ export class LoadItemsFullWidth implements ICellRendererAngularComp {
   protected readonly columnDefs: ColDef<ItemRow>[] = [
     { field: 'good_type', headerName: 'Goods type', flex: 1, minWidth: 120 },
     {
-      headerName: 'Weight',
+      field: 'quantity',
+      headerName: 'Quantity',
+      flex: 0.5,
+      minWidth: 90,
+      valueGetter: (params) => params.data?.quantity ?? '—',
+    },
+    {
+      headerName: 'Total weight',
       flex: 0.8,
-      minWidth: 100,
+      minWidth: 110,
       valueGetter: (params) => {
         const item = params.data;
         if (!item) {
           return '';
         }
-        const weight = formatWeightForDisplay(item.weight_tonnes, item.display_unit);
+        const weight = formatWeightForDisplay(item.total_weight_tonnes, item.display_unit);
         return `${weight} ${displayUnitLabel(item.display_unit)}`;
       },
     },

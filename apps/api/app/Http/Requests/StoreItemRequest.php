@@ -37,6 +37,7 @@ class StoreItemRequest extends FormRequest
                 Rule::exists('good_types', 'code')->whereNull('deleted_at'),
             ],
             'weight_tonnes' => ['required', 'numeric', 'gt:0'],
+            'quantity' => ['required', 'integer', 'min:1'],
             'display_unit' => ['required', 'string', Rule::enum(ItemDisplayUnit::class)],
             'order_number' => ['nullable', 'string', 'max:255'],
             'connote' => ['nullable', 'string', 'max:255'],

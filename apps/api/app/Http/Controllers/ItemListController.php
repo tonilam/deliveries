@@ -77,6 +77,10 @@ class ItemListController extends Controller
                 $value = (float) $search;
                 $inner->orWhere('items.weight_tonnes', $value)
                     ->orWhere('items.weight_tonnes', $value / 1000);
+
+                if (ctype_digit($search) && (int) $search >= 1) {
+                    $inner->orWhere('items.quantity', (int) $search);
+                }
             }
         });
     }

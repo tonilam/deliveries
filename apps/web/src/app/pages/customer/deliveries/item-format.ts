@@ -5,6 +5,8 @@ export interface ItemRow {
   good_type_code: string;
   good_type: string;
   weight_tonnes: string;
+  quantity: number;
+  total_weight_tonnes: string;
   display_unit: ItemDisplayUnit;
   order_number: string | null;
   connote: string | null;
