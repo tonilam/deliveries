@@ -134,4 +134,4 @@ Set `RUN_MIGRATIONS=true` in the env file for migrate-on-start, or run migration
 
 ## CI
 
-[`.github/workflows/ecr-build.yml`](.github/workflows/ecr-build.yml) builds `linux/arm64` and pushes to ECR. Configure `AWS_ROLE_TO_ASSUME` and optional vars `AWS_REGION` / `ECR_REPOSITORY`.
+Automatic ECR builds are paused until GitHub Actions is ready. [`.github/workflows/ecr-build.yml`](.github/workflows/ecr-build.yml) is still in the repo and can be started manually with **Run workflow**. A manual run still needs the `AWS_ROLE_TO_ASSUME` secret, plus optional variables `AWS_REGION` and `ECR_REPOSITORY`, before it can push the `linux/arm64` image. Pushes to `master` do not start this workflow.

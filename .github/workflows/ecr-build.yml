@@ -1,14 +1,9 @@
 name: Build and push ARM64 image to ECR
 
 on:
+  # Automatic pushes are paused until GitHub Actions and AWS_ROLE_TO_ASSUME are ready.
+  # Restore the push trigger (master/main, paths apps/**, docker/**, Dockerfile, this file) to turn it back on.
   workflow_dispatch:
-  push:
-    branches: [master, main]
-    paths:
-      - "apps/**"
-      - "docker/**"
-      - "Dockerfile"
-      - ".github/workflows/ecr-build.yml"
 
 permissions:
   id-token: write
