@@ -1,0 +1,14 @@
+<div class="load-slider-backdrop" (click)="close()"></div>
+<aside class="load-slider" role="dialog" aria-modal="true" aria-labelledby="vehicle-activity-title">
+  <header class="load-slider__header">
+    <div>
+      <h2 id="vehicle-activity-title">Activity</h2>
+      <p>Your company’s vehicle body type history.</p>
+    </div>
+    <button type="button" class="btn btn--ghost" (click)="close()">Close</button>
+  </header>
+
+  <div class="load-slider__body">
+    <app-vehicle-activity-panel />
+  </div>
+</aside>

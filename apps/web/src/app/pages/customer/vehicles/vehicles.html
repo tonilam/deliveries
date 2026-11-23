@@ -6,6 +6,11 @@
         Choose which body types your company uses. Only active types appear in vehicle pickers.
       </p>
     </div>
+    @if (!loading()) {
+      <div class="vehicles-header__actions">
+        <button type="button" class="btn btn--ghost" (click)="openActivity()">Activity</button>
+      </div>
+    }
   </div>
 
   @if (error()) {
@@ -93,5 +98,9 @@
         </li>
       }
     </ul>
+  }
+
+  @if (activityOpen()) {
+    <app-vehicle-activity-slider (closed)="closeActivity()" />
   }
 </section>

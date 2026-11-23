@@ -20,3 +20,4 @@ As a customer user, I want to choose which vehicle body types my company uses, s
 - Load truck type picker: [US-024](US-024-customer-loads.md). Rate cards remain out of scope.
 - Public vs system option visibility remains a later story ([US-016](US-016-admin-vehicle-catalogue.md)).
 - Inactive means no pivot row. Active means a row in `company_vehicle_body_types`. Turning a type off deletes that row. A later admin restore of a soft-deleted body type keeps the company’s previous choice.
+- Assignment history is [US-030](US-030-customer-vehicle-activity.md).

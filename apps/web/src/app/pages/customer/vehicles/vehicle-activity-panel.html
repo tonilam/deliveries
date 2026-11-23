@@ -1,0 +1,92 @@
+<section class="load-activity" aria-label="Vehicle activity">
+  @if (error()) {
+    <p class="load-activity__error" role="alert">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p>Loading activity…</p>
+  } @else if (rows().length === 0) {
+    <p class="load-activity__empty">No activity yet.</p>
+  } @else {
+    <ol class="load-activity__list">
+      @for (entry of rows(); track entry.id) {
+        <li class="load-activity__entry">
+          <header class="load-activity__entry-head">
+            <p class="load-activity__description">{{ entry.description }}</p>
+            <time class="load-activity__when" [attr.datetime]="entry.created_at">
+              {{ formatWhen(entry.created_at) }}
+            </time>
+          </header>
+          <p class="load-activity__who">
+            @if (entry.causer; as user) {
+              {{ user.name }}
+            } @else {
+              Unknown user
+            }
+            @if (entry.impersonator; as admin) {
+              <span class="load-activity__via">via {{ admin.name }}</span>
+            }
+          </p>
+          @if (entry.body_type; as bodyType) {
+            <p class="load-activity__item">{{ bodyType.name }} ({{ bodyType.code }})</p>
+          }
+          @if (entry.changes.length > 0) {
+            <ul class="load-activity__changes">
+              @for (change of entry.changes; track change.field) {
+                <li>
+                  <span class="load-activity__change-label">{{ change.label }}</span>
+                  <span class="load-activity__change-values">
+                    {{ formatValue(change.old) }} → {{ formatValue(change.new) }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        </li>
+      }
+    </ol>
+  }
+
+  @if (meta(); as pagination) {
+    @if (pagination.total > 0) {
+      <div class="load-activity__pager pagination" aria-label="Activity pagination">
+        <p class="pagination__summary">
+          Showing {{ pagination.from }}–{{ pagination.to }} of {{ pagination.total }}
+        </p>
+        <label class="pagination__size">
+          <span>Rows per page</span>
+          <select
+            [value]="pageSize()"
+            (change)="onPageSizeChange(+$any($event.target).value)"
+            [disabled]="loading()"
+          >
+            @for (size of pageSizeOptions; track size) {
+              <option [value]="size">{{ size }}</option>
+            }
+          </select>
+        </label>
+        <div class="pagination__nav">
+          <button
+            type="button"
+            class="btn btn--ghost"
+            [disabled]="loading() || pagination.current_page <= 1"
+            (click)="goToPage(pagination.current_page - 1)"
+          >
+            Previous
+          </button>
+          <span class="pagination__page">
+            Page {{ pagination.current_page }} of {{ pagination.last_page }}
+          </span>
+          <button
+            type="button"
+            class="btn btn--ghost"
+            [disabled]="loading() || pagination.current_page >= pagination.last_page"
+            (click)="goToPage(pagination.current_page + 1)"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    }
+  }
+</section>

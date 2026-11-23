@@ -36,6 +36,7 @@ import {
   VehicleBodyTypeActiveCell,
   VehicleBodyTypeActiveCellParams,
 } from './vehicle-body-type-active-cell';
+import { VehicleActivitySlider } from './vehicle-activity-slider';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -46,7 +47,7 @@ export interface CustomerVehicleBodyTypeRow extends CustomerVehicleBodyType {
 
 @Component({
   selector: 'app-customer-vehicles',
-  imports: [AgGridAngular, DataListComponent, VehicleBodyTypeActiveCell],
+  imports: [AgGridAngular, DataListComponent, VehicleBodyTypeActiveCell, VehicleActivitySlider],
   templateUrl: './vehicles.html',
   styleUrls: ['../../../shared/portal-shell.scss', './vehicles.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,6 +64,7 @@ export class CustomerVehicles implements OnInit {
   private readonly catalogueCategoryIds = signal<number[]>([]);
   protected readonly categoryVisible = signal<Record<number, boolean>>({});
   protected readonly compact = createCompactViewportSignal();
+  protected readonly activityOpen = signal(false);
   protected readonly listSearch = signal('');
   protected readonly listSortField = signal<keyof CustomerVehicleBodyTypeRow>('name');
   protected readonly listSortDirection = signal<'asc' | 'desc'>('asc');
@@ -238,6 +240,14 @@ export class CustomerVehicles implements OnInit {
 
   protected bodyTypesForGrid(category: CustomerVehicleCategory): CustomerVehicleBodyTypeRow[] {
     return this.rowsByCategory().get(category.id) ?? this.emptyBodyTypeRows;
+  }
+
+  protected openActivity(): void {
+    this.activityOpen.set(true);
+  }
+
+  protected closeActivity(): void {
+    this.activityOpen.set(false);
   }
 
   protected onListSearch(value: string): void {

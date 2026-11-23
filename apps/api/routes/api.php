@@ -82,6 +82,7 @@ use App\Http\Controllers\FeatureFlagsController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ItemGoodTypeOptionsController;
 use App\Http\Controllers\ItemListController;
+use App\Http\Controllers\ListCompanyVehicleActivityController;
 use App\Http\Controllers\ListCustomerVehiclesController;
 use App\Http\Controllers\ListLoadActivityController;
 use App\Http\Controllers\LoadAddressOptionsController;
@@ -166,6 +167,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::delete('/items/{item}', DeleteItemController::class);
 
     Route::get('/vehicles', ListCustomerVehiclesController::class);
+    Route::get('/vehicles/activity', ListCompanyVehicleActivityController::class);
     Route::get('/vehicles/body-type-options', VehicleBodyTypeOptionsController::class);
     Route::put('/vehicles/body-types/{bodyType}', UpdateCompanyVehicleBodyTypeController::class);
 

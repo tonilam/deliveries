@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -24,6 +24,10 @@ export class VehiclesApiService {
       `/api/vehicles/body-types/${id}`,
       { active },
     );
+  }
+
+  getActivity<T>(params: HttpParams): Observable<T> {
+    return this.http.get<T>('/api/vehicles/activity', { params });
   }
 
   getBodyTypeOptions(): Observable<{ vehicle_body_types: VehicleBodyTypeOptionRow[] }> {
