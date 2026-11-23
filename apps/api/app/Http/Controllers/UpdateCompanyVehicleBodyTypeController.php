@@ -3,14 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateCompanyVehicleBodyTypeRequest;
+use App\Models\User;
 use App\Models\VehicleBodyType;
+use App\Services\CompanyVehicleActivityLogger;
 use Illuminate\Http\JsonResponse;
 
 class UpdateCompanyVehicleBodyTypeController extends Controller
 {
-    public function __invoke(UpdateCompanyVehicleBodyTypeRequest $request, VehicleBodyType $bodyType): JsonResponse
-    {
-        $company = $request->user()->company;
+    public function __invoke(
+        UpdateCompanyVehicleBodyTypeRequest $request,
+        VehicleBodyType $bodyType,
+        CompanyVehicleActivityLogger $activityLogger,
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $request->user();
+        $company = $user->company;
         if ($company === null) {
             abort(403);
         }
@@ -19,12 +26,20 @@ class UpdateCompanyVehicleBodyTypeController extends Controller
             abort(404);
         }
 
-        if ($request->boolean('active')) {
+        $active = $request->boolean('active');
+        $alreadyActive = $company->vehicleBodyTypes()->whereKey($bodyType->id)->exists();
+        if ($alreadyActive === $active) {
+            return response()->json([
+                'vehicle_body_type' => $bodyType->toCustomerPayload($active),
+            ]);
+        }
+
+        if ($active) {
             $company->vehicleBodyTypes()->syncWithoutDetaching([$bodyType->id]);
-            $active = true;
+            $activityLogger->activated($company, $bodyType, $user);
         } else {
             $company->vehicleBodyTypes()->detach($bodyType->id);
-            $active = false;
+            $activityLogger->deactivated($company, $bodyType, $user);
         }
 
         return response()->json([

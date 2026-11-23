@@ -1,5 +1,14 @@
 .vehicles-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin-bottom: 1.25rem;
+}
+
+.vehicles-header__actions {
+  flex: 0 0 auto;
 }
 
 .vehicles-error {
