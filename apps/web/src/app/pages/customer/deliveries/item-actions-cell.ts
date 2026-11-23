@@ -8,6 +8,8 @@ export interface ItemActionsCellRow {
   good_type: string;
   good_type_code?: string;
   weight_tonnes?: string;
+  quantity?: number;
+  total_weight_tonnes?: string;
   display_unit?: 'tonnes' | 'kg';
   order_number?: string | null;
   connote?: string | null;

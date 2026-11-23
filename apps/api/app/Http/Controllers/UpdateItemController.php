@@ -14,6 +14,7 @@ class UpdateItemController extends Controller
         $item->update([
             'good_type_code' => $request->string('good_type_code')->toString(),
             'weight_tonnes' => $request->input('weight_tonnes'),
+            'quantity' => (int) $request->input('quantity'),
             'display_unit' => ItemDisplayUnit::from($request->string('display_unit')->toString()),
             'order_number' => $request->input('order_number'),
             'connote' => $request->input('connote'),

@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'load_id',
     'good_type_code',
     'weight_tonnes',
+    'quantity',
     'display_unit',
     'order_number',
     'connote',
@@ -27,6 +28,7 @@ class Item extends Model
     {
         return [
             'weight_tonnes' => 'decimal:6',
+            'quantity' => 'integer',
             'display_unit' => ItemDisplayUnit::class,
         ];
     }
@@ -67,6 +69,8 @@ class Item extends Model
             'good_type_code' => $this->good_type_code,
             'good_type' => $this->goodType?->name ?? '',
             'weight_tonnes' => (string) $this->weight_tonnes,
+            'quantity' => (int) $this->quantity,
+            'total_weight_tonnes' => bcmul((string) $this->weight_tonnes, (string) $this->quantity, 6),
             'display_unit' => $this->display_unit->value,
             'order_number' => $this->order_number,
             'connote' => $this->connote,

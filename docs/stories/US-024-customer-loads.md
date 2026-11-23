@@ -9,7 +9,7 @@ As a customer user, I want to manage loads on the Deliveries page, so that I can
 - [ ] Direct rows with **Add Drop** or **X Dock** children **expand** to a nested grid of those child loads
 - [ ] **Pure direct** loads (no children) with items **expand** to a read-only nested grid of items on that load
 - [ ] Each **child load** row with items **expands** to a read-only nested grid of that child’s items
-- [ ] Nested **item** rows are display-only (goods type, weight, order number, connote); assign/edit/delete remains in **Manage Item**
+- [ ] Nested **item** rows are display-only (goods type, quantity, total weight, order number, connote); assign/edit/delete remains in **Manage Item**
 - [ ] Columns include **load ID**, **customer**, **provider**, **Truck Type**, **collection**, **delivery**, **pickup date**, **pickup time**, **drop-off date**, **drop-off time**, **pallets**, **item count** (parent row shows **own items plus all child loads**; child rows show only that load’s items)
 - [ ] **Truck Type** on direct loads is optional: `vehicle_body_type_id` plus `vehicle_option_values` JSON for **public** body-type option values; grid shows `{category} \ {body type}` or blank; **Add Drop** and **X Dock** do not use truck type (API **422** if sent; UI hidden)
 - [ ] Create and direct edit include a **Truck Type** picker of body types **active for the company** (`GET /api/vehicles/body-type-options`), client-side label filter, labels `{category} \ {body type}`; public options editable when the type has them; body type must be active for the company unless unchanged on an existing direct load (deactivated type may remain on save)
@@ -22,12 +22,12 @@ As a customer user, I want to manage loads on the Deliveries page, so that I can
 - [ ] Addresses must be owner company **collection** or **delivery** types as appropriate; direct collection ≠ delivery
 - [ ] **Pallet count** required integer ≥ 0 per load
 - [ ] Each load (direct and every child load) has required **pickup date**, **pickup time**, **drop-off date**, and **drop-off time**; drop-off is on or after pickup; child loads set their own schedule (not copied from the parent)
-- [ ] **Manage Item** opens a **50vw** right slider (100vw compact): tabs **On this load** | **Available items**; server-paginated item lists; **Add** / **Remove** assign; **Available items** has **New item** opening a create modal (goods type, weight, unit, optional refs) with **Assign to this load** checkbox (default checked); **Edit** / **Delete** items in slider
+- [ ] **Manage Item** opens a **50vw** right slider (100vw compact): tabs **On this load** | **Available items**; server-paginated item lists; **Add** / **Remove** assign; **Available items** has **New item** opening a create modal (goods type, weight per unit, unit, quantity default 1, optional refs) with **Assign to this load** checkbox (default checked); **Edit** / **Delete** items in slider
 - [ ] On a **direct** load, each assigned item has **Move to child**: move onto an **existing** Add Drop / X Dock child or **create** a new child (Add Drop: delivery + pallets, parent provider; X Dock: x-dock + final delivery + network provider + pallets); `POST /api/loads/{load}/items/{item}/move` in one transaction
 - [ ] Only **unassigned** items can be assigned; assign to another load **422**; delete load unassigns items (direct delete removes children and unassigns all)
 - [ ] Provider owner cannot create **X Dock** (no network providers) — API **422** and UI hidden/disabled
 - [ ] `GET/POST /api/loads`, `GET/PUT/DELETE /api/loads/{load}`, `POST /api/loads/{load}/children`, party/address options, `POST/DELETE` load item assign/unassign — customer with company only; **401/403/404** as for other customer resources
 
 ## Notes
-- Items: [US-023](US-023-customer-delivery-items.md) (fields and weight storage unchanged).
+- Items: [US-023](US-023-customer-delivery-items.md) — `weight_tonnes` is weight per unit; total weight is `quantity × weight_tonnes`.
 - Addresses: [US-010](US-010-customer-address-management.md); network: [US-019](US-019-customer-network.md); company types: [US-020](US-020-admin-company-type.md).

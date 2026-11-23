@@ -158,6 +158,7 @@ export class LoadItemsSlider {
   protected readonly createItemForm = this.fb.nonNullable.group({
     good_type_code: this.fb.nonNullable.control('', [Validators.required]),
     weight: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.000_001)]),
+    quantity: this.fb.nonNullable.control(1, [Validators.required, Validators.min(1)]),
     display_unit: this.fb.nonNullable.control<ItemDisplayUnit>('tonnes', [Validators.required]),
     order_number: this.fb.nonNullable.control(''),
     connote: this.fb.nonNullable.control(''),
@@ -193,7 +194,10 @@ export class LoadItemsSlider {
   }
 
   protected itemSummary(item: ItemRow): string {
-    const weight = `${formatWeightForDisplay(item.weight_tonnes, item.display_unit)} ${displayUnitLabel(item.display_unit)}`;
+    const unit = displayUnitLabel(item.display_unit);
+    const perUnit = `${formatWeightForDisplay(item.weight_tonnes, item.display_unit)} ${unit}`;
+    const total = `${formatWeightForDisplay(item.total_weight_tonnes, item.display_unit)} ${unit}`;
+    const weight = `${item.quantity} × ${perUnit} · total ${total}`;
     const refs = [item.order_number, item.connote].filter(Boolean).join(' · ');
     return refs ? `${weight} · ${refs}` : weight;
   }
@@ -421,6 +425,7 @@ export class LoadItemsSlider {
     this.createItemForm.reset({
       good_type_code: '',
       weight: null,
+      quantity: 1,
       display_unit: 'tonnes',
       order_number: '',
       connote: '',
@@ -465,6 +470,7 @@ export class LoadItemsSlider {
     const payload: Record<string, unknown> = {
       good_type_code: raw.good_type_code,
       weight_tonnes: weightInputToTonnes(weight, raw.display_unit),
+      quantity: Math.trunc(raw.quantity),
       display_unit: raw.display_unit,
       order_number: raw.order_number.trim() === '' ? null : raw.order_number.trim(),
       connote: raw.connote.trim() === '' ? null : raw.connote.trim(),

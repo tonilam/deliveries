@@ -16,6 +16,6 @@ As a customer user, I want a timeline of what changed on a load and who did it, 
 
 ## Notes
 - Load planning behaviour stays in [US-024](US-024-customer-loads.md). This story does not change those criteria.
-- Items stay in [US-023](US-023-customer-delivery-items.md). Editing an item’s goods type, weight, or references is not a load activity. Creating an item with a load, or deleting an item that is on a load, is.
+- Items stay in [US-023](US-023-customer-delivery-items.md). Editing an item’s goods type, per-unit weight, quantity, or references is not a load activity. Creating an item with a load, or deleting an item that is on a load, is.
 - Impersonation: [US-009](US-009-admin-impersonate-customer.md).
 - Loads created before this story have an empty timeline. Do not backfill.
