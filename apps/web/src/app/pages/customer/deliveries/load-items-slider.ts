@@ -158,7 +158,17 @@ export class LoadItemsSlider {
   protected readonly createItemForm = this.fb.nonNullable.group({
     good_type_code: this.fb.nonNullable.control('', [Validators.required]),
     weight: this.fb.control<number | null>(null, [Validators.required, Validators.min(0.000_001)]),
-    quantity: this.fb.nonNullable.control(1, [Validators.required, Validators.min(1)]),
+    quantity: this.fb.nonNullable.control(1, [
+      Validators.required,
+      Validators.min(1),
+      (control) => {
+        const value = control.value;
+        if (value === null || value === undefined || value === '') {
+          return null;
+        }
+        return Number.isInteger(Number(value)) ? null : { integer: true };
+      },
+    ]),
     display_unit: this.fb.nonNullable.control<ItemDisplayUnit>('tonnes', [Validators.required]),
     order_number: this.fb.nonNullable.control(''),
     connote: this.fb.nonNullable.control(''),
@@ -470,7 +480,7 @@ export class LoadItemsSlider {
     const payload: Record<string, unknown> = {
       good_type_code: raw.good_type_code,
       weight_tonnes: weightInputToTonnes(weight, raw.display_unit),
-      quantity: Math.trunc(raw.quantity),
+      quantity: raw.quantity,
       display_unit: raw.display_unit,
       order_number: raw.order_number.trim() === '' ? null : raw.order_number.trim(),
       connote: raw.connote.trim() === '' ? null : raw.connote.trim(),
