@@ -47,13 +47,7 @@ type Params = ICellRendererParams<LoadGridRow> & LoadChildrenFullWidthParams;
 
 @Component({
   selector: 'app-load-children-full-width',
-  imports: [
-    AgGridAngular,
-    LoadAddressCell,
-    LoadChildExpandCell,
-    LoadActionsCell,
-    LoadItemsFullWidth,
-  ],
+  imports: [AgGridAngular],
   template: `
     <div class="load-children-panel" #panel>
       <p class="load-children-panel__title">Add Drop &amp; X Dock loads</p>
@@ -156,7 +150,7 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
   };
 
   private actionsFor: (child: LoadRow) => LoadActionItem[] = () => [];
-  private onDetailHeight: (parentLoadId: number, height: number) => void = () => {};
+  private onDetailHeight: (parentLoadId: number, height: number) => void = () => undefined;
   private gridParams: Params | null = null;
   private childGridApi: GridApi<LoadChildGridRow> | null = null;
   protected columnDefs: ColDef<LoadChildGridRow>[] = [];
@@ -262,7 +256,7 @@ export class LoadChildrenFullWidth implements ICellRendererAngularComp {
 
   private applyParams(params: Params): void {
     this.gridParams = params;
-    this.onDetailHeight = params.onDetailHeight ?? (() => {});
+    this.onDetailHeight = params.onDetailHeight ?? (() => undefined);
     const data = params.data;
     if (data && isLoadDetailRow(data) && isLoadChildrenDetail(data)) {
       this.children.set(data.children);

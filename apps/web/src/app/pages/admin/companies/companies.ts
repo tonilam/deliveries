@@ -348,7 +348,7 @@ export class AdminCompanies implements OnInit {
     this.loadCompanies();
   }
 
-  protected actionsForList = (row: Company): DataListAction<Company>[] => {
+  protected actionsForList = (_row: Company): DataListAction<Company>[] => {
     return [
       {
         id: 'edit',

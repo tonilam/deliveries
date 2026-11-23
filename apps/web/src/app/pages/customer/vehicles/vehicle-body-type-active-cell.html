@@ -1,8 +1,9 @@
 @if (row) {
-  <label class="active-cell checkbox" (click)="$event.stopPropagation()">
+  <label class="active-cell checkbox">
     <input
       type="checkbox"
       [checked]="row.active"
+      (click)="$event.stopPropagation()"
       (change)="onChange($event)"
       [attr.aria-label]="'Active: ' + row.name"
     />

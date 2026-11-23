@@ -368,7 +368,7 @@ export class CustomerRateCards implements OnInit {
     this.loadRateCards();
   }
 
-  protected actionsForList = (data: RateCardRow): DataListAction<RateCardRow>[] => [
+  protected actionsForList = (_data: RateCardRow): DataListAction<RateCardRow>[] => [
     {
       id: 'edit',
       label: 'Edit',

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Format staged files with Prettier (apps/web) and Pint (apps/api).
+# Format staged files with Prettier (apps/web) and Pint (apps/api), then lint.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -31,6 +31,12 @@ if [[ ${#WEB_FILES[@]} -gt 0 ]]; then
   echo "pre-commit: prettier (${#WEB_FILES[@]} file(s))"
   "$PRETTIER" --write --ignore-unknown "${WEB_FILES[@]}"
   git add -- "${WEB_FILES[@]}"
+
+  echo "pre-commit: eslint (apps/web)"
+  (
+    cd "$ROOT/apps/web"
+    npm run lint
+  )
 fi
 
 if [[ ${#PHP_FILES[@]} -gt 0 ]]; then
@@ -51,6 +57,12 @@ if [[ ${#PHP_FILES[@]} -gt 0 ]]; then
     ./vendor/bin/pint "${REL_PHP[@]}"
   )
   git add -- "${PHP_FILES[@]}"
+
+  echo "pre-commit: pint --test (apps/api)"
+  (
+    cd "$ROOT/apps/api"
+    composer lint
+  )
 fi
 
 exit 0

@@ -79,14 +79,7 @@ function countryName(zone: Zone): string {
 
 @Component({
   selector: 'app-admin-zones',
-  imports: [
-    AgGridAngular,
-    DataListComponent,
-    FormsModule,
-    ReactiveFormsModule,
-    RouterLink,
-    BooleanCheckboxCell,
-  ],
+  imports: [AgGridAngular, DataListComponent, FormsModule, ReactiveFormsModule, RouterLink],
   templateUrl: './zones.html',
   styleUrls: ['../../../../shared/portal-shell.scss', './zones.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -442,7 +435,7 @@ export class AdminZones implements OnInit {
     this.loadZones();
   }
 
-  protected actionsForList = (row: Zone): DataListAction<Zone>[] => {
+  protected actionsForList = (_row: Zone): DataListAction<Zone>[] => {
     return [
       { id: 'edit', label: 'Edit', variant: 'primary', run: (data) => this.openEdit(data) },
       {

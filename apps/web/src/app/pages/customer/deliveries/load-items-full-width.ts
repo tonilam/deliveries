@@ -149,7 +149,7 @@ export class LoadItemsFullWidth implements ICellRendererAngularComp {
 
   private gridParams: Params | null = null;
   private detailParentId = 0;
-  private onDetailHeight: (detailParentId: number, height: number) => void = () => {};
+  private onDetailHeight: (detailParentId: number, height: number) => void = () => undefined;
   private fetchGeneration = 0;
 
   protected readonly defaultColDef: ColDef = {
@@ -222,7 +222,7 @@ export class LoadItemsFullWidth implements ICellRendererAngularComp {
 
   private bindParams(params: Params): void {
     this.gridParams = params;
-    this.onDetailHeight = params.onDetailHeight ?? (() => {});
+    this.onDetailHeight = params.onDetailHeight ?? (() => undefined);
     const data = params.data;
     const meta = data ? detailMeta(data) : null;
     if (!meta) {

@@ -176,14 +176,6 @@ const serverSideDateFilterParams: IDateFilterParams = {
     DataListComponent,
     FormsModule,
     RouterLink,
-    LoadActionsCell,
-    LoadDetailFullWidth,
-    LoadExpandCell,
-    LoadKindCell,
-    LoadKindFilter,
-    LoadKindFloatingFilter,
-    LoadAddressCell,
-    LoadItemCountCell,
     LoadActivitySlider,
     LoadItemsSlider,
     LoadXDockEditModal,
@@ -901,7 +893,7 @@ export class CustomerDeliveries implements OnInit {
     this.loadLoads();
   }
 
-  protected actionsForList = (data: LoadRow): DataListAction<LoadRow>[] => {
+  protected actionsForList = (_data: LoadRow): DataListAction<LoadRow>[] => {
     return [
       {
         id: 'edit',

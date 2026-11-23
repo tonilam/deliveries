@@ -92,7 +92,7 @@
 </section>
 
 @if (editOpen()) {
-  <div class="modal-backdrop" (click)="cancelEdit()"></div>
+  <div class="modal-backdrop" role="presentation" (click)="cancelEdit()"></div>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="zone-edit-title">
     <h2 id="zone-edit-title">Edit zone</h2>
     @if (editError(); as editErr) {
@@ -132,7 +132,7 @@
 }
 
 @if (pendingDelete(); as zone) {
-  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal-backdrop" role="presentation" (click)="cancelDelete()"></div>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="zone-delete-title">
     <h2 id="zone-delete-title">Confirm delete</h2>
     <p>Delete zone {{ zone.name }} ({{ zone.code }})?</p>

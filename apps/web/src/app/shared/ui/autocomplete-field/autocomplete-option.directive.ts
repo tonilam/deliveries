@@ -1,4 +1,4 @@
-import { Directive, TemplateRef } from '@angular/core';
+import { Directive, TemplateRef, inject } from '@angular/core';
 
 export interface AutocompleteOptionContext<T = unknown> {
   $implicit: T;
@@ -9,5 +9,5 @@ export interface AutocompleteOptionContext<T = unknown> {
   selector: '[uiAutocompleteOption]',
 })
 export class UiAutocompleteOptionDirective<T = unknown> {
-  constructor(readonly template: TemplateRef<AutocompleteOptionContext<T>>) {}
+  readonly template = inject(TemplateRef<AutocompleteOptionContext<T>>);
 }

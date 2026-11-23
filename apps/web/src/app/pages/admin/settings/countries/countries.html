@@ -71,7 +71,7 @@
 }
 
 @if (pending(); as pendingDelete) {
-  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal-backdrop" role="presentation" (click)="cancelDelete()"></div>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="country-delete-title">
     <h2 id="country-delete-title">Confirm delete</h2>
     <p>{{ confirmMessage(pendingDelete) }}</p>

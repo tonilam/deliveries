@@ -255,7 +255,7 @@ export class AdminVehicleBodyTypes implements OnInit {
     this.loadRows();
   }
 
-  protected actionsForList = (row: VehicleBodyType): DataListAction<VehicleBodyType>[] => [
+  protected actionsForList = (_row: VehicleBodyType): DataListAction<VehicleBodyType>[] => [
     {
       id: 'edit',
       label: 'Edit',

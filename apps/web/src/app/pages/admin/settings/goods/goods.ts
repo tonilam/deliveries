@@ -426,7 +426,7 @@ export class AdminGoods implements OnInit {
     this.loadGoodTypes();
   }
 
-  protected actionsForList = (row: GoodTypeListRow): DataListAction<GoodTypeListRow>[] => {
+  protected actionsForList = (_row: GoodTypeListRow): DataListAction<GoodTypeListRow>[] => {
     return [
       { id: 'edit', label: 'Edit', variant: 'primary', run: (data) => this.openEdit(data) },
       {

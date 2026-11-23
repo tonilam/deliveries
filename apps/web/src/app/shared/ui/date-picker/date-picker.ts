@@ -67,10 +67,11 @@ interface DayCell {
   selector: 'ui-date-picker',
   template: `
     @if (label()) {
-      <label class="dp-label">{{ label() }}</label>
+      <label class="dp-label" [attr.for]="triggerId">{{ label() }}</label>
     }
     <div class="dp">
       <button
+        [id]="triggerId"
         type="button"
         class="dp-trigger"
         [class.dp-trigger--open]="open()"
@@ -139,7 +140,10 @@ interface DayCell {
   ],
 })
 export class UiDatePickerComponent implements ControlValueAccessor {
+  private static nextId = 0;
+
   private readonly el = inject(ElementRef<HTMLElement>);
+  protected readonly triggerId = `ui-date-picker-trigger-${UiDatePickerComponent.nextId++}`;
 
   readonly label = input('');
   readonly placeholder = input('Select date');
@@ -155,8 +159,8 @@ export class UiDatePickerComponent implements ControlValueAccessor {
   protected readonly viewDate = signal(new Date());
   protected readonly open = signal(false);
 
-  private onChange: (value: string) => void = () => {};
-  private onTouched: () => void = () => {};
+  private onChange: (value: string) => void = () => undefined;
+  private onTouched: () => void = () => undefined;
 
   protected readonly monthLabel = computed(() => {
     const date = this.viewDate();

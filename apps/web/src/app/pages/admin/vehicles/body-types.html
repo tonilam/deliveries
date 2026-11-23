@@ -89,7 +89,7 @@
 </section>
 
 @if (pendingDelete(); as row) {
-  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal-backdrop" role="presentation" (click)="cancelDelete()"></div>
   <div class="modal" role="dialog" aria-modal="true">
     <h2>Delete body type</h2>
     <p>Delete body type “{{ row.name }}”?</p>

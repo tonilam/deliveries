@@ -42,10 +42,11 @@ function clampMinute(raw: number): number {
   selector: 'ui-time-picker',
   template: `
     @if (label()) {
-      <label class="dp-label">{{ label() }}</label>
+      <label class="dp-label" [attr.for]="triggerId">{{ label() }}</label>
     }
     <div class="dp">
       <button
+        [id]="triggerId"
         type="button"
         class="dp-trigger"
         [class.dp-trigger--open]="open()"
@@ -121,7 +122,10 @@ function clampMinute(raw: number): number {
   ],
 })
 export class UiTimePickerComponent implements ControlValueAccessor {
+  private static nextId = 0;
+
   private readonly el = inject(ElementRef<HTMLElement>);
+  protected readonly triggerId = `ui-time-picker-trigger-${UiTimePickerComponent.nextId++}`;
 
   readonly label = input('');
   readonly placeholder = input('Select time');
@@ -141,8 +145,8 @@ export class UiTimePickerComponent implements ControlValueAccessor {
     return this.draftHour() !== null && this.draftMinute() !== null;
   });
 
-  private onChange: (value: string) => void = () => {};
-  private onTouched: () => void = () => {};
+  private onChange: (value: string) => void = () => undefined;
+  private onTouched: () => void = () => undefined;
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {

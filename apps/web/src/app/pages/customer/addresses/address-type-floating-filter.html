@@ -17,7 +17,7 @@
       class="address-type-floating-filter__panel"
       role="listbox"
       [ngStyle]="panelStyle()"
-      (click)="onPanelClick($event)"
+      (mousedown)="onPanelClick($event)"
     >
       <label class="address-type-floating-filter__option">
         <input

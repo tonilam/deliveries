@@ -97,7 +97,7 @@
 </section>
 
 @if (categoryEditOpen()) {
-  <div class="modal-backdrop" (click)="cancelEditCategory()"></div>
+  <div class="modal-backdrop" role="presentation" (click)="cancelEditCategory()"></div>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="category-edit-title">
     <h2 id="category-edit-title">Edit category</h2>
     @if (categoryEditError(); as editErr) {
@@ -135,7 +135,7 @@
 }
 
 @if (pendingDelete(); as pending) {
-  <div class="modal-backdrop" (click)="cancelDelete()"></div>
+  <div class="modal-backdrop" role="presentation" (click)="cancelDelete()"></div>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vehicle-delete-title">
     <h2 id="vehicle-delete-title">Confirm delete</h2>
     <p>{{ deleteMessage(pending) }}</p>

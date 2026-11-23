@@ -21,10 +21,8 @@ type OptionLabelFn = (option: unknown) => string;
       <ng-content select="[uiAutocompleteBefore]" />
 
       @if (label()) {
-        <label class="ui-autocomplete__label">
-          {{ label() }}
-          <ng-container *ngTemplateOutlet="fieldInput" />
-        </label>
+        <label class="ui-autocomplete__label" [attr.for]="inputId">{{ label() }}</label>
+        <ng-container *ngTemplateOutlet="fieldInput" />
       } @else {
         <ng-container *ngTemplateOutlet="fieldInput" />
       }
@@ -73,6 +71,7 @@ type OptionLabelFn = (option: unknown) => string;
     <ng-template #fieldInput>
       <span class="ui-autocomplete__field" [class.ui-autocomplete__field--clearable]="showClear()">
         <input
+          [id]="inputId"
           type="text"
           class="ui-autocomplete__input"
           [value]="query()"
@@ -110,8 +109,12 @@ type OptionLabelFn = (option: unknown) => string;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UiAutocompleteFieldComponent {
+  private static nextId = 0;
+
   @ContentChild(UiAutocompleteOptionDirective)
   protected optionSlot?: UiAutocompleteOptionDirective;
+
+  protected readonly inputId = `ui-autocomplete-input-${UiAutocompleteFieldComponent.nextId++}`;
 
   readonly label = input<string | undefined>();
   readonly query = input.required<string>();

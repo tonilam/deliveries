@@ -16,12 +16,12 @@ export interface Country {
   updated_at: string;
 }
 
-export type CountryPayload = {
+export interface CountryPayload {
   name: string;
   code: string;
-};
+}
 
-export type CountryStatePayload = {
+export interface CountryStatePayload {
   name: string;
   code: string;
-};
+}

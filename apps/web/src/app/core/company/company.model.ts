@@ -30,7 +30,7 @@ export interface Company {
   updated_at: string;
 }
 
-export type CompanyDetailsPayload = {
+export interface CompanyDetailsPayload {
   company_type: CompanyType;
   country_id: number;
   reg_number: string;
@@ -40,12 +40,12 @@ export type CompanyDetailsPayload = {
   email: string;
   address: string;
   allowed_domains: string[];
-};
+}
 
-export type CompanyFinancePayload = {
+export interface CompanyFinancePayload {
   invoicee_name: string;
   gst_rate: number;
   tracking_option: string | null;
-};
+}
 
 export type CompanyPayload = CompanyDetailsPayload & CompanyFinancePayload;

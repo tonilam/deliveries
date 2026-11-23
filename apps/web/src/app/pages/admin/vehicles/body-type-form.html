@@ -134,7 +134,7 @@
 </section>
 
 @if (optionFormOpen()) {
-  <div class="modal-backdrop" (click)="cancelOptionForm()"></div>
+  <div class="modal-backdrop" role="presentation" (click)="cancelOptionForm()"></div>
   <div class="modal" role="dialog" aria-modal="true">
     <h2>{{ editingOptionId() ? 'Edit option' : 'Add option' }}</h2>
     <form [formGroup]="optionForm" (ngSubmit)="saveOptionDefinition()" class="form-stack">

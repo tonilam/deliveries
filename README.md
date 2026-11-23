@@ -23,7 +23,7 @@ deploy/    ECR push + EC2 run helpers
 | `apps/web` | Prettier, ESLint (`angular-eslint`) | `npm run format` / `npm run lint` |
 | `apps/api` | Pint, Rector | `composer format` / `composer rector` |
 
-Install the git pre-commit hook (formats staged web files with Prettier and staged PHP with Pint):
+Install the git pre-commit hook (format + lint: Prettier and ESLint for staged `apps/web` files; Pint format and `--test` for staged `apps/api` PHP):
 
 ```bash
 make hooks-install

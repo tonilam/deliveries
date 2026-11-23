@@ -17,7 +17,7 @@
       class="refrigerated-required-floating-filter__panel"
       role="listbox"
       [ngStyle]="panelStyle()"
-      (click)="onPanelClick($event)"
+      (mousedown)="onPanelClick($event)"
     >
       <label class="refrigerated-required-floating-filter__option">
         <input

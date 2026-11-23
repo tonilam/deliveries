@@ -122,7 +122,7 @@
   }
 
   @if (deleteTarget(); as target) {
-    <div class="modal-backdrop" (click)="cancelDelete()"></div>
+    <div class="modal-backdrop" role="presentation" (click)="cancelDelete()"></div>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="network-delete-title">
       <h2 id="network-delete-title">Delete {{ target.business_name }}?</h2>
       <p>This cannot be undone. The company must have no users, addresses, or rate cards.</p>

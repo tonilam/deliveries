@@ -17,7 +17,7 @@
       class="load-kind-floating-filter__panel"
       role="listbox"
       [ngStyle]="panelStyle()"
-      (click)="onPanelClick($event)"
+      (mousedown)="onPanelClick($event)"
     >
       @for (option of options; track option.slug) {
         <label class="load-kind-floating-filter__option">

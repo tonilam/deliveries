@@ -130,14 +130,7 @@ function postcodeAsNumber(postcode: string | undefined | null): number | null {
 
 @Component({
   selector: 'app-customer-addresses',
-  imports: [
-    AgGridAngular,
-    DataListComponent,
-    FormsModule,
-    RouterLink,
-    AddressTypeFilter,
-    AddressTypeFloatingFilter,
-  ],
+  imports: [AgGridAngular, DataListComponent, FormsModule, RouterLink],
   templateUrl: './addresses.html',
   styleUrls: ['../../../shared/portal-shell.scss', './addresses.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -402,7 +395,7 @@ export class CustomerAddresses implements OnInit {
     this.loadAddresses();
   }
 
-  protected actionsForList = (data: AddressRow): DataListAction<AddressRow>[] => {
+  protected actionsForList = (_data: AddressRow): DataListAction<AddressRow>[] => {
     return [
       {
         id: 'edit',

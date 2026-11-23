@@ -56,7 +56,7 @@
 </section>
 
 @if (pending(); as pendingToggle) {
-  <div class="modal-backdrop" (click)="cancelToggle()"></div>
+  <div class="modal-backdrop" role="presentation" (click)="cancelToggle()"></div>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="feature-confirm-title">
     <h2 id="feature-confirm-title">Confirm change</h2>
     <p>{{ confirmMessage(pendingToggle) }}</p>
